@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Bảng Điều Khiển Ô Chữ (Kỹ Thuật)</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #222;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h3 {
+            margin-top: 20px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+            color: #5ac8fa;
+        }
+
+        .group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 15px 25px;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            min-width: 100px;
+        }
+
+        .btn-main {
+            background-color: green;
+            color: white;
+        }
+
+        .btn-excel {
+            background-color: purple;
+            color: white;
+        }
+
+        .btn-reveal {
+            background-color: blue;
+            color: white;
+        }
+
+        .btn-reset {
+            background-color: #ff00ff;
+            color: white;
+            font-weight: bold;
+        }
+
+        .btn-tossup {
+            background-color: yellow;
+            color: black;
+        }
+
+        .btn-solve {
+            background-color: yellow;
+            color: black;
+        }
+
+        .btn-quiz {
+            background-color: #34495e;
+            color: white;
+        }
+
+        .btn-time-30 {
+            background-color: blue;
+            color: white;
+            font-weight: bold;
+        }
+
+        .btn-time-10 {
+            background-color: green;
+            color: white;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: orange !important;
+            color: white !important;
+        }
+
+        #alphabetSection {
+            display: block;
+        }
+
+        .btn-letter {
+            background-color: purple;
+            color: #fff;
+            min-width: 50px;
+            padding: 12px;
+            margin: 4px;
+            font-size: 16px;
+            border-radius: 4px;
+        }
+
+        .btn-letter:disabled {
+            background-color: #555 !important;
+            color: #aaa !important;
+            cursor: not-allowed;
+        }
+
+        .active {
+            background-color: red !important;
+            color: white !important;
+            box-shadow: 0 0 10px #ff3b30;
+        }
+
+        .custom-popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .custom-popup-box {
+            background: #333;
+            border: 2px solid #5ac8fa;
+            padding: 25px 40px;
+            border-radius: 8px;
+            text-align: center;
+            max-width: 420px;
+            box-shadow: 0 0 20px rgba(90, 200, 250, 0.6);
+        }
+
+        .custom-popup-msg {
+            font-size: 16px;
+            margin-bottom: 20px;
+            color: #fff;
+            font-weight: bold;
+            line-height: 1.5;
+        }
+
+        .custom-popup-btn {
+            background: #5ac8fa;
+            color: #000;
+            padding: 10px 30px;
+            font-weight: bold;
+            border-radius: 5px;
+            min-width: 80px;
+        }
+
+        .custom-popup-btn:hover {
+            background: #34495e;
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>BẢNG ĐIỀU KHIỂN TRÒ CHƠI (REALTIME)</h2>
+
+    <h3>Hệ thống chính</h3>
+    <div class="group">
+        <button class="btn-excel" onclick="document.getElementById('excelInput').click()">NẠP FILE EXCEL</button>
+        <button class="btn-main" onclick="sendCmd('SHOW_BOARD')">SHOW Ô CHỮ</button>
+        <button class="btn-reveal" onclick="sendCmd('REVEAL_ALL')">MỞ HẾT TOÀN BỘ</button>
+        <button class="btn-reset" onclick="sendCmd('RESET_BOARD')">RESET BẢNG TRỐNG</button>
+        <input type="file" id="excelInput" accept=".xlsx, .xls" style="display:none;" onchange="handleExcel(this)">
+    </div>
+
+    <h3>Vòng đoán nhanh (Toss-up)</h3>
+    <div class="group">
+        <button class="btn-tossup" id="startBtn" onclick="sendCmd('START_TOSSUP')">START</button>
+        <button class="btn-tossup" id="pauseBtn" onclick="sendCmd('PAUSE_TOSSUP')">PAUSE</button>
+        <button class="btn-tossup" id="playBtn" onclick="sendCmd('PLAY_TOSSUP')">PLAY</button>
+        <button class="btn-solve" id="solveBtn" onclick="solveTossUp()">SOLVE</button>
+    </div>
+
+    <h3>Chọn đề bài từ Excel (1 - 12)</h3>
+    <div class="group">
+        <script>
+            for (let i = 1; i <= 12; i++) {
+                document.write(`<button class="btn-quiz" id="btnQuiz${i}" onclick="loadQuizFromExcel(${i - 1})">ĐỀ ${i}</button>`);
+            }
+        </script>
+    </div>
+
+    <div id="alphabetSection" style="display: none;">
+        <h3>Bàn phím đoán chữ cái (Đề đoán chữ)</h3>
+        <div class="group" id="alphabetContainer"></div>
+
+        <div style="margin-top: 20px; text-align: center;">
+            <label style="font-weight: bold; color: aqua;">SỐ Ô CẦN MỞ:</label>
+            <input type="number" id="numCells"
+                style="font-weight: bold; padding: 5px; width: 60px; margin-left: 10px; text-align: center; border-radius: 4px;"
+                min="0" max="52" oninput="generateChildTextBoxes()">
+        </div>
+
+        <div id="childTextBoxes" class="group" style="margin-top: 15px;"></div>
+
+        <div class="group" style="margin-top: 15px;">
+            <button class="btn-reset" onclick="triggerSequence('MARK_SEQ')">MỞ LẦN 1 (ĐÁNH DẤU)</button>
+            <button class="btn-reset" onclick="triggerSequence('REVEAL_SEQ')">MỞ LẦN 2 (MỞ CHỮ)</button>
+        </div>
+
+        <div id="extraLettersSection"
+            style="display: none; margin-top: 20px; border: 2px dashed #5ac8fa; padding: 15px; border-radius: 8px;">
+            <h3 style="color: #39ff14; margin-top: 0; border: none;">Chữ cái đoán thêm:</h3>
+            <div class="group" id="extraLettersContainer">
+                <script>
+                    for (let i = 0; i < 10; i++) {
+                        document.write('<input type="text" maxlength="1" class="extra-letter-input" style="width: 35px; height: 35px; font-weight: bold; text-align: center; font-size: 18px; margin: 0 3px; text-transform: uppercase; border-radius: 4px; border: 1px solid #ccc;">');
+                    }
+                </script>
+            </div>
+            <div class="group" style="margin-top: 15px;">
+                <button style="background-color: green; color: white; font-weight: bold;"
+                    onclick="confirmExtraLetters()">XÁC NHẬN</button>
+                <button style="background-color: blue; color: white; font-weight: bold;"
+                    onclick="clearExtraLetters()">XÓA TẤT CẢ</button>
+            </div>
+            
+            <h3 style="color: #ffcc00; margin-top: 15px; border: none;">Thời gian suy nghĩ (Đề 10, 11, 12):</h3>
+            <div class="group">
+                <button class="btn-time-30" onclick="sendCmd('PLAY_TIMER', 30)">30 GIÂY</button>
+                <button class="btn-time-10" onclick="sendCmd('PLAY_TIMER', 10)">10 GIÂY</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="customPopup" class="custom-popup-overlay">
+        <div class="custom-popup-box">
+            <p id="popupMessage" class="custom-popup-msg"></p>
+            <button class="custom-popup-btn" onclick="closePopup()">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // --- CẤU HÌNH KẾT NỐI SUPABASE REALTIME ---
+        var SUPABASE_URL = "https://tukabyhjmcyptuwmwedp.supabase.co";
+        var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OX0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
+
+        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const channel = supabaseClient.channel('crossword_broadcast_room', {
+            config: { broadcast: { ack: false, self: false } }
+        });
+        channel.subscribe();
+
+        // --- BIẾN QUẢN LÝ TRẠNG THÁI TOSS-UP TRÊN CONTROL ---
+        let tossupTimeout = null;
+        let isTossupRunning = false;
+        let controlActiveQuizLetters = []; // Lưu cấu trúc chữ cái của đề hiện tại
+        let controlRevealedStates = new Array(52).fill(false); // Lưu trạng thái lật của 52 ô
+
+        // Lắng nghe dữ liệu phản hồi ngược lại từ màn hình hiển thị chính
+        channel.on('broadcast', { event: 'display-to-control' }, ({ payload }) => {
+            const { type, data } = payload;
+
+            if (type === "UPDATE_QUIZ_ACTIVE") {
+                for (let i = 1; i <= 12; i++) {
+                    document.getElementById(`btnQuiz${i}`).classList.remove("active");
+                }
+                document.getElementById(`btnQuiz${data + 1}`).classList.add("active");
+
+                const targetQuizzes = [2, 3, 4, 8, 9, 10, 11];
+                if (targetQuizzes.includes(data)) {
+                    document.getElementById("alphabetSection").style.display = "block";
+                } else {
+                    document.getElementById("alphabetSection").style.display = "none";
+                }
+
+                if ([9, 10, 11].includes(data)) {
+                    document.getElementById("extraLettersSection").style.display = "block";
+                } else {
+                    document.getElementById("extraLettersSection").style.display = "none";
+                }
+
+                document.querySelectorAll(".btn-letter").forEach(btn => btn.disabled = false);
+                document.getElementById("numCells").value = "";
+                document.getElementById("childTextBoxes").innerHTML = "";
+            }
+
+            if (type === "UPDATE_CTRL_ACTIVE") {
+                document.getElementById("startBtn").classList.remove("active");
+                document.getElementById("pauseBtn").classList.remove("active");
+                document.getElementById("playBtn").classList.remove("active");
+                if (data) document.getElementById(data).classList.add("active");
+
+                // Đồng bộ trạng thái chạy Toss-up dựa trên phản hồi nếu cần
+                if (data === "startBtn" || data === "playBtn") {
+                    isTossupRunning = true;
+                } else if (data === "pauseBtn" || data === null) {
+                    isTossupRunning = false;
+                    clearTimeout(tossupTimeout);
+                }
+            }
+
+            if (type === "FILL_POSITIONS") {
+                document.getElementById("numCells").value = data.length;
+                generateChildTextBoxes(data);
+            }
+        });
+
+        // --- XỬ LÝ DỮ LIỆU EXCEL ---
+        let importedQuizzes = [];
+
+        function handleExcel(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                importedQuizzes = [];
+
+                for (let i = 0; i < Math.min(workbook.SheetNames.length, 12); i++) {
+                    const sheetName = workbook.SheetNames[i];
+                    const sheet = workbook.Sheets[sheetName];
+                    importedQuizzes.push(parseExcelGrid(sheet));
+                }
+                showCustomAlert(`Thành công! Đã nạp cấu trúc ${importedQuizzes.length} đề từ file Excel.`);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function parseExcelGrid(sheet) {
+            let letters = [];
+            for (let c = 1; c <= 12; c++) {
+                let cellRef = XLSX.utils.encode_cell({ r: 1, c: c });
+                letters.push(sheet[cellRef] ? String(sheet[cellRef].v) : "");
+            }
+            for (let c = 0; c <= 13; c++) {
+                let cellRef = XLSX.utils.encode_cell({ r: 2, c: c });
+                letters.push(sheet[cellRef] ? String(sheet[cellRef].v) : "");
+            }
+            for (let c = 0; c <= 13; c++) {
+                let cellRef = XLSX.utils.encode_cell({ r: 3, c: c });
+                letters.push(sheet[cellRef] ? String(sheet[cellRef].v) : "");
+            }
+            for (let c = 1; c <= 12; c++) {
+                let cellRef = XLSX.utils.encode_cell({ r: 4, c: c });
+                letters.push(sheet[cellRef] ? String(sheet[cellRef].v) : "");
+            }
+            return letters;
+        }
+
+        function loadQuizFromExcel(quizIndex) {
+            if (importedQuizzes.length === 0) {
+                showCustomAlert("Lỗi: Vui lòng click chọn và nạp file Excel hệ thống trước!");
+                return;
+            }
+            const quizLetters = importedQuizzes[quizIndex];
+            if (!quizLetters) {
+                showCustomAlert(`Lỗi: Không tìm thấy dữ liệu Sheet tương ứng với Đề ${quizIndex + 1}`);
+                return;
+            }
+
+            // Lưu thông tin đề tại Control phục vụ Toss-up tính toán
+            controlActiveQuizLetters = quizLetters;
+            controlRevealedStates = new Array(52).fill(false);
+            clearTimeout(tossupTimeout);
+            isTossupRunning = false;
+
+            sendCmd('LOAD_QUIZ', { index: quizIndex, letters: quizLetters });
+        }
+
+        // --- LOGIC ĐIỀU KHIỂN CHỌN Ô NGẪU NHIÊN TOSS-UP ---
+        function controlRevealRandomCell() {
+            if (!isTossupRunning) return;
+
+            // Lọc ra danh sách các index ô hợp lệ (có chữ cái và chưa lật)
+            let hiddenIndices = [];
+            controlActiveQuizLetters.forEach((letter, i) => {
+                if (letter !== "" && letter !== " " && letter && !controlRevealedStates[i]) {
+                    hiddenIndices.push(i);
+                }
+            });
+
+            if (hiddenIndices.length === 0) {
+                isTossupRunning = false;
+                clearTimeout(tossupTimeout);
+                sendCmd('STOP_TOSSUP_MUSIC');
+                return;
+            }
+
+            // Control tính toán ngẫu nhiên vị trí ô cần mở
+            const randomIndex = hiddenIndices[Math.floor(Math.random() * hiddenIndices.length)];
+            controlRevealedStates[randomIndex] = true;
+
+            // Gửi lệnh yêu cầu tất cả các màn hình lật chính xác ô này
+            sendCmd('TOSSUP_REVEAL_CELL', { absoluteIndex: randomIndex + 1 });
+
+            // Tính thời gian delay ngẫu nhiên kế tiếp và tiếp tục vòng lặp tại Control
+            const randomDelay = Math.random() * (1500 - 1000) + 1000;
+            tossupTimeout = setTimeout(controlRevealRandomCell, randomDelay);
+        }
+
+        // Hàm bổ trợ trigger các nút điều khiển Toss-up hệ thống
+        function clickStartTossup() {
+            if (controlActiveQuizLetters.length === 0) {
+                showCustomAlert("Lỗi: Vui lòng nạp đề bài trước khi chơi Toss-up!");
+                return;
+            }
+            clearTimeout(tossupTimeout);
+            controlRevealedStates = new Array(52).fill(false);
+            isTossupRunning = true;
+
+            sendCmd('START_TOSSUP');
+            controlRevealRandomCell();
+        }
+
+        function clickPauseTossup() {
+            isTossupRunning = false;
+            clearTimeout(tossupTimeout);
+            sendCmd('PAUSE_TOSSUP');
+        }
+
+        function clickPlayTossup() {
+            if (isTossupRunning) return;
+            isTossupRunning = true;
+            sendCmd('PLAY_TOSSUP');
+            controlRevealRandomCell();
+        }
+
+        // Thay đổi sự kiện onclick trong HTML bằng các hàm quản lý mới này
+        document.getElementById("startBtn").setAttribute("onclick", "clickStartTossup()");
+        document.getElementById("pauseBtn").setAttribute("onclick", "clickPauseTossup()");
+        document.getElementById("playBtn").setAttribute("onclick", "clickPlayTossup()");
+
+
+        // --- PHẦN GIAO DIỆN HOẠT ĐỘNG CHỮ CÁI ---
+        const vietnameseAlphabet = ["A", "Ă", "Â", "B", "C", "D", "Đ", "E", "Ê", "G", "H", "I", "K", "L", "M", "N", "O", "Ô", "Ơ", "P", "Q", "R", "S", "T", "U", "Ư", "V", "X", "Y"];
+        const container = document.getElementById("alphabetContainer");
+        vietnameseAlphabet.forEach(letter => {
+            const btn = document.createElement("button");
+            btn.className = "btn-letter";
+            btn.id = `btn-char-${letter}`;
+            btn.textContent = letter;
+            btn.onclick = () => {
+                btn.disabled = true;
+                sendCmd('GUESS_LETTER', letter);
+            };
+            container.appendChild(btn);
+        });
+
+        function solveTossUp() {
+            isTossupRunning = false;
+            clearTimeout(tossupTimeout);
+            const audio = new Audio('ClearTossUp.mp3');
+            audio.play().catch(err => console.log("Lỗi âm thanh điều khiển:", err));
+            sendCmd('REVEAL_ALL');
+            sendCmd('SOLVE_TOSSUP');
+        }
+
+        function showCustomAlert(message) {
+            document.getElementById("popupMessage").textContent = message;
+            document.getElementById("customPopup").style.display = "flex";
+        }
+
+        function closePopup() {
+            document.getElementById("customPopup").style.display = "none";
+        }
+
+        function sendCmd(type, data = null) {
+            channel.send({
+                type: 'broadcast',
+                event: 'control-to-display',
+                payload: { type: type, data: data }
+            });
+        }
+
+        function generateChildTextBoxes(autoValues = []) {
+            const num = parseInt(document.getElementById("numCells").value) || 0;
+            const container = document.getElementById("childTextBoxes");
+            container.innerHTML = "";
+
+            for (let i = 0; i < num; i++) {
+                const input = document.createElement("input");
+                input.type = "number";
+                input.className = "child-pos-input";
+                input.style.cssText = "font-weight: bold; width: 45px; padding: 10px; text-align: center; border-radius: 4px;";
+                input.min = 1;
+                input.max = 52;
+                if (autoValues[i] !== undefined) {
+                    input.value = autoValues[i];
+                }
+                container.appendChild(input);
+            }
+        }
+
+        function triggerSequence(actionType) {
+            const inputs = document.querySelectorAll(".child-pos-input");
+            let positions = [];
+            inputs.forEach(input => {
+                const val = parseInt(input.value);
+                if (!isNaN(val) && val >= 1 && val <= 52) {
+                    positions.push(val);
+                }
+            });
+            if (positions.length > 0) {
+                positions.sort((a, b) => a - b);
+                sendCmd(actionType, positions);
+            }
+        }
+
+        function confirmExtraLetters() {
+            const inputs = document.querySelectorAll(".extra-letter-input");
+            let letters = [];
+            inputs.forEach(inp => {
+                const val = inp.value.trim().toUpperCase();
+                if (val !== "") letters.push(val);
+            });
+            if (letters.length === 0) {
+                showCustomAlert("Vui lòng nhập ít nhất 1 chữ cái!");
+                return;
+            }
+            sendCmd("GUESS_MULTI_LETTERS", letters);
+        }
+
+        function clearExtraLetters() {
+            document.querySelectorAll(".extra-letter-input").forEach(inp => inp.value = "");
+        }
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'F12') { e.preventDefault(); return false; }
+            if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) { e.preventDefault(); return false; }
+            if (e.ctrlKey && e.key === 'U') { e.preventDefault(); return false; }
+        });
+    </script>
+</body>
+
+</html>

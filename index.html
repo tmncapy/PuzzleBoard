@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="vi">
+ 
+<head>
+    <meta charset="UTF-8">
+    <title>Màn Hình Hiển Thị Ô Chữ (Khán Giả)</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+    <div id="board"></div>
+
+    <script>
+        // Sửa lỗi: Thêm https:// vào đầu URL
+        window.SUPABASE_URL = "https://tukabyhjmcyptuwmwedp.supabase.co";
+        window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OX0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
+        document.addEventListener('keydown', function (e) {
+            // Chặn F12
+            if (e.key === 'F12') {
+                e.preventDefault();
+                return false;
+            }
+
+            // Chặn Ctrl + Shift + I (Inspect), J (Console), C (Elements)
+            if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) {
+                e.preventDefault();
+                return false;
+            }
+
+            // Chặn Ctrl + U (View Source)
+            if (e.ctrlKey && e.key === 'U') {
+                e.preventDefault();
+                return false;
+            }
+        });
+    </script>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

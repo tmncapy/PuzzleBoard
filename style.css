@@ -1,0 +1,38 @@
+@font-face {
+    font-family: "UTMHelvetIns";
+    src: url("UTM HELVETINS_3.TTF") format("truetype");
+}
+
+body {
+    margin: 0;
+    background: #000;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#board {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    background: url("bangochu.png") no-repeat center;
+    background-size: 100% 100%;
+}
+
+.cell {
+    position: absolute;
+    width: 110px;
+    height: 145px;
+    background: url("defaultbox.png") center center no-repeat;
+    background-size: 100% 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: "UTMHelvetIns", Arial, sans-serif;
+    font-size: 85px;
+    color: #000;
+    cursor: pointer;
+    user-select: none;
+}
