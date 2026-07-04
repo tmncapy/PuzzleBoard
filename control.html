@@ -163,6 +163,17 @@
             background: #34495e;
             color: #fff;
         }
+
+        .input-manual {
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            width: 300px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            text-transform: uppercase;
+            text-align: center;
+        }
     </style>
 </head>
 
@@ -170,13 +181,21 @@
 
     <h2>BẢNG ĐIỀU KHIỂN TRÒ CHƠI (REALTIME)</h2>
 
-    <h3>Hệ thống chính</h3>
+    <h3>Hệ thống chính & Thumbnail</h3>
     <div class="group">
         <button class="btn-excel" onclick="document.getElementById('excelInput').click()">NẠP FILE EXCEL</button>
         <button class="btn-main" onclick="sendCmd('SHOW_BOARD')">SHOW Ô CHỮ</button>
         <button class="btn-reveal" onclick="sendCmd('REVEAL_ALL')">MỞ HẾT TOÀN BỘ</button>
         <button class="btn-reset" onclick="sendCmd('RESET_BOARD')">RESET BẢNG TRỐNG</button>
+        <button style="background-color: #2980b9; color: white;" onclick="sendCmd('SHOW_THUMBNAIL')">HIỆN THUMBNAIL</button>
+        <button style="background-color: #7f8c8d; color: white;" onclick="sendCmd('HIDE_THUMBNAIL')">ẨN THUMBNAIL</button>
         <input type="file" id="excelInput" accept=".xlsx, .xls" style="display:none;" onchange="handleExcel(this)">
+    </div>
+
+    <h3>Nhập từ khóa thủ công (Hiện thẳng lên bảng)</h3>
+    <div class="group">
+        <input type="text" id="manualTextInput" class="input-manual" placeholder="NHẬP TỪ KHÓA TẠI ĐÂY...">
+        <button style="background-color: #27ae60; color: white;" onclick="sendManualText()">SHOW CHỮ LÊN BẢNG</button>
     </div>
 
     <h3>Vòng đoán nhanh (Toss-up)</h3>
@@ -274,18 +293,19 @@
         // --- BIẾN QUẢN LÝ TRẠNG THÁI TOSS-UP TRÊN CONTROL ---
         let tossupTimeout = null;
         let isTossupRunning = false;
-        let controlActiveQuizLetters = []; // Lưu cấu trúc chữ cái của đề hiện tại
-        let controlRevealedStates = new Array(52).fill(false); // Lưu trạng thái lật của 52 ô
+        let controlActiveQuizLetters = []; 
+        let controlRevealedStates = new Array(52).fill(false); 
 
-        // Lắng nghe dữ liệu phản hồi ngược lại từ màn hình hiển thị chính
         channel.on('broadcast', { event: 'display-to-control' }, ({ payload }) => {
             const { type, data } = payload;
 
             if (type === "UPDATE_QUIZ_ACTIVE") {
                 for (let i = 1; i <= 12; i++) {
-                    document.getElementById(`btnQuiz${i}`).classList.remove("active");
+                    const btn = document.getElementById(`btnQuiz${i}`);
+                    if (btn) btn.classList.remove("active");
                 }
-                document.getElementById(`btnQuiz${data + 1}`).classList.add("active");
+                const activeBtn = document.getElementById(`btnQuiz${data + 1}`);
+                if (activeBtn) activeBtn.classList.add("active");
 
                 const targetQuizzes = [2, 3, 4, 8, 9, 10, 11];
                 if (targetQuizzes.includes(data)) {
@@ -311,7 +331,6 @@
                 document.getElementById("playBtn").classList.remove("active");
                 if (data) document.getElementById(data).classList.add("active");
 
-                // Đồng bộ trạng thái chạy Toss-up dựa trên phản hồi nếu cần
                 if (data === "startBtn" || data === "playBtn") {
                     isTossupRunning = true;
                 } else if (data === "pauseBtn" || data === null) {
@@ -325,6 +344,16 @@
                 generateChildTextBoxes(data);
             }
         });
+
+        // HÀM GỬI TỪ KHÓA NHẬP THỦ CÔNG LÊN BẢNG HIỂN THỊ
+        function sendManualText() {
+            const txt = document.getElementById("manualTextInput").value.trim().toUpperCase();
+            if (txt === "") {
+                showCustomAlert("Vui lòng nhập nội dung ô chữ muốn hiển thị!");
+                return;
+            }
+            sendCmd("SHOW_MANUAL_TEXT", txt);
+        }
 
         // --- XỬ LÝ DỮ LIỆU EXCEL ---
         let importedQuizzes = [];
@@ -369,7 +398,7 @@
             return letters;
         }
 
-        function loadQuizFromExcel(quizIndex) {
+        function loadQuiz(quizIndex) {
             if (importedQuizzes.length === 0) {
                 showCustomAlert("Lỗi: Vui lòng click chọn và nạp file Excel hệ thống trước!");
                 return;
@@ -380,7 +409,6 @@
                 return;
             }
 
-            // Lưu thông tin đề tại Control phục vụ Toss-up tính toán
             controlActiveQuizLetters = quizLetters;
             controlRevealedStates = new Array(52).fill(false);
             clearTimeout(tossupTimeout);
@@ -389,11 +417,9 @@
             sendCmd('LOAD_QUIZ', { index: quizIndex, letters: quizLetters });
         }
 
-        // --- LOGIC ĐIỀU KHIỂN CHỌN Ô NGẪU NHIÊN TOSS-UP ---
         function controlRevealRandomCell() {
             if (!isTossupRunning) return;
 
-            // Lọc ra danh sách các index ô hợp lệ (có chữ cái và chưa lật)
             let hiddenIndices = [];
             controlActiveQuizLetters.forEach((letter, i) => {
                 if (letter !== "" && letter !== " " && letter && !controlRevealedStates[i]) {
@@ -408,19 +434,15 @@
                 return;
             }
 
-            // Control tính toán ngẫu nhiên vị trí ô cần mở
             const randomIndex = hiddenIndices[Math.floor(Math.random() * hiddenIndices.length)];
             controlRevealedStates[randomIndex] = true;
 
-            // Gửi lệnh yêu cầu tất cả các màn hình lật chính xác ô này
             sendCmd('TOSSUP_REVEAL_CELL', { absoluteIndex: randomIndex + 1 });
 
-            // Tính thời gian delay ngẫu nhiên kế tiếp và tiếp tục vòng lặp tại Control
             const randomDelay = Math.random() * (1500 - 1000) + 1000;
             tossupTimeout = setTimeout(controlRevealRandomCell, randomDelay);
         }
 
-        // Hàm bổ trợ trigger các nút điều khiển Toss-up hệ thống
         function clickStartTossup() {
             if (controlActiveQuizLetters.length === 0) {
                 showCustomAlert("Lỗi: Vui lòng nạp đề bài trước khi chơi Toss-up!");
@@ -447,13 +469,10 @@
             controlRevealRandomCell();
         }
 
-        // Thay đổi sự kiện onclick trong HTML bằng các hàm quản lý mới này
         document.getElementById("startBtn").setAttribute("onclick", "clickStartTossup()");
         document.getElementById("pauseBtn").setAttribute("onclick", "clickPauseTossup()");
         document.getElementById("playBtn").setAttribute("onclick", "clickPlayTossup()");
 
-
-        // --- PHẦN GIAO DIỆN HOẠT ĐỘNG CHỮ CÁI ---
         const vietnameseAlphabet = ["A", "Ă", "Â", "B", "C", "D", "Đ", "E", "Ê", "G", "H", "I", "K", "L", "M", "N", "O", "Ô", "Ơ", "P", "Q", "R", "S", "T", "U", "Ư", "V", "X", "Y"];
         const container = document.getElementById("alphabetContainer");
         vietnameseAlphabet.forEach(letter => {

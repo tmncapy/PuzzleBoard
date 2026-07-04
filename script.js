@@ -25,19 +25,12 @@ tossupSound.loop = true;
 let currentQuizIndex = 0; 
 let allCells = [];
 let absoluteCells = new Array(52).fill(null);
+let activeSFXTracks = []; // Mảng toàn cục quản lý các track âm thanh tự do để tắt triệt để
 
-// MẢNG TOÀN CỤC QUẢN LÝ CÁC TRACK SFX ĐANG PHÁT (Sửa lỗi không dừng được âm thanh)
-let activeSFXTracks = [];
-
-// Hàm cấp quyền chạy âm thanh chủ động trên trình duyệt chống lỗi bảo mật (Autoplay Policy)
 function initAudioPermission() {
-    showSound.load(); 
-    revealSound.load(); 
-    clearPuzzleSound.load(); 
-    tossupSound.load();
+    showSound.load(); revealSound.load(); clearPuzzleSound.load(); tossupSound.load();
 }
 
-// HÀM PHÁT ÂM THANH Ô CHỮ VẰNG CÁCH TẠO MỚI ĐỐI TƯỢNG VÀ ĐẨY VÀO MẢNG QUẢN LÝ
 function playDing(){
     const audio = new Audio("ding.wav");
     activeSFXTracks.push(audio);
@@ -83,7 +76,6 @@ function playTossupMusic() {
     }
 }
 
-// Hàm bổ trợ loại bỏ track âm thanh ra khỏi bộ nhớ quản lý khi đã phát xong xuôi
 function removeTrackFromManager(audioInstance) {
     activeSFXTracks = activeSFXTracks.filter(track => track !== audioInstance);
 }
@@ -112,7 +104,7 @@ function removeVietnameseTones(str) {
     return str.split("").map(c => map[c] || c).join("");
 }
 
-// Layout tọa độ cấu trúc 52 ô hiển thị thực tế
+// Layout tọa độ cấu trúc cố định 52 ô hiển thị thực tế
 const cells = [
     { x: 246, y: 140 }, { x: 366, y: 140 }, { x: 486, y: 140 }, { x: 606, y: 140 }, { x: 726, y: 140 }, { x: 846, y: 140 }, { x: 966, y: 140 }, { x: 1086, y: 140 }, { x: 1206, y: 140 }, { x: 1326, y: 140 }, { x: 1446, y: 140 }, { x: 1566, y: 140 },
     { x: 126, y: 290 }, { x: 246, y: 290 }, { x: 366, y: 290 }, { x: 486, y: 290 }, { x: 606, y: 290 }, { x: 726, y: 290 }, { x: 846, y: 290 }, { x: 966, y: 290 }, { x: 1086, y: 290 }, { x: 1206, y: 290 }, { x: 1326, y: 290 }, { x: 1446, y: 290 }, { x: 1566, y: 290 }, { x: 1686, y: 290 },
@@ -128,6 +120,15 @@ function syncControlUI(type, data) {
     });
 }
 
+function clearCurrentGrid() {
+    // Chỉ tìm và xóa các div.cell đại diện cho ô vuông chữ để không làm mất ảnh Thumbnail
+    const oldElements = board.querySelectorAll("div.cell");
+    oldElements.forEach(el => el.remove());
+
+    allCells = [];
+    absoluteCells = new Array(52).fill(null);
+}
+
 function loadQuiz(quizPayload) {
     const index = quizPayload.index;
     const letters = quizPayload.letters;
@@ -140,9 +141,7 @@ function loadQuiz(quizPayload) {
     tossupSound.currentTime = 0;
     syncControlUI("UPDATE_CTRL_ACTIVE", null);
 
-    board.innerHTML = "";
-    allCells = [];
-    absoluteCells = new Array(52).fill(null);
+    clearCurrentGrid();
 
     cells.forEach((p, i) => {
         const letter = letters[i];
@@ -171,7 +170,7 @@ function loadQuiz(quizPayload) {
                 playDing();
                 cellObj.state = 1;
             } else if (cellObj.state === 1) {
-                cell.style.background = 'url("obox.png") center center no-repeat';
+                cell.style.background = 'url("occhu.png") center center no-repeat';
                 cell.style.backgroundSize = "100% 100%";
                 cell.textContent = removeVietnameseTones(cellObj.letter);
                 cellObj.state = 2;
@@ -191,6 +190,67 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
 
     if (type === "LOAD_QUIZ") {
         loadQuiz(data);
+    }
+    // CHỨC NĂNG: ĐÓN NHẬN CHỮ THỦ CÔNG VÀ TỰ ĐỘNG CĂN GIỮA LÊN HÀNG 2/HÀNG 3
+    else if (type === "SHOW_MANUAL_TEXT") {
+        initAudioPermission();
+        clearCurrentGrid();
+        
+        let manualLetters = new Array(52).fill("");
+        let rawText = data.replace(/[^A-Z0-9ĂÂĐÊÔƠƯÁÀẢÃẠẤẦẨẪẬẮẰẲẴẶÉÈẺẼẸẾỀỂỄỆÍÌỈĨỊÓÒỎÕỌỐỒỔỖỘỚỜỞỠỢÚÙỦŨỤỨỪỬỮỰÝỲỶỸY\s]/g, "");
+        
+        let targetLineStart = 12; // Mặc định sắp đặt chuỗi bắt đầu tại Hàng số 2
+        if (rawText.length > 14) {
+            targetLineStart = 12; // Nếu text dài quá 14 ký tự sẽ tự tràn sang hàng tiếp theo
+        } else {
+            // Tự động căn giữa chuỗi ký tự dựa trên độ dài cụ thể
+            let offset = Math.floor((14 - rawText.length) / 2);
+            targetLineStart = 12 + offset;
+        }
+
+        for (let idx = 0; idx < rawText.length; idx++) {
+            let char = rawText[idx];
+            if (char !== " " && (targetLineStart + idx) < 52) {
+                manualLetters[targetLineStart + idx] = char;
+            }
+        }
+
+        cells.forEach((p, i) => {
+            const letter = manualLetters[i];
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.style.left = p.x + "px";
+            cell.style.top = p.y + "px";
+
+            if (letter === "" || !letter) {
+                cell.style.background = 'url("defaultbox.png") center center no-repeat';
+                cell.style.backgroundSize = "100% 100%";
+                cell.style.pointerEvents = "none";
+                board.appendChild(cell);
+                return;
+            }
+
+            let cellObj = { element: cell, letter: letter, revealed: true, state: 2, absoluteIndex: i + 1 };
+            allCells.push(cellObj);
+            absoluteCells[i] = cellObj;
+
+            // Đưa thẳng chữ cái hiển thị công khai dạng nền trắng lên bảng chơi luôn
+            cell.style.background = 'url("occhu.png") center center no-repeat';
+            cell.style.backgroundSize = "100% 100%";
+            cell.textContent = removeVietnameseTones(letter);
+
+            board.appendChild(cell);
+        });
+        playSecondDing();
+    }
+    // CHỨC NĂNG: ĐIỀU KHIỂN HIỆN/ẨN THUMBNAIL CHƯƠNG TRÌNH TỪ XA
+    else if (type === "SHOW_THUMBNAIL") {
+        const thumb = document.getElementById("programThumbnail");
+        if (thumb) thumb.style.display = "block";
+    }
+    else if (type === "HIDE_THUMBNAIL") {
+        const thumb = document.getElementById("programThumbnail");
+        if (thumb) thumb.style.display = "none";
     }
     else if (type === "GUESS_LETTER") {
         initAudioPermission();
@@ -288,7 +348,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
         const idx = data.absoluteIndex;
         const targetItem = absoluteCells[idx - 1];
         if (targetItem && !targetItem.revealed) {
-            targetItem.element.style.background = 'url("obox.png") center center no-repeat';
+            targetItem.element.style.background = 'url("occhu.png") center center no-repeat';
             targetItem.element.style.backgroundSize = "100% 100%";
             targetItem.element.textContent = removeVietnameseTones(targetItem.letter);
             targetItem.revealed = true;
@@ -336,7 +396,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
         }
 
         allCells.forEach(item => {
-            item.element.style.background = 'url("obox.png") center center no-repeat';
+            item.element.style.background = 'url("occhu.png") center center no-repeat';
             item.element.style.backgroundSize = "100% 100%";
             item.element.textContent = item.letter;
             item.revealed = true;
@@ -347,32 +407,22 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
         initAudioPermission();
         playTimerSound(data);
     }
-    
-    // --- TIẾP NHẬN TÍN HIỆU ĐIỀU KHIỂN SFX TỰ DO TỪ BẢNG ĐIỀU KHIỂN CHÍNH ---
     else if (type === "PLAY_SFX") {
         initAudioPermission();
-        // Tạo đối tượng độc lập và đẩy thẳng vào mảng quản lý bộ nhớ toàn cục
         const sfxAudio = new Audio(data);
         activeSFXTracks.push(sfxAudio);
-        
         sfxAudio.play().then(() => {
             sfxAudio.onended = () => { removeTrackFromManager(sfxAudio); };
         }).catch(e => console.log("Lỗi thực thi SFX phát từ xa:", e));
     }
     else if (type === "STOP_ALL_SFX") {
-        // 1. Tắt các file nhạc cố định hệ thống
         tossupSound.pause();
         showSound.pause();
         revealSound.pause();
         clearPuzzleSound.pause();
-        
-        // 2. Duyệt qua mảng quản lý bộ nhớ toàn cục để tắt triệt để các track tự do đang chạy
         activeSFXTracks.forEach(track => {
-            if (track) {
-                track.pause();
-            }
+            if (track) track.pause();
         });
-        // Làm rỗng mảng sau khi đã dừng toàn bộ
         activeSFXTracks = [];
     }
 });
