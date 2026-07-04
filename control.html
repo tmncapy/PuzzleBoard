@@ -239,6 +239,20 @@
         </div>
     </div>
 
+    <h3>Hệ thống âm thanh hiệu ứng (SFX)</h3>
+    <div class="group">
+        <button style="background-color: #d63031; color: white;" onclick="sendCmd('PLAY_SFX', 'wrong.mp3')">SAI (Wrong)</button>
+        <button style="background-color: #e67e22; color: white;" onclick="sendCmd('PLAY_SFX', 'tossup.mp3')">NHẠC TOSS-UP</button>
+        <button style="background-color: #2ecc71; color: white;" onclick="sendCmd('PLAY_SFX', 'reveal.mp3')">SHOW Ô CHỮ</button>
+        <button style="background-color: #9b59b6; color: white;" onclick="sendCmd('PLAY_SFX', 'ClearTossUp.mp3')">THẮNG TOSS-UP</button>
+        <button style="background-color: #1abc9c; color: white;" onclick="sendCmd('PLAY_SFX', 'ClearPuzzle.mp3')">THẮNG VÒNG</button>
+        <button style="background-color: #34495e; color: white;" onclick="sendCmd('PLAY_SFX', '30s.mp3')">ĐẾM NGƯỢC 30S</button>
+        <button style="background-color: #7f8c8d; color: white;" onclick="sendCmd('PLAY_SFX', '10s.mp3')">ĐẾM NGƯỢC 10S</button>
+    </div>
+    <div class="group">
+        <button style="background-color: #f1c40f; color: black; min-width: 250px;" onclick="sendCmd('STOP_ALL_SFX')">🛑 DỪNG TOÀN BỘ ÂM THANH</button>
+    </div>
+
     <div id="customPopup" class="custom-popup-overlay">
         <div class="custom-popup-box">
             <p id="popupMessage" class="custom-popup-msg"></p>
@@ -457,8 +471,6 @@
         function solveTossUp() {
             isTossupRunning = false;
             clearTimeout(tossupTimeout);
-            const audio = new Audio('ClearTossUp.mp3');
-            audio.play().catch(err => console.log("Lỗi âm thanh điều khiển:", err));
             sendCmd('REVEAL_ALL');
             sendCmd('SOLVE_TOSSUP');
         }

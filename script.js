@@ -15,7 +15,7 @@ channel.subscribe();
 
 const board = document.getElementById("board");
 
-// Khởi tạo các đối tượng âm thanh nền / âm thanh dài
+// Khởi tạo các đối tượng âm thanh nền / âm thanh dài cố định hệ thống
 const showSound = new Audio("reveal.mp3");
 const revealSound = new Audio("ClearTossUp.mp3");
 const clearPuzzleSound = new Audio("ClearPuzzle.mp3");
@@ -24,38 +24,51 @@ tossupSound.loop = true;
 
 let currentQuizIndex = 0; 
 let allCells = [];
-let absoluteCells = [];
+let absoluteCells = new Array(52).fill(null);
 
+// MẢNG TOÀN CỤC QUẢN LÝ CÁC TRACK SFX ĐANG PHÁT (Sửa lỗi không dừng được âm thanh)
+let activeSFXTracks = [];
+
+// Hàm cấp quyền chạy âm thanh chủ động trên trình duyệt chống lỗi bảo mật (Autoplay Policy)
 function initAudioPermission() {
-    showSound.load(); revealSound.load(); clearPuzzleSound.load(); tossupSound.load();
+    showSound.load(); 
+    revealSound.load(); 
+    clearPuzzleSound.load(); 
+    tossupSound.load();
 }
 
-// HÀM PHÁT ÂM THANH Ô CHỮ BẰNG CÁCH TẠO MỚI ĐỐI TƯỢNG (Khắc phục lỗi dồn tiếng)
+// HÀM PHÁT ÂM THANH Ô CHỮ VẰNG CÁCH TẠO MỚI ĐỐI TƯỢNG VÀ ĐẨY VÀO MẢNG QUẢN LÝ
 function playDing(){
     const audio = new Audio("ding.wav");
+    activeSFXTracks.push(audio);
     audio.play().then(() => {
-        audio.onended = () => { audio.remove(); };
+        audio.onended = () => { removeTrackFromManager(audio); };
     }).catch(e => console.log(e));
 }
 
 function playSecondDing(){
     const audio = new Audio("2nd_ding.wav");
+    activeSFXTracks.push(audio);
     audio.play().then(() => {
-        audio.onended = () => { audio.remove(); };
+        audio.onended = () => { removeTrackFromManager(audio); };
     }).catch(e => console.log(e));
 }
 
 function playWrong() {
     const audio = new Audio("wrong.mp3");
+    activeSFXTracks.push(audio);
     audio.play().then(() => {
-        audio.onended = () => { audio.remove(); };
+        audio.onended = () => { removeTrackFromManager(audio); };
     }).catch(e => console.log(e));
 }
 
 function playTimerSound(seconds) {
     const filename = seconds === 30 ? "30s.mp3" : "10s.mp3";
     const audio = new Audio(filename);
-    audio.play().catch(e => console.log(e));
+    activeSFXTracks.push(audio);
+    audio.play().then(() => {
+        audio.onended = () => { removeTrackFromManager(audio); };
+    }).catch(e => console.log(e));
 }
 
 function playTossupMusic() {
@@ -68,6 +81,11 @@ function playTossupMusic() {
             }, { once: true });
         });
     }
+}
+
+// Hàm bổ trợ loại bỏ track âm thanh ra khỏi bộ nhớ quản lý khi đã phát xong xuôi
+function removeTrackFromManager(audioInstance) {
+    activeSFXTracks = activeSFXTracks.filter(track => track !== audioInstance);
 }
 
 function cleanLetter(letter) {
@@ -167,7 +185,7 @@ function loadQuiz(quizPayload) {
     syncControlUI("UPDATE_QUIZ_ACTIVE", index);
 }
 
-// --- CỔNG LẮNG NGHE TÍN HIỆU TỪ BẢNG ĐIỀU KHIỂN (SUPABASE REALTIME) ---
+// --- CỔNG LẮNG NGHE TÍN HIỆU TỪ BẢNG ĐIỀU KHIỂN (SUPABASE REALTIME BROADCAST) ---
 channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     const { type, data } = payload;
 
@@ -228,7 +246,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
                     item.element.style.background = 'url("choosebox.png") center center no-repeat';
                     item.element.style.backgroundSize = "100% 100%";
                     item.state = 1;
-                    playDing(); // Kích hoạt Audio cô lập mới hoàn toàn cho ô này
+                    playDing();
                 }
             }, delay);
             delay += 1000;
@@ -246,7 +264,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
                     item.element.textContent = removeVietnameseTones(item.letter).replace("_", "").toUpperCase();
                     item.revealed = true;
                     item.state = 2;
-                    playSecondDing(); // Kích hoạt Audio cô lập mới hoàn toàn cho ô này
+                    playSecondDing();
                 }
             }, delay);
             delay += 1000;
@@ -328,5 +346,33 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     else if (type === "PLAY_TIMER") {
         initAudioPermission();
         playTimerSound(data);
+    }
+    
+    // --- TIẾP NHẬN TÍN HIỆU ĐIỀU KHIỂN SFX TỰ DO TỪ BẢNG ĐIỀU KHIỂN CHÍNH ---
+    else if (type === "PLAY_SFX") {
+        initAudioPermission();
+        // Tạo đối tượng độc lập và đẩy thẳng vào mảng quản lý bộ nhớ toàn cục
+        const sfxAudio = new Audio(data);
+        activeSFXTracks.push(sfxAudio);
+        
+        sfxAudio.play().then(() => {
+            sfxAudio.onended = () => { removeTrackFromManager(sfxAudio); };
+        }).catch(e => console.log("Lỗi thực thi SFX phát từ xa:", e));
+    }
+    else if (type === "STOP_ALL_SFX") {
+        // 1. Tắt các file nhạc cố định hệ thống
+        tossupSound.pause();
+        showSound.pause();
+        revealSound.pause();
+        clearPuzzleSound.pause();
+        
+        // 2. Duyệt qua mảng quản lý bộ nhớ toàn cục để tắt triệt để các track tự do đang chạy
+        activeSFXTracks.forEach(track => {
+            if (track) {
+                track.pause();
+            }
+        });
+        // Làm rỗng mảng sau khi đã dừng toàn bộ
+        activeSFXTracks = [];
     }
 });
