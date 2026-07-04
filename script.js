@@ -15,7 +15,7 @@ channel.subscribe();
 
 const board = document.getElementById("board");
 
-// Khởi tạo các đối tượng âm thanh nền / âm thanh dài cố định hệ thống
+// Khởi tạo các đối tượng âm thanh
 const showSound = new Audio("reveal.mp3");
 const revealSound = new Audio("ClearTossUp.mp3");
 const clearPuzzleSound = new Audio("ClearPuzzle.mp3");
@@ -25,7 +25,6 @@ tossupSound.loop = true;
 let currentQuizIndex = 0; 
 let allCells = [];
 let absoluteCells = new Array(52).fill(null);
-let activeSFXTracks = []; // Mảng toàn cục quản lý các track âm thanh tự do để tắt triệt để
 
 function initAudioPermission() {
     showSound.load(); revealSound.load(); clearPuzzleSound.load(); tossupSound.load();
@@ -33,35 +32,29 @@ function initAudioPermission() {
 
 function playDing(){
     const audio = new Audio("ding.wav");
-    activeSFXTracks.push(audio);
     audio.play().then(() => {
-        audio.onended = () => { removeTrackFromManager(audio); };
+        audio.onended = () => { audio.remove(); };
     }).catch(e => console.log(e));
 }
 
 function playSecondDing(){
     const audio = new Audio("2nd_ding.wav");
-    activeSFXTracks.push(audio);
     audio.play().then(() => {
-        audio.onended = () => { removeTrackFromManager(audio); };
+        audio.onended = () => { audio.remove(); };
     }).catch(e => console.log(e));
 }
 
 function playWrong() {
     const audio = new Audio("wrong.mp3");
-    activeSFXTracks.push(audio);
     audio.play().then(() => {
-        audio.onended = () => { removeTrackFromManager(audio); };
+        audio.onended = () => { audio.remove(); };
     }).catch(e => console.log(e));
 }
 
 function playTimerSound(seconds) {
     const filename = seconds === 30 ? "30s.mp3" : "10s.mp3";
     const audio = new Audio(filename);
-    activeSFXTracks.push(audio);
-    audio.play().then(() => {
-        audio.onended = () => { removeTrackFromManager(audio); };
-    }).catch(e => console.log(e));
+    audio.play().catch(e => console.log(e));
 }
 
 function playTossupMusic() {
@@ -74,10 +67,6 @@ function playTossupMusic() {
             }, { once: true });
         });
     }
-}
-
-function removeTrackFromManager(audioInstance) {
-    activeSFXTracks = activeSFXTracks.filter(track => track !== audioInstance);
 }
 
 function cleanLetter(letter) {
@@ -104,7 +93,7 @@ function removeVietnameseTones(str) {
     return str.split("").map(c => map[c] || c).join("");
 }
 
-// Layout tọa độ cấu trúc cố định 52 ô hiển thị thực tế
+// Tọa độ cấu trúc ma trận 52 ô thực tế
 const cells = [
     { x: 246, y: 140 }, { x: 366, y: 140 }, { x: 486, y: 140 }, { x: 606, y: 140 }, { x: 726, y: 140 }, { x: 846, y: 140 }, { x: 966, y: 140 }, { x: 1086, y: 140 }, { x: 1206, y: 140 }, { x: 1326, y: 140 }, { x: 1446, y: 140 }, { x: 1566, y: 140 },
     { x: 126, y: 290 }, { x: 246, y: 290 }, { x: 366, y: 290 }, { x: 486, y: 290 }, { x: 606, y: 290 }, { x: 726, y: 290 }, { x: 846, y: 290 }, { x: 966, y: 290 }, { x: 1086, y: 290 }, { x: 1206, y: 290 }, { x: 1326, y: 290 }, { x: 1446, y: 290 }, { x: 1566, y: 290 }, { x: 1686, y: 290 },
@@ -120,13 +109,13 @@ function syncControlUI(type, data) {
     });
 }
 
-function clearCurrentGrid() {
-    // Chỉ tìm và xóa các div.cell đại diện cho ô vuông chữ để không làm mất ảnh Thumbnail
-    const oldElements = board.querySelectorAll("div.cell");
-    oldElements.forEach(el => el.remove());
-
-    allCells = [];
-    absoluteCells = new Array(52).fill(null);
+function clearOldBoardElements() {
+    // Dọn sạch, giữ lại thẻ ảnh thumbnail nếu có
+    const thumbnailImg = document.getElementById("programThumbnail");
+    board.innerHTML = "";
+    if (thumbnailImg) {
+        board.appendChild(thumbnailImg);
+    }
 }
 
 function loadQuiz(quizPayload) {
@@ -141,7 +130,9 @@ function loadQuiz(quizPayload) {
     tossupSound.currentTime = 0;
     syncControlUI("UPDATE_CTRL_ACTIVE", null);
 
-    clearCurrentGrid();
+    clearOldBoardElements();
+    allCells = [];
+    absoluteCells = new Array(52).fill(null);
 
     cells.forEach((p, i) => {
         const letter = letters[i];
@@ -170,7 +161,7 @@ function loadQuiz(quizPayload) {
                 playDing();
                 cellObj.state = 1;
             } else if (cellObj.state === 1) {
-                cell.style.background = 'url("occhu.png") center center no-repeat';
+                cell.style.background = 'url("obox.png") center center no-repeat';
                 cell.style.backgroundSize = "100% 100%";
                 cell.textContent = removeVietnameseTones(cellObj.letter);
                 cellObj.state = 2;
@@ -184,66 +175,81 @@ function loadQuiz(quizPayload) {
     syncControlUI("UPDATE_QUIZ_ACTIVE", index);
 }
 
-// --- CỔNG LẮNG NGHE TÍN HIỆU TỪ BẢNG ĐIỀU KHIỂN (SUPABASE REALTIME BROADCAST) ---
+// --- CỔNG LẮNG NGHE TÍN HIỆU TỪ BẢNG ĐIỀU KHIỂN (SUPABASE REALTIME) ---
 channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     const { type, data } = payload;
 
     if (type === "LOAD_QUIZ") {
         loadQuiz(data);
     }
-    // CHỨC NĂNG: ĐÓN NHẬN CHỮ THỦ CÔNG VÀ TỰ ĐỘNG CĂN GIỮA LÊN HÀNG 2/HÀNG 3
     else if (type === "SHOW_MANUAL_TEXT") {
         initAudioPermission();
-        clearCurrentGrid();
-        
-        let manualLetters = new Array(52).fill("");
-        let rawText = data.replace(/[^A-Z0-9ĂÂĐÊÔƠƯÁÀẢÃẠẤẦẨẪẬẮẰẲẴẶÉÈẺẼẸẾỀỂỄỆÍÌỈĨỊÓÒỎÕỌỐỒỔỖỘỚỜỞỠỢÚÙỦŨỤỨỪỬỮỰÝỲỶỸY\s]/g, "");
-        
-        let targetLineStart = 12; // Mặc định sắp đặt chuỗi bắt đầu tại Hàng số 2
-        if (rawText.length > 14) {
-            targetLineStart = 12; // Nếu text dài quá 14 ký tự sẽ tự tràn sang hàng tiếp theo
-        } else {
-            // Tự động căn giữa chuỗi ký tự dựa trên độ dài cụ thể
-            let offset = Math.floor((14 - rawText.length) / 2);
-            targetLineStart = 12 + offset;
-        }
+        tossupSound.pause();
+        tossupSound.currentTime = 0;
+        syncControlUI("UPDATE_CTRL_ACTIVE", null);
 
-        for (let idx = 0; idx < rawText.length; idx++) {
-            let char = rawText[idx];
-            if (char !== " " && (targetLineStart + idx) < 52) {
-                manualLetters[targetLineStart + idx] = char;
-            }
-        }
+        clearOldBoardElements();
+        allCells = [];
+        absoluteCells = new Array(52).fill(null);
+
+        // Chuỗi text thủ công được giữ NGUYÊN VẸN TOÀN BỘ DẤU tiếng Việt và ký tự đặc biệt
+        const rawText = data; 
+        const textLength = rawText.length;
+        
+        // Hàng số 2 có tối đa 14 ô (Index thực tế từ vị trí 12 đến 25 trong mảng cells)
+        const row2TotalCells = 14;
+        const row2StartIndex = 12;
+
+        // Tính toán khoảng khoảng thụt lề (Offset) để xếp chuỗi nằm chính giữa hàng 2
+        const offset = Math.floor((row2TotalCells - textLength) / 2);
+        const activeStartIdx = row2StartIndex + offset;
+        const activeEndIdx = activeStartIdx + textLength - 1;
+
+        let charPointer = 0;
 
         cells.forEach((p, i) => {
-            const letter = manualLetters[i];
             const cell = document.createElement("div");
-            cell.className = "cell";
+            cell.className = "cell cell-manual"; // Áp dụng font chuẩn project
             cell.style.left = p.x + "px";
             cell.style.top = p.y + "px";
 
-            if (letter === "" || !letter) {
+            // Nếu vị trí thuộc vùng phân bổ chữ cái thủ công
+            if (i >= activeStartIdx && i <= activeEndIdx) {
+                const charAtPos = rawText[charPointer];
+                charPointer++;
+
+                if (charAtPos === " ") {
+                    // Khoảng trắng giữa các từ khóa
+                    cell.style.background = 'url("defaultbox.png") center center no-repeat';
+                    cell.style.backgroundSize = "100% 100%";
+                    cell.style.pointerEvents = "none";
+                } else {
+                    // Ô chứa chữ cái hiển thị: Nạp luôn chữ gốc nguyên dấu lên hình nền trắng occhu.png
+                    cell.style.background = 'url("occhu.png") center center no-repeat';
+                    cell.style.backgroundSize = "100% 100%";
+                    cell.textContent = charAtPos; 
+                    
+                    let cellObj = { element: cell, letter: charAtPos, revealed: true, state: 2, absoluteIndex: i + 1 };
+                    allCells.push(cellObj);
+                    absoluteCells[i] = cellObj;
+                }
+            } else {
+                // Các ô trống xung quanh không sử dụng đến
                 cell.style.background = 'url("defaultbox.png") center center no-repeat';
                 cell.style.backgroundSize = "100% 100%";
                 cell.style.pointerEvents = "none";
-                board.appendChild(cell);
-                return;
             }
-
-            let cellObj = { element: cell, letter: letter, revealed: true, state: 2, absoluteIndex: i + 1 };
-            allCells.push(cellObj);
-            absoluteCells[i] = cellObj;
-
-            // Đưa thẳng chữ cái hiển thị công khai dạng nền trắng lên bảng chơi luôn
-            cell.style.background = 'url("occhu.png") center center no-repeat';
-            cell.style.backgroundSize = "100% 100%";
-            cell.textContent = removeVietnameseTones(letter);
 
             board.appendChild(cell);
         });
-        playSecondDing();
+
+        // Phát hiệu ứng âm thanh nạp ô chữ lên bảng khán giả
+        showSound.currentTime = 0;
+        showSound.play().catch(e => console.log(e));
+        
+        // Đồng bộ reset nút chọn đề bên phía Control kỹ thuật
+        syncControlUI("UPDATE_QUIZ_ACTIVE", -1);
     }
-    // CHỨC NĂNG: ĐIỀU KHIỂN HIỆN/ẨN THUMBNAIL CHƯƠNG TRÌNH TỪ XA
     else if (type === "SHOW_THUMBNAIL") {
         const thumb = document.getElementById("programThumbnail");
         if (thumb) thumb.style.display = "block";
@@ -251,6 +257,16 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     else if (type === "HIDE_THUMBNAIL") {
         const thumb = document.getElementById("programThumbnail");
         if (thumb) thumb.style.display = "none";
+    }
+    else if (type === "PLAY_SFX") {
+        const sfxAudio = new Audio(data);
+        sfxAudio.play().catch(e => console.log("Lỗi phát SFX từ xa:", e));
+    }
+    else if (type === "STOP_ALL_SFX") {
+        tossupSound.pause();
+        showSound.pause();
+        revealSound.pause();
+        clearPuzzleSound.pause();
     }
     else if (type === "GUESS_LETTER") {
         initAudioPermission();
@@ -321,6 +337,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
                 if (item && (item.state === 1 || item.state === 0)) {
                     item.element.style.background = 'url("occhu.png") center center no-repeat';
                     item.element.style.backgroundSize = "100% 100%";
+                    // Nếu là đề gốc từ Excel, ta hiển thị dạng không dấu khi lật bình thường
                     item.element.textContent = removeVietnameseTones(item.letter).replace("_", "").toUpperCase();
                     item.revealed = true;
                     item.state = 2;
@@ -348,7 +365,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
         const idx = data.absoluteIndex;
         const targetItem = absoluteCells[idx - 1];
         if (targetItem && !targetItem.revealed) {
-            targetItem.element.style.background = 'url("occhu.png") center center no-repeat';
+            targetItem.element.style.background = 'url("obox.png") center center no-repeat';
             targetItem.element.style.backgroundSize = "100% 100%";
             targetItem.element.textContent = removeVietnameseTones(targetItem.letter);
             targetItem.revealed = true;
@@ -396,7 +413,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
         }
 
         allCells.forEach(item => {
-            item.element.style.background = 'url("occhu.png") center center no-repeat';
+            item.element.style.background = 'url("obox.png") center center no-repeat';
             item.element.style.backgroundSize = "100% 100%";
             item.element.textContent = item.letter;
             item.revealed = true;
@@ -406,23 +423,5 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     else if (type === "PLAY_TIMER") {
         initAudioPermission();
         playTimerSound(data);
-    }
-    else if (type === "PLAY_SFX") {
-        initAudioPermission();
-        const sfxAudio = new Audio(data);
-        activeSFXTracks.push(sfxAudio);
-        sfxAudio.play().then(() => {
-            sfxAudio.onended = () => { removeTrackFromManager(sfxAudio); };
-        }).catch(e => console.log("Lỗi thực thi SFX phát từ xa:", e));
-    }
-    else if (type === "STOP_ALL_SFX") {
-        tossupSound.pause();
-        showSound.pause();
-        revealSound.pause();
-        clearPuzzleSound.pause();
-        activeSFXTracks.forEach(track => {
-            if (track) track.pause();
-        });
-        activeSFXTracks = [];
     }
 });

@@ -1,6 +1,6 @@
 @font-face {
-    font-family: "Helvetica Neue";
-    src: url("HelveticaNeue.ttf") format("truetype"); /* Nhớ bỏ file font của bạn vào thư mục code nếu chạy offline */
+    font-family: "UTMHelvetIns";
+    src: url("UTM HELVETINS_3.TTF") format("truetype");
 }
 
 body {
@@ -30,21 +30,29 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-family: "Helvetica Neue", Arial, sans-serif;
-    font-size: 82px; /* Hạ nhẹ size xuống một chút để font mới ôm khít viền ô vuông */
+    font-family: "UTMHelvetIns", Arial, sans-serif;
+    font-size: 85px;
     color: #000;
     cursor: pointer;
     user-select: none;
 }
 
-/* Thiết lập định dạng ảnh Thumbnail chương trình bao phủ toàn màn hình bảng */
+/* Định dạng riêng biệt dành cho ô chữ hiển thị text thủ công */
+.cell-manual {
+    font-family: "UTMHelvetIns", Arial, sans-serif !important;
+    font-size: 85px !important;
+    color: #000 !important;
+    font-weight: normal !important;
+}
+
+/* Giao diện lớp ảnh bìa Thumbnail */
 #programThumbnail {
     position: absolute;
     top: 0;
     left: 0;
     width: 1920px;
     height: 1080px;
-    z-index: 9999;       /* Nằm đè lên trên tất cả các ô chữ */
-    display: none;       /* Ẩn theo mặc định, điều khiển thông qua nút bấm trên control */
+    z-index: 999;
     object-fit: cover;
+    display: none; /* Mặc định ẩn, điều khiển qua control */
 }

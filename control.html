@@ -168,7 +168,7 @@
             padding: 12px;
             font-size: 16px;
             font-weight: bold;
-            width: 300px;
+            width: 320px;
             border-radius: 5px;
             border: 1px solid #ccc;
             text-transform: uppercase;
@@ -192,9 +192,9 @@
         <input type="file" id="excelInput" accept=".xlsx, .xls" style="display:none;" onchange="handleExcel(this)">
     </div>
 
-    <h3>Nhập từ khóa thủ công (Hiện thẳng lên bảng)</h3>
+    <h3>Nhập từ khóa thủ công (Xếp giữa hàng 2)</h3>
     <div class="group">
-        <input type="text" id="manualTextInput" class="input-manual" placeholder="NHẬP TỪ KHÓA TẠI ĐÂY...">
+        <input type="text" id="manualTextInput" class="input-manual" placeholder="NHẬP CHỮ THỦ CÔNG CÓ DẤU...">
         <button style="background-color: #27ae60; color: white;" onclick="sendManualText()">SHOW CHỮ LÊN BẢNG</button>
     </div>
 
@@ -258,7 +258,6 @@
         </div>
     </div>
 
-    <!-- Hệ thống nút bấm điều khiển âm thanh (SFX) trực tiếp từ xa -->
     <h3>Hệ thống âm thanh hiệu ứng (SFX)</h3>
     <div class="group">
         <button style="background-color: #d63031; color: white;" onclick="sendCmd('PLAY_SFX', 'wrong.mp3')">SAI (Wrong)</button>
@@ -281,7 +280,6 @@
     </div>
 
     <script>
-        // --- CẤU HÌNH KẾT NỐI SUPABASE REALTIME ---
         var SUPABASE_URL = "https://tukabyhjmcyptuwmwedp.supabase.co";
         var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OX0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
 
@@ -291,7 +289,6 @@
         });
         channel.subscribe();
 
-        // --- BIẾN QUẢN LÝ TRẠNG THÁI TOSS-UP TRÊN CONTROL ---
         let tossupTimeout = null;
         let isTossupRunning = false;
         let controlActiveQuizLetters = []; 
@@ -346,17 +343,19 @@
             }
         });
 
-        // HÀM GỬI TỪ KHÓA NHẬP THỦ CÔNG LÊN BẢNG HIỂN THỊ
         function sendManualText() {
             const txt = document.getElementById("manualTextInput").value.trim().toUpperCase();
             if (txt === "") {
-                showCustomAlert("Vui lòng nhập nội dung ô chữ muốn hiển thị!");
+                showCustomAlert("Vui lòng nhập nội dung ô chữ!");
+                return;
+            }
+            if (txt.length > 14) {
+                showCustomAlert("Từ khóa thủ công tối đa là 14 ký tự để xếp vừa hàng 2!");
                 return;
             }
             sendCmd("SHOW_MANUAL_TEXT", txt);
         }
 
-        // --- XỬ LÝ DỮ LIỆU EXCEL ---
         let importedQuizzes = [];
 
         function handleExcel(input) {
