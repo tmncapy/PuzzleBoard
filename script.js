@@ -227,7 +227,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
         syncControlUI("UPDATE_CTRL_ACTIVE", "startBtn");
     }
     else if (type === "PAUSE_TOSSUP") {
-        // CHỈNH SỬA: Không gọi tossupSound.pause() để giữ nhạc chạy xuyên suốt
+        // GIỮ NGUYÊN: Không gọi bài hát dừng để nhạc nền chạy liên tục khi tạm ngưng lật ô chữ
         syncControlUI("UPDATE_CTRL_ACTIVE", "pauseBtn");
     }
     else if (type === "PLAY_TOSSUP") {
