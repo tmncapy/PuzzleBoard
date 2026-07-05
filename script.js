@@ -182,7 +182,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     if (type === "LOAD_QUIZ") {
         loadQuiz(data);
     }
-    else if (type === "SHOW_MANUAL_TEXT") {
+   else if (type === "SHOW_MANUAL_TEXT") {
         initAudioPermission();
         tossupSound.pause();
         tossupSound.currentTime = 0;
@@ -192,49 +192,73 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
         allCells = [];
         absoluteCells = new Array(52).fill(null);
 
-        // Chuỗi text thủ công được giữ NGUYÊN VẸN TOÀN BỘ DẤU tiếng Việt và ký tự đặc biệt
-        const rawText = data; 
-        const textLength = rawText.length;
+        // Tách văn bản thành các dòng dựa theo phím Enter (dấu xuống dòng)
+        const lines = data.split('\n').map(line => line.trim().toUpperCase()).filter(line => line !== "");
         
-        // Hàng số 2 có tối đa 14 ô (Index thực tế từ vị trí 12 đến 25 trong mảng cells)
-        const row2TotalCells = 14;
-        const row2StartIndex = 12;
+        // Cấu hình ma trận ô chữ theo từng hàng thực tế của Chiếc nón kỳ diệu
+        // Hàng 1: 12 ô (index 0->11), Hàng 2: 14 ô (index 12->25), Hàng 3: 14 ô (index 26->39), Hàng 4: 12 ô (index 40->51)
+        const rowConfigs = [
+            { startIdx: 0, totalCells: 12 },  // Hàng 1
+            { startIdx: 12, totalCells: 14 }, // Hàng 2
+            { startIdx: 26, totalCells: 14 }, // Hàng 3
+            { startIdx: 40, totalCells: 12 }  // Hàng 4
+        ];
 
-        // Tính toán khoảng khoảng thụt lề (Offset) để xếp chuỗi nằm chính giữa hàng 2
-        const offset = Math.floor((row2TotalCells - textLength) / 2);
-        const activeStartIdx = row2StartIndex + offset;
-        const activeEndIdx = activeStartIdx + textLength - 1;
+        // Mảng đánh dấu xem ô nào trên bảng (0-51) sẽ chứa ký tự hiển thị
+        let manualTextGrid = new Array(52).fill(null);
 
-        let charPointer = 0;
+        // Xác định hàng bắt đầu hiển thị trên bảng dựa trên số lượng dòng bạn nhập
+        // Nếu nhập 1 dòng -> Hiện ở hàng số 2 (Row index 1). Nếu nhập 2 dòng -> Hiện ở hàng 2 và hàng 3 (Row index 1 và 2)
+        let targetRowIndex = lines.length === 1 ? 1 : 1; 
 
+        lines.forEach((lineText, index) => {
+            let currentRow = targetRowIndex + index;
+            if (currentRow > 3) currentRow = 3; // Giới hạn không vượt quá hàng số 4
+
+            let config = rowConfigs[currentRow];
+            
+            // Tính toán khoảng trống thụt lề (Offset) để chữ nằm chính giữa hàng này
+            let offset = Math.floor((config.totalCells - lineText.length) / 2);
+            if (offset < 0) offset = 0; // Phòng trường hợp chữ quá dài tràn hàng
+
+            let activeStartIdx = config.startIdx + offset;
+
+            // Điền các ký tự của dòng hiện tại vào mảng lưới tọa độ
+            for (let charPos = 0; charPos < lineText.length; charPos++) {
+                let gridIndex = activeStartIdx + charPos;
+                if (gridIndex < config.startIdx + config.totalCells) {
+                    manualTextGrid[gridIndex] = lineText[charPos];
+                }
+            }
+        });
+
+        // Tiến hành vẽ toàn bộ giao diện 52 ô lên màn hình khán giả
         cells.forEach((p, i) => {
             const cell = document.createElement("div");
-            cell.className = "cell cell-manual"; // Áp dụng font chuẩn project
+            cell.className = "cell cell-manual"; // Giữ font chữ UTMHelvetIns chuẩn của dự án
             cell.style.left = p.x + "px";
             cell.style.top = p.y + "px";
 
-            // Nếu vị trí thuộc vùng phân bổ chữ cái thủ công
-            if (i >= activeStartIdx && i <= activeEndIdx) {
-                const charAtPos = rawText[charPointer];
-                charPointer++;
+            const charAtPos = manualTextGrid[i];
 
+            if (charAtPos !== null) {
                 if (charAtPos === " ") {
-                    // Khoảng trắng giữa các từ khóa
+                    // Xử lý khoảng trắng giữa các từ trong câu thủ công
                     cell.style.background = 'url("defaultbox.png") center center no-repeat';
                     cell.style.backgroundSize = "100% 100%";
                     cell.style.pointerEvents = "none";
                 } else {
-                    // Ô chứa chữ cái hiển thị: Nạp luôn chữ gốc nguyên dấu lên hình nền trắng occhu.png
+                    // Ô chứa chữ cái: Giữ nguyên vẹn dấu tiếng Việt và ký tự đặc biệt trên nền trắng occhu.png
                     cell.style.background = 'url("occhu.png") center center no-repeat';
                     cell.style.backgroundSize = "100% 100%";
-                    cell.textContent = charAtPos; 
+                    cell.textContent = charAtPos;
                     
                     let cellObj = { element: cell, letter: charAtPos, revealed: true, state: 2, absoluteIndex: i + 1 };
                     allCells.push(cellObj);
                     absoluteCells[i] = cellObj;
                 }
             } else {
-                // Các ô trống xung quanh không sử dụng đến
+                // Các ô trống không chứa chữ xung quanh bảng
                 cell.style.background = 'url("defaultbox.png") center center no-repeat';
                 cell.style.backgroundSize = "100% 100%";
                 cell.style.pointerEvents = "none";
@@ -243,11 +267,10 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
             board.appendChild(cell);
         });
 
-        // Phát hiệu ứng âm thanh nạp ô chữ lên bảng khán giả
+        // Phát hiệu ứng âm thanh nạp ô chữ mượt mà
         showSound.currentTime = 0;
         showSound.play().catch(e => console.log(e));
         
-        // Đồng bộ reset nút chọn đề bên phía Control kỹ thuật
         syncControlUI("UPDATE_QUIZ_ACTIVE", -1);
     }
     else if (type === "SHOW_THUMBNAIL") {
