@@ -15,85 +15,63 @@ channel.subscribe();
 
 const board = document.getElementById("board");
 
-// Khởi tạo các đối tượng âm thanh
+// --- QUẢN LÝ ĐƯỜNG DẪN ẢNH TÙY CHỈNH REALTIME ---
+let currentImages = {
+    BG_BOARD: 'bangochu.png',
+    IMG_DEFAULT_BOX: 'defaultbox.png',
+    IMG_CHOOSE_BOX: 'choosebox.png',
+    IMG_OCCHU_BOX: 'occhu.png',
+    IMG_OBOX_BOX: 'obox.png',
+    IMG_THUMBNAIL: 'thumbnail.png'
+};
+
+// --- HỆ THỐNG ÂM THANH (SFX & MUSIC) ---
 const showSound = new Audio("reveal.mp3");
 const revealSound = new Audio("ClearTossUp.mp3");
 const clearPuzzleSound = new Audio("ClearPuzzle.mp3");
 const tossupSound = new Audio("tossup.mp3");
 tossupSound.loop = true;
 
-let currentQuizIndex = 0; 
-let allCells = [];
-let absoluteCells = new Array(52).fill(null);
+let sfx30s = new Audio("30s.mp3");
+let sfx10s = new Audio("10s.mp3");
+let activeTimerSound = null;
 
 function initAudioPermission() {
-    showSound.load(); revealSound.load(); clearPuzzleSound.load(); tossupSound.load();
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    if (context.state === 'suspended') {
+        context.resume();
+    }
 }
 
-function playDing(){
+function playDing() {
     const audio = new Audio("ding.wav");
-    audio.play().then(() => {
-        audio.onended = () => { audio.remove(); };
-    }).catch(e => console.log(e));
+    audio.play().catch(e => console.log(e));
 }
 
-function playSecondDing(){
+function playSecondDing() {
     const audio = new Audio("2nd_ding.wav");
-    audio.play().then(() => {
-        audio.onended = () => { audio.remove(); };
-    }).catch(e => console.log(e));
+    audio.play().catch(e => console.log(e));
 }
 
 function playWrong() {
     const audio = new Audio("wrong.mp3");
-    audio.play().then(() => {
-        audio.onended = () => { audio.remove(); };
-    }).catch(e => console.log(e));
-}
-
-function playTimerSound(seconds) {
-    const filename = seconds === 30 ? "30s.mp3" : "10s.mp3";
-    const audio = new Audio(filename);
     audio.play().catch(e => console.log(e));
 }
 
-function playTossupMusic() {
-    let playPromise = tossupSound.play();
-    if (playPromise !== undefined) {
-        playPromise.catch(() => {
-            document.body.addEventListener('click', function memoPlay() {
-                tossupSound.play();
-                document.body.removeEventListener('click', memoPlay);
-            }, { once: true });
-        });
+function stopAllAudio() {
+    showSound.pause(); showSound.currentTime = 0;
+    revealSound.pause(); revealSound.currentTime = 0;
+    clearPuzzleSound.pause(); clearPuzzleSound.currentTime = 0;
+    tossupSound.pause(); tossupSound.currentTime = 0;
+    if (activeTimerSound) {
+        activeTimerSound.pause();
+        activeTimerSound.currentTime = 0;
+        activeTimerSound = null;
     }
+    sfx30s.pause(); sfx30s.currentTime = 0;
+    sfx10s.pause(); sfx10s.currentTime = 0;
 }
 
-function cleanLetter(letter) {
-    if (!letter) return "";
-    let cleaned = letter.replace("_", "");
-    return removeVietnameseTones(cleaned).toUpperCase();
-}
-
-function removeVietnameseTones(str) {
-    const map = {
-        "á": "a", "à": "a", "ả": "a", "ã": "a", "ạ": "a", "Á": "A", "À": "A", "Ả": "A", "Ã": "A", "Ạ": "A",
-        "ấ": "â", "ầ": "â", "ẩ": "â", "ẫ": "â", "ậ": "â", "Ấ": "Â", "Ầ": "Â", "Ẩ": "Â", "Ẫ": "Â", "Ậ": "Â",
-        "ắ": "ă", "ằ": "ă", "ẳ": "ă", "ẵ": "ă", "ặ": "ă", "Ắ": "Ă", "Ằ": "Ă", "Ẳ": "Ă", "Ẵ": "Ă", "Ặ": "Ă",
-        "é": "e", "è": "e", "ẻ": "e", "ẽ": "e", "ẹ": "e", "É": "E", "È": "E", "Ẻ": "E", "Ẽ": "E", "Ẹ": "E",
-        "ế": "ê", "ề": "ê", "ể": "ê", "ễ": "ê", "ệ": "ê", "Ế": "Ê", "Ề": "Ê", "Ể": "Ê", "Ễ": "Ê", "Ệ": "Ê",
-        "í": "i", "ì": "i", "ỉ": "i", "ĩ": "i", "ị": "i", "Í": "I", "Ì": "I", "Ỉ": "I", "Ĩ": "I", "Ị": "I",
-        "ó": "o", "ò": "o", "ỏ": "o", "õ": "o", "ọ": "o", "Ó": "O", "Ò": "O", "Ỏ": "O", "Õ": "O", "Ọ": "O",
-        "ố": "ô", "ồ": "ô", "ổ": "ô", "ỗ": "ô", "ộ": "ô", "Ố": "Ô", "Ồ": "Ô", "Ổ": "Ô", "Ỗ": "Ô", "Ộ": "Ô",
-        "ớ": "ơ", "ờ": "ơ", "ở": "ơ", "ỡ": "ơ", "ợ": "ơ", "Ớ": "Ơ", "Ờ": "Ơ", "Ở": "Ơ", "Ỡ": "Ơ", "Ợ": "Ơ",
-        "ú": "u", "ù": "u", "ủ": "u", "ũ": "u", "ụ": "u", "Ú": "U", "Ù": "U", "Ủ": "U", "Ũ": "U", "Ụ": "U",
-        "ứ": "ư", "ừ": "ư", "ử": "ư", "ữ": "ư", "ự": "ư", "Ứ": "Ư", "Ừ": "Ư", "Ử": "Ư", "Ữ": "Ư", "Ự": "Ư",
-        "ý": "y", "ỳ": "y", "ỷ": "y", "ỹ": "y", "ỵ": "y", "Ý": "Y", "Ỳ": "Y", "Ỷ": "Y", "Ỹ": "Y", "Ỵ": "Y"
-    };
-    return str.split("").map(c => map[c] || c).join("");
-}
-
-// Tọa độ cấu trúc ma trận 52 ô thực tế
 // --- ĐỊNH VỊ TỌA ĐỘ TỰ ĐỘNG THEO TỶ LỆ % (CHỐNG DỊCH CHUYỂN KHI ZOOM) ---
 const cells = [];
 const BOARD_WIDTH = 1920;
@@ -127,6 +105,34 @@ for (let i = 0; i < 12; i++) {
     cells.push({ x: (pxX / BOARD_WIDTH) * 100, y: (pxY / BOARD_HEIGHT) * 100 });
 }
 
+let allCells = []; 
+let absoluteCells = new Array(52).fill(null);
+let currentQuizIndex = -1;
+
+function clearOldBoardElements() {
+    const oldCells = document.querySelectorAll(".cell");
+    oldCells.forEach(c => c.remove());
+}
+
+function removeVietnameseTones(str) {
+    if (!str) return "";
+    str = str.replace(/à|á|ạ|ả|ã|â|ần|ấn|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "A");
+    str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "E");
+    str = str.replace(/ì|í|ị|ỉ|ĩ/g, "I");
+    str = str.replace(/ò|á|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "O");
+    str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "U");
+    str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "Y");
+    str = str.replace(/đ/g, "D");
+    str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
+    str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
+    str = str.replace(/Ì|Í|Ị|ỉ|Ĩ/g, "I");
+    str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
+    str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
+    str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
+    str = str.replace(/Đ/g, "D");
+    return str;
+}
+
 function syncControlUI(type, data) {
     channel.send({
         type: 'broadcast',
@@ -135,349 +141,107 @@ function syncControlUI(type, data) {
     });
 }
 
-function clearOldBoardElements() {
-    // Dọn sạch, giữ lại thẻ ảnh thumbnail nếu có
-    const thumbnailImg = document.getElementById("programThumbnail");
-    board.innerHTML = "";
-    if (thumbnailImg) {
-        board.appendChild(thumbnailImg);
-    }
-}
-
-function loadQuiz(quizPayload) {
-    const index = quizPayload.index;
-    const letters = quizPayload.letters;
-
-    currentQuizIndex = index;
-    tossupSound.load();
-    initAudioPermission();
-
-    tossupSound.pause();
-    tossupSound.currentTime = 0;
-    syncControlUI("UPDATE_CTRL_ACTIVE", null);
-
+// --- KHỞI TẠO BẢNG ĐỀ BÀI TỪ FILE EXCEL ---
+function loadQuiz(quizLetters) {
     clearOldBoardElements();
     allCells = [];
     absoluteCells = new Array(52).fill(null);
 
     cells.forEach((p, i) => {
-        const letter = letters[i];
         const cell = document.createElement("div");
         cell.className = "cell";
         cell.style.left = p.x + "%";
         cell.style.top = p.y + "%";
 
+        const letter = quizLetters[i] ? quizLetters[i].trim().toUpperCase() : "";
+
         if (letter === "" || letter === " " || !letter) {
-            cell.style.background = 'url("defaultbox.png") center center no-repeat';
+            cell.style.background = `url("${currentImages.IMG_DEFAULT_BOX}") center center no-repeat`;
             cell.style.backgroundSize = "100% 100%";
             cell.style.pointerEvents = "none";
             board.appendChild(cell);
             return;
         }
 
-        let cellObj = { element: cell, letter: letter, revealed: false, state: 0, absoluteIndex: i + 1 };
-        allCells.push(cellObj);
-        absoluteCells[i] = cellObj;
+        cell.style.background = `url("${currentImages.IMG_DEFAULT_BOX}") center center no-repeat`;
+        cell.style.backgroundSize = "100% 100%";
+        cell.textContent = "";
+
+        let cellObj = {
+            element: cell,
+            letter: letter,
+            revealed: false,
+            state: 0, // 0: Đóng, 1: Đang chọn (Xanh), 2: Lật chữ
+            absoluteIndex: i + 1
+        };
 
         cell.addEventListener("click", () => {
             initAudioPermission();
             if (cellObj.state === 0) {
-                cell.style.background = 'url("choosebox.png") center center no-repeat';
+                cell.style.background = `url("${currentImages.IMG_CHOOSE_BOX}") center center no-repeat`;
                 cell.style.backgroundSize = "100% 100%";
                 playDing();
                 cellObj.state = 1;
             } else if (cellObj.state === 1) {
-                cell.style.background = 'url("obox.png") center center no-repeat';
+                if (cell.classList.contains("cell-manual")) {
+                    cell.style.background = `url("${currentImages.IMG_OCCHU_BOX}") center center no-repeat`;
+                    cell.textContent = cellObj.letter;
+                } else {
+                    cell.style.background = `url("${currentImages.IMG_OBOX_BOX}") center center no-repeat`;
+                    cell.textContent = removeVietnameseTones(cellObj.letter);
+                }
                 cell.style.backgroundSize = "100% 100%";
-                cell.textContent = removeVietnameseTones(cellObj.letter);
+                playSecondDing();
                 cellObj.state = 2;
                 cellObj.revealed = true;
             }
         });
 
+        allCells.push(cellObj);
+        absoluteCells[i] = cellObj;
         board.appendChild(cell);
     });
-
-    syncControlUI("UPDATE_QUIZ_ACTIVE", index);
 }
 
-// --- CỔNG LẮNG NGHE TÍN HIỆU TỪ BẢNG ĐIỀU KHIỂN (SUPABASE REALTIME) ---
+// --- LẮNG NGHE LỆNH ĐIỀU KHIỂN TỪ CONTROL ---
 channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     const { type, data } = payload;
 
     if (type === "LOAD_QUIZ") {
-        loadQuiz(data);
-    }
-  // --- THAY THẾ & FIX LỖI: HIỂN THỊ Ô CHỮ THỦ CÔNG TỪ 4 Ô NHẬP ĐỘC LẬP ---
-    else if (type === "SHOW_MANUAL_TEXT_4_LINES") {
         initAudioPermission();
         stopAllAudio();
-        clearOldBoardElements();
         
-        allCells = [];
-        absoluteCells = new Array(52).fill(null);
-        currentQuizIndex = -1;
-
-        // Nhận dữ liệu mảng gồm 4 chuỗi text từ bảng điều khiển
-        const inputLines = data; 
+        currentQuizIndex = data.index;
+        loadQuiz(data.letters);
         
-        // Cấu hình vị trí bắt đầu (startIdx) và số ô tối đa (totalCells) trên ma trận 52 ô chuẩn
-        const rowConfigs = [
-            { startIdx: 0, totalCells: 12 },  // Hàng 1
-            { startIdx: 12, totalCells: 14 }, // Hàng 2
-            { startIdx: 26, totalCells: 14 }, // Hàng 3
-            { startIdx: 40, totalCells: 12 }  // Hàng 4
-        ];
-
-        let manualTextGrid = new Array(52).fill(null);
-
-        // Duyệt qua từng dòng được nhập vào để tính toán căn giữa
-        for (let r = 0; r < 4; r++) {
-            let lineText = inputLines[r] ? inputLines[r].trim().toUpperCase() : "";
-            if (lineText === "") continue; // Hàng nào trống thì bỏ qua
-
-            let config = rowConfigs[r];
-            
-            // Công thức tính toán vị trí thụt lề (offset) để chữ nằm chính giữa hàng độc lập
-            let offset = Math.floor((config.totalCells - lineText.length) / 2);
-            if (offset < 0) offset = 0; 
-
-            let activeStartIdx = config.startIdx + offset;
-
-            for (let charPos = 0; charPos < lineText.length; charPos++) {
-                let gridIndex = activeStartIdx + charPos;
-                // Đảm bảo không ghi vượt quá giới hạn cấu trúc hàng
-                if (gridIndex < config.startIdx + config.totalCells) {
-                    manualTextGrid[gridIndex] = lineText[charPos];
-                }
-            }
-        }
-
-        // Tạo và vẽ các ô chữ lên màn hình theo tọa độ công thức % đã được đồng bộ
-        cells.forEach((p, i) => {
-            const cell = document.createElement("div");
-            cell.className = "cell cell-manual";
-            
-            // FIX LỖI QUAN TRỌNG: Đổi đuôi gán vị trí từ "px" sang "%" để khít với công thức chống dịch chuyển
-            cell.style.left = p.x + "%";
-            cell.style.top = p.y + "%";
-
-            const charAtPos = manualTextGrid[i];
-
-            if (charAtPos !== null) {
-                if (charAtPos === " " || charAtPos === "") {
-                    // Nếu khoảng trắng ở giữa từ: Tạo ô mặc định nền xanh lá tối nhưng chặn tương tác click
-                    cell.style.background = `url("${currentImages.IMG_DEFAULT_BOX}") center center no-repeat`;
-                    cell.style.backgroundSize = "100% 100%";
-                    cell.style.pointerEvents = "none";
-                } else {
-                    // Ô chữ chứa ký tự hợp lệ: Dùng ảnh occhu.png và hiển thị text ngay lập tức
-                    cell.style.background = `url("${currentImages.IMG_OCCHU_BOX}") center center no-repeat`;
-                    cell.style.backgroundSize = "100% 100%";
-                    cell.textContent = charAtPos;
-                    
-                    let cellObj = { 
-                        element: cell, 
-                        letter: charAtPos, 
-                        revealed: true, 
-                        state: 2, 
-                        absoluteIndex: i + 1 
-                    };
-                    allCells.push(cellObj);
-                    absoluteCells[i] = cellObj;
-                }
-            } else {
-                // Toàn bộ các ô trống không được nhập chữ xung quanh: Hiện ô mặc định và khóa chuột
-                cell.style.background = `url("${currentImages.IMG_DEFAULT_BOX}") center center no-repeat`;
-                cell.style.backgroundSize = "100% 100%";
-                cell.style.pointerEvents = "none";
-            }
-            board.appendChild(cell);
-        });
-
-        // Phát âm thanh xuất hiện bảng chữ
-        showSound.currentTime = 0;
-        showSound.play().catch(e => console.log(e));
-        
-        syncControlUI("UPDATE_QUIZ_ACTIVE", -1);
-        syncControlUI("UPDATE_CTRL_ACTIVE", null);
-    }
-        });
-
-        // Tiến hành vẽ toàn bộ giao diện 52 ô lên màn hình khán giả
-        cells.forEach((p, i) => {
-            const cell = document.createElement("div");
-            cell.className = "cell cell-manual"; // Giữ font chữ UTMHelvetIns chuẩn của dự án
-            cell.style.left = p.x + "px";
-            cell.style.top = p.y + "px";
-
-            const charAtPos = manualTextGrid[i];
-
-            if (charAtPos !== null) {
-                if (charAtPos === " ") {
-                    // Xử lý khoảng trắng giữa các từ trong câu thủ công
-                    cell.style.background = 'url("defaultbox.png") center center no-repeat';
-                    cell.style.backgroundSize = "100% 100%";
-                    cell.style.pointerEvents = "none";
-                } else {
-                    // Ô chứa chữ cái: Giữ nguyên vẹn dấu tiếng Việt và ký tự đặc biệt trên nền trắng occhu.png
-                    cell.style.background = 'url("occhu.png") center center no-repeat';
-                    cell.style.backgroundSize = "100% 100%";
-                    cell.textContent = charAtPos;
-                    
-                    let cellObj = { element: cell, letter: charAtPos, revealed: true, state: 2, absoluteIndex: i + 1 };
-                    allCells.push(cellObj);
-                    absoluteCells[i] = cellObj;
-                }
-            } else {
-                // Các ô trống không chứa chữ xung quanh bảng
-                cell.style.background = 'url("defaultbox.png") center center no-repeat';
-                cell.style.backgroundSize = "100% 100%";
-                cell.style.pointerEvents = "none";
-            }
-
-            board.appendChild(cell);
-        });
-
-        // Phát hiệu ứng âm thanh nạp ô chữ mượt mà
-        showSound.currentTime = 0;
-        showSound.play().catch(e => console.log(e));
-        
-        syncControlUI("UPDATE_QUIZ_ACTIVE", -1);
-    }
-    else if (type === "SHOW_THUMBNAIL") {
-        const thumb = document.getElementById("programThumbnail");
-        if (thumb) thumb.style.display = "block";
-    }
-    else if (type === "HIDE_THUMBNAIL") {
         const thumb = document.getElementById("programThumbnail");
         if (thumb) thumb.style.display = "none";
-    }
-    else if (type === "PLAY_SFX") {
-        const sfxAudio = new Audio(data);
-        sfxAudio.play().catch(e => console.log("Lỗi phát SFX từ xa:", e));
-    }
-    else if (type === "STOP_ALL_SFX") {
-        tossupSound.pause();
-        showSound.pause();
-        revealSound.pause();
-        clearPuzzleSound.pause();
-    }
-    else if (type === "GUESS_LETTER") {
-        initAudioPermission();
-        const guessedChar = data.toUpperCase();
-        let matchPositions = [];
 
-        absoluteCells.forEach(item => {
-            if (item && cleanLetter(item.letter) === guessedChar && item.state === 0) {
-                matchPositions.push(item.absoluteIndex);
-            }
-        });
-
-        if (matchPositions.length === 0) {
-            playWrong();
-        }
-        syncControlUI("FILL_POSITIONS", matchPositions);
-    }
-    else if (type === "GUESS_MULTI_LETTERS") {
-        initAudioPermission();
-        const guessedChars = data.map(c => removeVietnameseTones(c).toUpperCase());
-        let matchPositions = [];
-
-        absoluteCells.forEach(item => {
-            if (item && item.state === 0 && guessedChars.includes(cleanLetter(item.letter))) {
-                matchPositions.push(item.absoluteIndex);
-            }
-        });
-
-        if (matchPositions.length === 0) {
-            playWrong();
-        }
-        syncControlUI("FILL_POSITIONS", matchPositions);
-    }
-    else if (type === "RESET_BOARD") {
-        const allDomCells = document.querySelectorAll('.cell');
-        allDomCells.forEach(cell => {
-            cell.style.background = 'url("defaultbox.png") center center no-repeat';
-            cell.style.backgroundSize = "100% 100%";
-            cell.textContent = "";
-        });
-        allCells.forEach(item => {
-            item.revealed = false;
-            item.state = 0;
-        });
-    }
-    else if (type === "MARK_SEQ") {
-        initAudioPermission();
-        let delay = 0;
-        data.forEach(pos => {
-            setTimeout(() => {
-                let item = absoluteCells[pos - 1];
-                if (item && item.state === 0) {
-                    item.element.style.background = 'url("choosebox.png") center center no-repeat';
-                    item.element.style.backgroundSize = "100% 100%";
-                    item.state = 1;
-                    playDing();
-                }
-            }, delay);
-            delay += 1000;
-        });
-    }
-    else if (type === "REVEAL_SEQ") {
-        initAudioPermission();
-        let delay = 0;
-        data.forEach(pos => {
-            setTimeout(() => {
-                let item = absoluteCells[pos - 1];
-                if (item && (item.state === 1 || item.state === 0)) {
-                    item.element.style.background = 'url("occhu.png") center center no-repeat';
-                    item.element.style.backgroundSize = "100% 100%";
-                    // Nếu là đề gốc từ Excel, ta hiển thị dạng không dấu khi lật bình thường
-                    item.element.textContent = removeVietnameseTones(item.letter).replace("_", "").toUpperCase();
-                    item.revealed = true;
-                    item.state = 2;
-                    playSecondDing();
-                }
-            }, delay);
-            delay += 1000;
-        });
+        syncControlUI("UPDATE_QUIZ_ACTIVE", currentQuizIndex);
+        syncControlUI("UPDATE_CTRL_ACTIVE", null);
     }
     else if (type === "START_TOSSUP") {
         initAudioPermission();
+        stopAllAudio();
+        tossupSound.play().catch(e => console.log(e));
         syncControlUI("UPDATE_CTRL_ACTIVE", "startBtn");
-
-        allCells.forEach(item => {
-            item.element.style.background = 'url("obox.png") center center no-repeat';
-            item.element.style.backgroundSize = "100% 100%";
-            item.element.textContent = "";
-            item.revealed = false;
-            item.state = 0;
-        });
-        tossupSound.currentTime = 0;
-        playTossupMusic();
     }
-    else if (type === "TOSSUP_REVEAL_CELL") {
-        const idx = data.absoluteIndex;
-        const targetItem = absoluteCells[idx - 1];
-        if (targetItem && !targetItem.revealed) {
-            targetItem.element.style.background = 'url("obox.png") center center no-repeat';
-            targetItem.element.style.backgroundSize = "100% 100%";
-            targetItem.element.textContent = removeVietnameseTones(targetItem.letter);
-            targetItem.revealed = true;
-            targetItem.state = 2;
-        }
-    }
-else if (type === "PAUSE_TOSSUP") {
-        // CHỈNH SỬA: Không gọi tossupSound.pause() ở đây nữa để nhạc nền tiếp tục chạy liên tục
+    else if (type === "PAUSE_TOSSUP") {
+        // CHỈNH SỬA: Không gọi tossupSound.pause() để giữ nhạc chạy xuyên suốt
         syncControlUI("UPDATE_CTRL_ACTIVE", "pauseBtn");
     }
     else if (type === "PLAY_TOSSUP") {
         initAudioPermission();
-        // Kiểm tra nếu nhạc nền đang dừng thì mới phát lại, tránh bị phát lặp đè âm thanh
         if (tossupSound.paused) {
             tossupSound.play().catch(e => console.log(e));
         }
         syncControlUI("UPDATE_CTRL_ACTIVE", "playBtn");
+    }
+    else if (type === "SOLVE_TOSSUP") {
+        stopAllAudio();
+        revealSound.currentTime = 0;
+        revealSound.play().catch(e => console.log(e));
+        syncControlUI("UPDATE_CTRL_ACTIVE", "solveBtn");
     }
     else if (type === "STOP_TOSSUP_MUSIC") {
         tossupSound.pause();
@@ -486,10 +250,11 @@ else if (type === "PAUSE_TOSSUP") {
     else if (type === "SHOW_BOARD") {
         initAudioPermission();
         showSound.currentTime = 0;
-        showSound.play();
+        showSound.play().catch(e => console.log(e));
+        
         allCells.forEach((item, index) => {
             setTimeout(() => {
-                item.element.style.background = 'url("obox.png") center center no-repeat';
+                item.element.style.background = `url("${currentImages.IMG_OBOX_BOX}") center center no-repeat`;
                 item.element.style.backgroundSize = "100% 100%";
                 item.element.textContent = "";
                 item.revealed = false;
@@ -498,9 +263,7 @@ else if (type === "PAUSE_TOSSUP") {
         });
     }
     else if (type === "REVEAL_ALL") {
-        tossupSound.pause();
-        syncControlUI("UPDATE_CTRL_ACTIVE", null);
-
+        stopAllAudio();
         if ([2, 3, 4, 8].includes(currentQuizIndex)) {
             clearPuzzleSound.currentTime = 0;
             clearPuzzleSound.play().catch(e => console.log(e));
@@ -510,15 +273,284 @@ else if (type === "PAUSE_TOSSUP") {
         }
 
         allCells.forEach(item => {
-            item.element.style.background = 'url("obox.png") center center no-repeat';
+            if (item.element.classList.contains("cell-manual")) {
+                item.element.style.background = `url("${currentImages.IMG_OCCHU_BOX}") center center no-repeat`;
+                item.element.textContent = item.letter;
+            } else {
+                item.element.style.background = `url("${currentImages.IMG_OBOX_BOX}") center center no-repeat`;
+                item.element.textContent = removeVietnameseTones(item.letter);
+            }
             item.element.style.backgroundSize = "100% 100%";
-            item.element.textContent = item.letter;
             item.revealed = true;
             item.state = 2;
         });
     }
+    else if (type === "RESET_BOARD") {
+        stopAllAudio();
+        clearOldBoardElements();
+        allCells = [];
+        absoluteCells = new Array(52).fill(null);
+        currentQuizIndex = -1;
+        syncControlUI("UPDATE_QUIZ_ACTIVE", -1);
+        syncControlUI("UPDATE_CTRL_ACTIVE", null);
+    }
+    else if (type === "SHOW_THUMBNAIL") {
+        let thumb = document.getElementById("programThumbnail");
+        if (!thumb) {
+            thumb = document.createElement("img");
+            thumb.id = "programThumbnail";
+            thumb.style.cssText = "position:absolute; top:0; left:0; width:1920px; height:1080px; z-index:9999; object-fit:cover;";
+            document.body.appendChild(thumb);
+        }
+        thumb.src = currentImages.IMG_THUMBNAIL;
+        thumb.style.display = "block";
+    }
+    else if (type === "HIDE_THUMBNAIL") {
+        const thumb = document.getElementById("programThumbnail");
+        if (thumb) thumb.style.display = "none";
+    }
+    else if (type === "TOSSUP_REVEAL_CELL") {
+        initAudioPermission();
+        const idx = data.absoluteIndex - 1;
+        const cellObj = absoluteCells[idx];
+        if (cellObj && !cellObj.revealed) {
+            cellObj.element.style.background = `url("${currentImages.IMG_OBOX_BOX}") center center no-repeat`;
+            cellObj.element.style.backgroundSize = "100% 100%";
+            cellObj.element.textContent = removeVietnameseTones(cellObj.letter);
+            cellObj.revealed = true;
+            cellObj.state = 2;
+            playSecondDing();
+        }
+    }
+    else if (type === "GUESS_LETTER") {
+        initAudioPermission();
+        const guessedChar = data.toUpperCase();
+        let matchedPositions = [];
+
+        allCells.forEach(item => {
+            if (!item.revealed && removeVietnameseTones(item.letter) === guessedChar) {
+                matchedPositions.push(item.absoluteIndex);
+            }
+        });
+
+        if (matchedPositions.length > 0) {
+            syncControlUI("FILL_POSITIONS", matchedPositions);
+        } else {
+            playWrong();
+            syncControlUI("FILL_POSITIONS", []);
+        }
+    }
+    else if (type === "MARK_SEQ") {
+        initAudioPermission();
+        playDing();
+        data.forEach(pos => {
+            const cellObj = absoluteCells[pos - 1];
+            if (cellObj && cellObj.state === 0) {
+                cellObj.element.style.background = `url("${currentImages.IMG_CHOOSE_BOX}") center center no-repeat`;
+                cellObj.element.style.backgroundSize = "100% 100%";
+                cellObj.state = 1;
+            }
+        });
+    }
+    else if (type === "REVEAL_SEQ") {
+        initAudioPermission();
+        playSecondDing();
+        data.forEach(pos => {
+            const cellObj = absoluteCells[pos - 1];
+            if (cellObj && cellObj.state === 1) {
+                cellObj.element.style.background = `url("${currentImages.IMG_OBOX_BOX}") center center no-repeat`;
+                cellObj.element.style.backgroundSize = "100% 100%";
+                cellObj.element.textContent = removeVietnameseTones(cellObj.letter);
+                cellObj.revealed = true;
+                cellObj.state = 2;
+            }
+        });
+        syncControlUI("FILL_POSITIONS", []);
+    }
+    else if (type === "GUESS_MULTI_LETTERS") {
+        initAudioPermission();
+        const listLetters = data;
+        let hasMatch = false;
+
+        allCells.forEach(item => {
+            if (!item.revealed && listLetters.includes(removeVietnameseTones(item.letter))) {
+                item.element.style.background = `url("${currentImages.IMG_OBOX_BOX}") center center no-repeat`;
+                item.element.style.backgroundSize = "100% 100%";
+                item.element.textContent = removeVietnameseTones(item.letter);
+                item.revealed = true;
+                item.state = 2;
+                hasMatch = true;
+            }
+        });
+
+        if (hasMatch) {
+            playSecondDing();
+        } else {
+            playWrong();
+        }
+    }
     else if (type === "PLAY_TIMER") {
         initAudioPermission();
-        playTimerSound(data);
+        if (activeTimerSound) { activeTimerSound.pause(); activeTimerSound.currentTime = 0; }
+        
+        if (data === 30) {
+            activeTimerSound = sfx30s;
+        } else if (data === 10) {
+            activeTimerSound = sfx10s;
+        }
+        if (activeTimerSound) {
+            activeTimerSound.currentTime = 0;
+            activeTimerSound.play().catch(e => console.log(e));
+        }
+    }
+    else if (type === "PLAY_SFX") {
+        initAudioPermission();
+        const sfxAudio = new Audio(data);
+        sfxAudio.play().catch(e => console.log(e));
+    }
+    else if (type === "STOP_ALL_SFX") {
+        stopAllAudio();
+    }
+    
+    // --- HIỂN THỊ Ô CHỮ THỦ CÔNG TỪ 4 Ô NHẬP ĐỘC LẬP THEO TỶ LỆ MỚI % ---
+    else if (type === "SHOW_MANUAL_TEXT_4_LINES") {
+        initAudioPermission();
+        stopAllAudio();
+        clearOldBoardElements();
+        
+        allCells = [];
+        absoluteCells = new Array(52).fill(null);
+        currentQuizIndex = -1;
+
+        const inputLines = data; 
+        
+        const rowConfigs = [
+            { startIdx: 0, totalCells: 12 },  // Hàng 1
+            { startIdx: 12, totalCells: 14 }, // Hàng 2
+            { startIdx: 26, totalCells: 14 }, // Hàng 3
+            { startIdx: 40, totalCells: 12 }  // Hàng 4
+        ];
+
+        let manualTextGrid = new Array(52).fill(null);
+
+        for (let r = 0; r < 4; r++) {
+            let lineText = inputLines[r] ? inputLines[r].trim().toUpperCase() : "";
+            if (lineText === "") continue;
+
+            let config = rowConfigs[r];
+            let offset = Math.floor((config.totalCells - lineText.length) / 2);
+            if (offset < 0) offset = 0; 
+
+            let activeStartIdx = config.startIdx + offset;
+
+            for (let charPos = 0; charPos < lineText.length; charPos++) {
+                let gridIndex = activeStartIdx + charPos;
+                if (gridIndex < config.startIdx + config.totalCells) {
+                    manualTextGrid[gridIndex] = lineText[charPos];
+                }
+            }
+        }
+
+        cells.forEach((p, i) => {
+            const cell = document.createElement("div");
+            cell.className = "cell cell-manual";
+            
+            // Đồng bộ đuôi gắn vị trí sang % chuẩn công thức chống dịch chuyển
+            cell.style.left = p.x + "%";
+            cell.style.top = p.y + "%";
+
+            const charAtPos = manualTextGrid[i];
+
+            if (charAtPos !== null) {
+                if (charAtPos === " " || charAtPos === "") {
+                    cell.style.background = `url("${currentImages.IMG_DEFAULT_BOX}") center center no-repeat`;
+                    cell.style.backgroundSize = "100% 100%";
+                    cell.style.pointerEvents = "none";
+                } else {
+                    cell.style.background = `url("${currentImages.IMG_OCCHU_BOX}") center center no-repeat`;
+                    cell.style.backgroundSize = "100% 100%";
+                    cell.textContent = charAtPos;
+                    
+                    let cellObj = { element: cell, letter: charAtPos, revealed: true, state: 2, absoluteIndex: i + 1 };
+                    allCells.push(cellObj);
+                    absoluteCells[i] = cellObj;
+                }
+            } else {
+                cell.style.background = `url("${currentImages.IMG_DEFAULT_BOX}") center center no-repeat`;
+                cell.style.backgroundSize = "100% 100%";
+                cell.style.pointerEvents = "none";
+            }
+            board.appendChild(cell);
+        });
+
+        showSound.currentTime = 0;
+        showSound.play().catch(e => console.log(e));
+        
+        syncControlUI("UPDATE_QUIZ_ACTIVE", -1);
+        syncControlUI("UPDATE_CTRL_ACTIVE", null);
+    }
+    
+    // --- THAY ĐỔI GIAO DIỆN ẢNH TÙY CHỈNH REALTIME ---
+    else if (type === "CHANGE_CUSTOM_IMAGE") {
+        const targetType = data.type;
+        const base64Src = data.src;
+
+        currentImages[targetType] = base64Src;
+
+        if (targetType === "BG_BOARD") {
+            board.style.backgroundImage = `url("${base64Src}")`;
+        } 
+        else if (targetType === "IMG_THUMBNAIL") {
+            const thumb = document.getElementById("programThumbnail");
+            if (thumb) thumb.src = base64Src;
+        }
+        else {
+            allCells.forEach(item => {
+                if (item.state === 0 && targetType === "IMG_DEFAULT_BOX") {
+                    item.element.style.backgroundImage = `url("${base64Src}")`;
+                }
+                else if (item.state === 1 && targetType === "IMG_CHOOSE_BOX") {
+                    item.element.style.backgroundImage = `url("${base64Src}")`;
+                }
+                else if (item.state === 2) {
+                    if (targetType === "IMG_OCCHU_BOX" && item.element.classList.contains("cell-manual")) {
+                        item.element.style.backgroundImage = `url("${base64Src}")`;
+                    } else if (targetType === "IMG_OBOX_BOX" && !item.element.classList.contains("cell-manual")) {
+                        item.element.style.backgroundImage = `url("${base64Src}")`;
+                    }
+                }
+            });
+            
+            document.querySelectorAll('.cell').forEach(cell => {
+                if (cell.textContent === "" && !cell.style.pointerEvents) {
+                    if (targetType === "IMG_DEFAULT_BOX") {
+                        cell.style.backgroundImage = `url("${base64Src}")`;
+                    }
+                }
+            });
+        }
+    }
+    else if (type === "RESET_CUSTOM_IMAGES") {
+        currentImages = {
+            BG_BOARD: 'bangochu.png',
+            IMG_DEFAULT_BOX: 'defaultbox.png',
+            IMG_CHOOSE_BOX: 'choosebox.png',
+            IMG_OCCHU_BOX: 'occhu.png',
+            IMG_OBOX_BOX: 'obox.png',
+            IMG_THUMBNAIL: 'thumbnail.png'
+        };
+        board.style.backgroundImage = `url("bangochu.png")`;
+        const thumb = document.getElementById("programThumbnail");
+        if (thumb) thumb.src = "thumbnail.png";
+        
+        document.querySelectorAll('.cell').forEach(cell => {
+            if (cell.textContent === "") {
+                cell.style.backgroundImage = `url("defaultbox.png")`;
+            } else if (cell.classList.contains("cell-manual")) {
+                cell.style.backgroundImage = `url("occhu.png")`;
+            } else {
+                cell.style.backgroundImage = `url("obox.png")`;
+            }
+        });
     }
 });
