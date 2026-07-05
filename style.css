@@ -1,6 +1,3 @@
-/* ==========================================================================
-   1. ĐỊNH DẠNG KHUNG NỀN VÀ KHÔNG GIAN HIỂN THỊ CHUẨN 16:9
-   ========================================================================== */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -28,26 +25,23 @@ body {
     z-index: 1;
 }
 
-/* ==========================================================================
-   2. CẤU HÌNH CHI TIẾT CÁC Ô CHỮ ĐỘNG (CELLS)
-   ========================================================================== */
+/* --- KHÔI PHỤC KÍCH THƯỚC Ô CHỮ GỐC CHUẨN PIXEL --- */
 .cell {
     position: absolute;
-    width: 5.625%;   /* Tương đương 108px / 1920px (Tỷ lệ bề ngang chuẩn) */
-    height: 10.37%;  /* Tương đương 112px / 1080px (Tỷ lệ bề dọc chuẩn) */
+    width: 108px;   /* Giữ nguyên kích thước ô ban đầu */
+    height: 112px;  /* Giữ nguyên kích thước ô ban đầu */
     
-    /* Căn giữa chữ cái tuyệt đối trong ô */
     display: flex;
     align-items: center;
     justify-content: center;
     
-    /* Thiết lập font chữ dày đặc trưng của Gameshow */
+    /* Font chữ dày đặc trưng ban đầu */
     font-weight: 900;
-    font-size: 62px;
+    font-size: 65px; 
     color: #ffffff;
     
-    /* Tạo bóng đổ đậm nét để làm nổi bật chữ cái */
-    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.95),
+    /* Bóng đổ chữ */
+    text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.95),
                  -1px -1px 0px #000,  
                   1px -1px 0px #000,
                  -1px  1px 0px #000,
@@ -55,33 +49,16 @@ body {
                   
     text-transform: uppercase;
     text-align: center;
-    
-    /* Khống chế không vỡ khung hoặc mất dấu khi gõ tiếng Việt nặng/hỏi */
     line-height: 1;
     overflow: hidden;
     white-space: nowrap;
-    
-    /* Hiệu ứng chuyển đổi trạng thái mượt mà */
-    transition: background 0.15s ease-in-out, transform 0.2s ease;
     cursor: pointer;
 }
 
-/* Hiệu ứng thu nhỏ nhẹ khi click chuột trực tiếp vào ô chữ */
-.cell:active {
-    transform: scale(0.96);
-}
-
-/* ==========================================================================
-   3. PHÂN LOẠI Ô CHỮ ĐẶC BIỆT & THUMBNAIL CHỜ
-   ========================================================================== */
-
-/* Định dạng riêng cho các ô chữ nhập thủ công từ 4 hàng (Mặc định giữ chữ trắng bóng đen) */
 .cell-manual {
     color: #ffffff; 
-    /* Mẹo: Nếu muốn đổi màu riêng cho chữ thủ công để phân biệt, bạn có thể thay thành color: #ffcc00; (Màu vàng) */
 }
 
-/* Khung thiết lập ảnh bìa chờ của chương trình đè lên toàn màn hình */
 #programThumbnail {
     position: absolute;
     top: 0;
@@ -90,5 +67,5 @@ body {
     height: 1080px;
     z-index: 9999;
     object-fit: cover;
-    display: none; /* Điều khiển Realtime sẽ kích hoạt thuộc tính "display: block" để hiện lên */
+    display: none;
 }
