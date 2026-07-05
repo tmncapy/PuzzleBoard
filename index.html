@@ -10,19 +10,31 @@
 
 <body>
 
-    <div id="board">
-        <img id="programThumbnail" src="thumbnail.png" alt="Thumbnail Chương Trình">
-    </div>
+    <div id="board"></div>
 
     <script>
+        // Cấu hình kết nối Supabase Realtime
         window.SUPABASE_URL = "https://tukabyhjmcyptuwmwedp.supabase.co";
         window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OX0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
         
+        if (window.SUPABASE_URL && !window.SUPABASE_URL.startsWith("http://") && !window.SUPABASE_URL.startsWith("https://")) {
+            window.SUPABASE_URL = "https://" + window.SUPABASE_URL;
+        }
+
+        var supabaseClient = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+
+        const channel = supabaseClient.channel('crossword_broadcast_room', {
+            config: { broadcast: { ack: false, self: false } }
+        });
+        channel.subscribe();
+
+        // Chặn phím chức năng F12 và chuột phải để bảo vệ màn hình trình chiếu
         document.addEventListener('keydown', function (e) {
             if (e.key === 'F12') { e.preventDefault(); return false; }
             if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) { e.preventDefault(); return false; }
             if (e.ctrlKey && e.key === 'U') { e.preventDefault(); return false; }
         });
+        document.addEventListener('contextmenu', event => event.preventDefault());
     </script>
 
     <script src="script.js"></script>

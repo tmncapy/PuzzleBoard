@@ -168,11 +168,14 @@
             padding: 12px;
             font-size: 16px;
             font-weight: bold;
-            width: 320px;
+            width: 350px;
             border-radius: 5px;
             border: 1px solid #ccc;
             text-transform: uppercase;
             text-align: center;
+            background: #fff;
+            color: #000;
+            font-family: Arial, sans-serif;
         }
     </style>
 </head>
@@ -192,10 +195,41 @@
         <input type="file" id="excelInput" accept=".xlsx, .xls" style="display:none;" onchange="handleExcel(this)">
     </div>
 
-   <h3>Nhập từ khóa thủ công (Bấm Enter để xuống hàng)</h3>
+    <h3>Nhập từ khóa thủ công (Bấm Enter để xuống hàng)</h3>
     <div class="group" style="flex-direction: column; align-items: center;">
-        <textarea id="manualTextInput" class="input-manual" rows="3" style="height: auto; width: 350px; resize: vertical;" placeholder="DÒNG 1&#10;DÒNG 2 (BẤM ENTER)..."></textarea>
+        <textarea id="manualTextInput" class="input-manual" rows="3" style="height: auto; resize: vertical;" placeholder="NHẬP DÒNG 1&#10;BẤM ENTER ĐỂ XUỐNG DÒNG 2..."></textarea>
         <button style="background-color: #27ae60; color: white; margin-top: 10px;" onclick="sendManualText()">SHOW CHỮ LÊN BẢNG</button>
+    </div>
+
+    <h3>Thay đổi giao diện ảnh tùy chỉnh (Realtime)</h3>
+    <div class="group" style="background: #333; padding: 15px; border-radius: 8px; flex-direction: column; gap: 12px; max-width: 850px; margin: 0 auto 20px auto; border: 1px dashed #5ac8fa;">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+            <label style="background: #34495e; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">
+                🖼️ Ảnh nền bảng (bangochu.png)
+                <input type="file" accept="image/*" style="display:none;" onchange="uploadCustomImage(this, 'BG_BOARD')">
+            </label>
+            <label style="background: #34495e; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">
+                ⬛ Ô trống mặc định (defaultbox.png)
+                <input type="file" accept="image/*" style="display:none;" onchange="uploadCustomImage(this, 'IMG_DEFAULT_BOX')">
+            </label>
+            <label style="background: #34495e; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">
+                🟩 Ô đánh dấu chọn (choosebox.png)
+                <input type="file" accept="image/*" style="display:none;" onchange="uploadCustomImage(this, 'IMG_CHOOSE_BOX')">
+            </label>
+            <label style="background: #34495e; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">
+                ⬜ Ô chữ thủ công (occhu.png)
+                <input type="file" accept="image/*" style="display:none;" onchange="uploadCustomImage(this, 'IMG_OCCHU_BOX')">
+            </label>
+            <label style="background: #34495e; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">
+                🟦 Ô chữ Toss-up (obox.png)
+                <input type="file" accept="image/*" style="display:none;" onchange="uploadCustomImage(this, 'IMG_OBOX_BOX')">
+            </label>
+            <label style="background: #34495e; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">
+                📸 Thay Ảnh bìa (thumbnail.png)
+                <input type="file" accept="image/*" style="display:none;" onchange="uploadCustomImage(this, 'IMG_THUMBNAIL')">
+            </label>
+        </div>
+        <button style="background-color: #e74c3c; color: white; padding: 8px 15px; min-width: 150px; font-size: 13px;" onclick="sendCmd('RESET_CUSTOM_IMAGES')">KHÔI PHỤC THIẾT KẾ GỐC MẶC ĐỊNH</button>
     </div>
 
     <h3>Vòng đoán nhanh (Toss-up)</h3>
@@ -344,16 +378,25 @@
         });
 
         function sendManualText() {
-            const txt = document.getElementById("manualTextInput").value.trim().toUpperCase();
-            if (txt === "") {
+            const txt = document.getElementById("manualTextInput").value;
+            if (txt.trim() === "") {
                 showCustomAlert("Vui lòng nhập nội dung ô chữ!");
                 return;
             }
-            if (txt.length > 14) {
-                showCustomAlert("Từ khóa thủ công tối đa là 14 ký tự để xếp vừa hàng 2!");
-                return;
-            }
+            // Gửi toàn bộ văn bản thô (gồm cả dấu xuống dòng nếu có)
             sendCmd("SHOW_MANUAL_TEXT", txt);
+        }
+
+        function uploadCustomImage(input, targetType) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const base64Data = e.target.result;
+                sendCmd("CHANGE_CUSTOM_IMAGE", { type: targetType, src: base64Data });
+            };
+            reader.readAsDataURL(file);
         }
 
         let importedQuizzes = [];
