@@ -421,15 +421,17 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
             targetItem.state = 2;
         }
     }
-    else if (type === "PAUSE_TOSSUP") {
+else if (type === "PAUSE_TOSSUP") {
+        // CHỈNH SỬA: Không gọi tossupSound.pause() ở đây nữa để nhạc nền tiếp tục chạy liên tục
         syncControlUI("UPDATE_CTRL_ACTIVE", "pauseBtn");
-        tossupSound.pause();
-        playDing();
     }
     else if (type === "PLAY_TOSSUP") {
         initAudioPermission();
+        // Kiểm tra nếu nhạc nền đang dừng thì mới phát lại, tránh bị phát lặp đè âm thanh
+        if (tossupSound.paused) {
+            tossupSound.play().catch(e => console.log(e));
+        }
         syncControlUI("UPDATE_CTRL_ACTIVE", "playBtn");
-        playTossupMusic();
     }
     else if (type === "STOP_TOSSUP_MUSIC") {
         tossupSound.pause();
