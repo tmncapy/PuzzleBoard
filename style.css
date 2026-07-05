@@ -1,75 +1,38 @@
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+@font-face {
+    font-family: "UTMHelvetIns";
+    src: url("UTM HELVETINS_3.TTF") format("truetype");
 }
 
 body {
-    background-color: #000000;
+    margin: 0;
+    background: #000;
+    overflow: hidden;
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
-    overflow: hidden;
+    height: 100vh;
 }
 
-/* Khung chứa bảng cố định tỷ lệ chuẩn 16:9. 
-   Đảm bảo hình nền bangochu.png không bao giờ bị bóp méo chiều dài/chiều cao cho dù thu phóng trình duyệt.
-*/
 #board {
+    position: relative;
     width: 1920px;
     height: 1080px;
-    background-image: url('bangochu.png');
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: contain; /* Giữ nguyên gốc cấu trúc ảnh nền */
-    position: relative;
-    z-index: 1;
-    transform-origin: center center;
+    background: url("bangochu.png") no-repeat center;
+    background-size: 100% 100%;
 }
 
-/* --- KÍCH THƯỚC Ô VÀ FONT CHỮ UTM HELVETINS --- */
 .cell {
     position: absolute;
-    width: 108px;   /* Kích thước chiều ngang ô gốc */
-    height: 112px;  /* Kích thước chiều dọc ô gốc */
-    
+    width: 110px;
+    height: 145px;
+    background: url("defaultbox.png") center center no-repeat;
+    background-size: 100% 100%;
     display: flex;
-    align-items: center;
     justify-content: center;
-    
-    /* Gọi chính xác Font chữ hệ thống của bạn */
-    font-family: 'UTM Helvetins', 'Arial Black', sans-serif;
-    font-weight: bold;
-    font-size: 65px; 
-    color: #ffffff;
-    
-    /* Bóng đổ chữ dày chuẩn góc */
-    text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.95),
-                 -1px -1px 0px #000,  
-                  1px -1px 0px #000,
-                 -1px  1px 0px #000,
-                  1px  1px 0px #000;
-                  
-    text-transform: uppercase;
-    text-align: center;
-    line-height: 1;
-    overflow: hidden;
-    white-space: nowrap;
+    align-items: center;
+    font-family: "UTMHelvetIns", Arial, sans-serif;
+    font-size: 85px;
+    color: #000;
     cursor: pointer;
-}
-
-.cell-manual {
-    color: #ffffff; 
-}
-
-#programThumbnail {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 9999;
-    object-fit: contain;
-    display: none;
+    user-select: none;
 }

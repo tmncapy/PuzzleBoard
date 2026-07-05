@@ -38,22 +38,63 @@
             cursor: pointer;
             font-size: 14px;
             min-width: 100px;
-            transition: background-color 0.2s;
         }
 
-        .btn-main { background-color: green; color: white; }
-        .btn-excel { background-color: purple; color: white; }
-        .btn-reveal { background-color: blue; color: white; }
-        .btn-reset { background-color: #ff00ff; color: white; }
-        .btn-tossup { background-color: yellow; color: black; }
-        .btn-solve { background-color: yellow; color: black; }
-        .btn-quiz { background-color: #34495e; color: white; }
-        .btn-time-30 { background-color: blue; color: white; }
-        .btn-time-10 { background-color: green; color: white; }
+        .btn-main {
+            background-color: green;
+            color: white;
+        }
+
+        .btn-excel {
+            background-color: purple;
+            color: white;
+        }
+
+        .btn-reveal {
+            background-color: blue;
+            color: white;
+        }
+
+        .btn-reset {
+            background-color: #ff00ff;
+            color: white;
+            font-weight: bold;
+        }
+
+        .btn-tossup {
+            background-color: yellow;
+            color: black;
+        }
+
+        .btn-solve {
+            background-color: yellow;
+            color: black;
+        }
+
+        .btn-quiz {
+            background-color: #34495e;
+            color: white;
+        }
+
+        .btn-time-30 {
+            background-color: blue;
+            color: white;
+            font-weight: bold;
+        }
+
+        .btn-time-10 {
+            background-color: green;
+            color: white;
+            font-weight: bold;
+        }
 
         button:hover {
             background-color: orange !important;
             color: white !important;
+        }
+
+        #alphabetSection {
+            display: block;
         }
 
         .btn-letter {
@@ -78,41 +119,6 @@
             box-shadow: 0 0 10px #ff3b30;
         }
 
-        /* Khung nhập chữ thủ công 4 hàng */
-        .manual-input-container {
-            background: #333;
-            padding: 20px;
-            border-radius: 8px;
-            max-width: 600px;
-            margin: 0 auto 20px auto;
-            border: 1px solid #444;
-            text-align: left;
-        }
-        .manual-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .manual-row label {
-            width: 220px;
-            font-weight: bold;
-            color: #eaeaea;
-            font-size: 14px;
-        }
-        .manual-row input {
-            flex: 1;
-            padding: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 4px;
-            border: 1px solid #555;
-            text-transform: uppercase;
-            background: #fff;
-            color: #000;
-            text-align: center;
-        }
-
-        /* Popup thông báo */
         .custom-popup-overlay {
             display: none;
             position: fixed;
@@ -125,6 +131,7 @@
             justify-content: center;
             align-items: center;
         }
+
         .custom-popup-box {
             background: #333;
             border: 2px solid #5ac8fa;
@@ -134,6 +141,7 @@
             max-width: 420px;
             box-shadow: 0 0 20px rgba(90, 200, 250, 0.6);
         }
+
         .custom-popup-msg {
             font-size: 16px;
             margin-bottom: 20px;
@@ -141,6 +149,7 @@
             font-weight: bold;
             line-height: 1.5;
         }
+
         .custom-popup-btn {
             background: #5ac8fa;
             color: #000;
@@ -149,6 +158,11 @@
             border-radius: 5px;
             min-width: 80px;
         }
+
+        .custom-popup-btn:hover {
+            background: #34495e;
+            color: #fff;
+        }
     </style>
 </head>
 
@@ -156,79 +170,20 @@
 
     <h2>BẢNG ĐIỀU KHIỂN TRÒ CHƠI (REALTIME)</h2>
 
-    <h3>Hệ thống chính & Thumbnail</h3>
+    <h3>Hệ thống chính</h3>
     <div class="group">
         <button class="btn-excel" onclick="document.getElementById('excelInput').click()">NẠP FILE EXCEL</button>
         <button class="btn-main" onclick="sendCmd('SHOW_BOARD')">SHOW Ô CHỮ</button>
         <button class="btn-reveal" onclick="sendCmd('REVEAL_ALL')">MỞ HẾT TOÀN BỘ</button>
         <button class="btn-reset" onclick="sendCmd('RESET_BOARD')">RESET BẢNG TRỐNG</button>
-        <button style="background-color: #2980b9; color: white;" onclick="sendCmd('SHOW_THUMBNAIL')">HIỆN THUMBNAIL</button>
-        <button style="background-color: #7f8c8d; color: white;" onclick="sendCmd('HIDE_THUMBNAIL')">ẨN THUMBNAIL</button>
         <input type="file" id="excelInput" accept=".xlsx, .xls" style="display:none;" onchange="handleExcel(this)">
-    </div>
-
-    <!-- KHU VỰC NHẬP Ô CHỮ THỦ CÔNG 4 DÒNG -->
-    <div class="manual-input-container">
-        <h3 style="margin-top: 0; text-align: center; color: #2196F3; border: none;">Nhập Ô Chữ Thủ Công (4 Hàng)</h3>
-        <div class="manual-row">
-            <label>Hàng 1 (Tối đa 12 ký tự):</label>
-            <input type="text" id="manualLine1" maxlength="12" placeholder="...">
-        </div>
-        <div class="manual-row">
-            <label>Hàng 2 (Tối đa 14 ký tự):</label>
-            <input type="text" id="manualLine2" maxlength="14" placeholder="...">
-        </div>
-        <div class="manual-row">
-            <label>Hàng 3 (Tối đa 14 ký tự):</label>
-            <input type="text" id="manualLine3" maxlength="14" placeholder="...">
-        </div>
-        <div class="manual-row">
-            <label>Hàng 4 (Tối đa 12 ký tự):</label>
-            <input type="text" id="manualLine4" maxlength="12" placeholder="...">
-        </div>
-        <div style="text-align: center; margin-top: 15px;">
-            <button id="btnSendManual" style="padding: 12px 30px; background: #2196F3; color: white; border: none; cursor: pointer; font-weight: bold; border-radius: 4px; width: 100%;">
-                HIỂN THỊ Ô CHỮ THỦ CÔNG LÊN BẢNG
-            </button>
-        </div>
-    </div>
-
-    <h3>Thay đổi giao diện ảnh tùy chỉnh (Realtime)</h3>
-    <div class="group" style="background: #333; padding: 15px; border-radius: 8px; flex-direction: column; gap: 12px; max-width: 850px; margin: 0 auto 20px auto; border: 1px dashed #5ac8fa;">
-        <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
-            <label style="background: #34495e; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">
-                🖼️ Ảnh nền bảng (bangochu.png)
-                <input type="file" accept="image/*" style="display:none;" onchange="uploadCustomImage(this, 'BG_BOARD')">
-            </label>
-            <label style="background: #34495e; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">
-                ⬛ Ô trống mặc định (defaultbox.png)
-                <input type="file" accept="image/*" style="display:none;" onchange="uploadCustomImage(this, 'IMG_DEFAULT_BOX')">
-            </label>
-            <label style="background: #34495e; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">
-                🟩 Ô đánh dấu chọn (choosebox.png)
-                <input type="file" accept="image/*" style="display:none;" onchange="uploadCustomImage(this, 'IMG_CHOOSE_BOX')">
-            </label>
-            <label style="background: #34495e; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">
-                ⬜ Ô chữ thủ công (occhu.png)
-                <input type="file" accept="image/*" style="display:none;" onchange="uploadCustomImage(this, 'IMG_OCCHU_BOX')">
-            </label>
-            <label style="background: #34495e; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">
-                🟦 Ô chữ Toss-up (obox.png)
-                <input type="file" accept="image/*" style="display:none;" onchange="uploadCustomImage(this, 'IMG_OBOX_BOX')">
-            </label>
-            <label style="background: #34495e; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">
-                📸 Thay Ảnh bìa (thumbnail.png)
-                <input type="file" accept="image/*" style="display:none;" onchange="uploadCustomImage(this, 'IMG_THUMBNAIL')">
-            </label>
-        </div>
-        <button style="background-color: #e74c3c; color: white; padding: 8px 15px; min-width: 150px; font-size: 13px;" onclick="sendCmd('RESET_CUSTOM_IMAGES')">KHÔI PHỤC THIẾT KẾ GỐC MẶC ĐỊNH</button>
     </div>
 
     <h3>Vòng đoán nhanh (Toss-up)</h3>
     <div class="group">
-        <button class="btn-tossup" id="startBtn" onclick="clickStartTossup()">START</button>
-        <button class="btn-tossup" id="pauseBtn" onclick="clickPauseTossup()">PAUSE</button>
-        <button class="btn-tossup" id="playBtn" onclick="clickPlayTossup()">PLAY</button>
+        <button class="btn-tossup" id="startBtn" onclick="sendCmd('START_TOSSUP')">START</button>
+        <button class="btn-tossup" id="pauseBtn" onclick="sendCmd('PAUSE_TOSSUP')">PAUSE</button>
+        <button class="btn-tossup" id="playBtn" onclick="sendCmd('PLAY_TOSSUP')">PLAY</button>
         <button class="btn-solve" id="solveBtn" onclick="solveTossUp()">SOLVE</button>
     </div>
 
@@ -284,20 +239,6 @@
         </div>
     </div>
 
-    <h3>Hệ thống âm thanh hiệu ứng (SFX)</h3>
-    <div class="group">
-        <button style="background-color: #d63031; color: white;" onclick="sendCmd('PLAY_SFX', 'wrong.mp3')">SAI (Wrong)</button>
-        <button style="background-color: #e67e22; color: white;" onclick="sendCmd('PLAY_SFX', 'tossup.mp3')">NHẠC TOSS-UP</button>
-        <button style="background-color: #2ecc71; color: white;" onclick="sendCmd('PLAY_SFX', 'reveal.mp3')">SHOW Ô CHỮ</button>
-        <button style="background-color: #9b59b6; color: white;" onclick="sendCmd('PLAY_SFX', 'ClearTossUp.mp3')">THẮNG TOSS-UP</button>
-        <button style="background-color: #1abc9c; color: white;" onclick="sendCmd('PLAY_SFX', 'ClearPuzzle.mp3')">THẮNG VÒNG</button>
-        <button style="background-color: #34495e; color: white;" onclick="sendCmd('PLAY_SFX', '30s.mp3')">ĐẾM NGƯỢC 30S</button>
-        <button style="background-color: #7f8c8d; color: white;" onclick="sendCmd('PLAY_SFX', '10s.mp3')">ĐẾM NGƯỢC 10S</button>
-    </div>
-    <div class="group">
-        <button style="background-color: #f1c40f; color: black; min-width: 250px;" onclick="sendCmd('STOP_ALL_SFX')">🛑 DỪNG TOÀN BỘ ÂM THANH</button>
-    </div>
-
     <div id="customPopup" class="custom-popup-overlay">
         <div class="custom-popup-box">
             <p id="popupMessage" class="custom-popup-msg"></p>
@@ -306,32 +247,31 @@
     </div>
 
     <script>
+        // --- CẤU HÌNH KẾT NỐI SUPABASE REALTIME ---
         var SUPABASE_URL = "https://tukabyhjmcyptuwmwedp.supabase.co";
-        var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OY0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
+        var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OX0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
 
-        // ĐÃ FIX: Đồng bộ lại tên biến kết nối gốc "supabase" của bạn để kích hoạt hệ thống Realtime hoạt động bình thường
-        var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        const channel = supabase.channel('crossword_broadcast_room', {
+        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const channel = supabaseClient.channel('crossword_broadcast_room', {
             config: { broadcast: { ack: false, self: false } }
         });
         channel.subscribe();
 
+        // --- BIẾN QUẢN LÝ TRẠNG THÁI TOSS-UP TRÊN CONTROL ---
         let tossupTimeout = null;
         let isTossupRunning = false;
-        let controlActiveQuizLetters = []; 
-        let controlRevealedStates = new Array(52).fill(false); 
+        let controlActiveQuizLetters = []; // Lưu cấu trúc chữ cái của đề hiện tại
+        let controlRevealedStates = new Array(52).fill(false); // Lưu trạng thái lật của 52 ô
 
-        // LẮNG NGHE ĐỒNG BỘ TRẠNG THÁI TỪ MÀN HÌNH HIỂN THỊ
+        // Lắng nghe dữ liệu phản hồi ngược lại từ màn hình hiển thị chính
         channel.on('broadcast', { event: 'display-to-control' }, ({ payload }) => {
             const { type, data } = payload;
 
             if (type === "UPDATE_QUIZ_ACTIVE") {
                 for (let i = 1; i <= 12; i++) {
-                    const btn = document.getElementById(`btnQuiz${i}`);
-                    if (btn) btn.classList.remove("active");
+                    document.getElementById(`btnQuiz${i}`).classList.remove("active");
                 }
-                const activeBtn = document.getElementById(`btnQuiz${data + 1}`);
-                if (activeBtn) activeBtn.classList.add("active");
+                document.getElementById(`btnQuiz${data + 1}`).classList.add("active");
 
                 const targetQuizzes = [2, 3, 4, 8, 9, 10, 11];
                 if (targetQuizzes.includes(data)) {
@@ -357,6 +297,7 @@
                 document.getElementById("playBtn").classList.remove("active");
                 if (data) document.getElementById(data).classList.add("active");
 
+                // Đồng bộ trạng thái chạy Toss-up dựa trên phản hồi nếu cần
                 if (data === "startBtn" || data === "playBtn") {
                     isTossupRunning = true;
                 } else if (data === "pauseBtn" || data === null) {
@@ -371,42 +312,7 @@
             }
         });
 
-        // ĐỒNG BỘ KHỐI SỰ KIỆN GỬI 4 DÒNG CHỮ NHẬP THỦ CÔNG
-        document.getElementById("btnSendManual").addEventListener("click", () => {
-            const line1 = document.getElementById("manualLine1").value;
-            const line2 = document.getElementById("manualLine2").value;
-            const line3 = document.getElementById("manualLine3").value;
-            const line4 = document.getElementById("manualLine4").value;
-
-            if (!line1 && !line2 && !line3 && !line4) {
-                showCustomAlert("Vui lòng nhập nội dung cho ít nhất 1 hàng!");
-                return;
-            }
-
-            channel.send({
-                type: 'broadcast',
-                event: 'control-to-display',
-                payload: {
-                    type: "SHOW_MANUAL_TEXT_4_LINES",
-                    data: [line1, line2, line3, line4]
-                }
-            });
-        });
-
-        // TẢI ẢNH TÙY CHỈNH CHUYỂN ĐỔI BASE64 REALTIME
-        function uploadCustomImage(input, targetType) {
-            const file = input.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const base64Data = e.target.result;
-                sendCmd("CHANGE_CUSTOM_IMAGE", { type: targetType, src: base64Data });
-            };
-            reader.readAsDataURL(file);
-        }
-
-        // XỬ LÝ NẠP FILE EXCEL
+        // --- XỬ LÝ DỮ LIỆU EXCEL ---
         let importedQuizzes = [];
 
         function handleExcel(input) {
@@ -460,6 +366,7 @@
                 return;
             }
 
+            // Lưu thông tin đề tại Control phục vụ Toss-up tính toán
             controlActiveQuizLetters = quizLetters;
             controlRevealedStates = new Array(52).fill(false);
             clearTimeout(tossupTimeout);
@@ -468,10 +375,11 @@
             sendCmd('LOAD_QUIZ', { index: quizIndex, letters: quizLetters });
         }
 
-        // VÒNG ĐOÁN NHANH TOSSUP AUTOMATION
+        // --- LOGIC ĐIỀU KHIỂN CHỌN Ô NGẪU NHIÊN TOSS-UP ---
         function controlRevealRandomCell() {
             if (!isTossupRunning) return;
 
+            // Lọc ra danh sách các index ô hợp lệ (có chữ cái và chưa lật)
             let hiddenIndices = [];
             controlActiveQuizLetters.forEach((letter, i) => {
                 if (letter !== "" && letter !== " " && letter && !controlRevealedStates[i]) {
@@ -486,15 +394,19 @@
                 return;
             }
 
+            // Control tính toán ngẫu nhiên vị trí ô cần mở
             const randomIndex = hiddenIndices[Math.floor(Math.random() * hiddenIndices.length)];
             controlRevealedStates[randomIndex] = true;
 
+            // Gửi lệnh yêu cầu tất cả các màn hình lật chính xác ô này
             sendCmd('TOSSUP_REVEAL_CELL', { absoluteIndex: randomIndex + 1 });
 
+            // Tính thời gian delay ngẫu nhiên kế tiếp và tiếp tục vòng lặp tại Control
             const randomDelay = Math.random() * (1500 - 1000) + 1000;
             tossupTimeout = setTimeout(controlRevealRandomCell, randomDelay);
         }
 
+        // Hàm bổ trợ trigger các nút điều khiển Toss-up hệ thống
         function clickStartTossup() {
             if (controlActiveQuizLetters.length === 0) {
                 showCustomAlert("Lỗi: Vui lòng nạp đề bài trước khi chơi Toss-up!");
@@ -521,7 +433,13 @@
             controlRevealRandomCell();
         }
 
-        // KHỞI TẠO BÀN PHÍM CHỮ CÁI TIẾNG VIỆT
+        // Thay đổi sự kiện onclick trong HTML bằng các hàm quản lý mới này
+        document.getElementById("startBtn").setAttribute("onclick", "clickStartTossup()");
+        document.getElementById("pauseBtn").setAttribute("onclick", "clickPauseTossup()");
+        document.getElementById("playBtn").setAttribute("onclick", "clickPlayTossup()");
+
+
+        // --- PHẦN GIAO DIỆN HOẠT ĐỘNG CHỮ CÁI ---
         const vietnameseAlphabet = ["A", "Ă", "Â", "B", "C", "D", "Đ", "E", "Ê", "G", "H", "I", "K", "L", "M", "N", "O", "Ô", "Ơ", "P", "Q", "R", "S", "T", "U", "Ư", "V", "X", "Y"];
         const container = document.getElementById("alphabetContainer");
         vietnameseAlphabet.forEach(letter => {
@@ -539,6 +457,8 @@
         function solveTossUp() {
             isTossupRunning = false;
             clearTimeout(tossupTimeout);
+            const audio = new Audio('ClearTossUp.mp3');
+            audio.play().catch(err => console.log("Lỗi âm thanh điều khiển:", err));
             sendCmd('REVEAL_ALL');
             sendCmd('SOLVE_TOSSUP');
         }
