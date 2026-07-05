@@ -18,7 +18,7 @@ body {
     width: 1920px;
     height: 1080px;
     background: url("bangochu.png") no-repeat center;
-    background-size: 100% 100%; /* Đảm bảo khi thay đổi ảnh nền Base64 sẽ tự khít khung hình */
+    background-size: 100% 100%;
 }
 
 .cell {
@@ -35,16 +35,24 @@ body {
     color: #000;
     cursor: pointer;
     user-select: none;
-    
-    /* Cập nhật thêm thuộc tính này để tối ưu cho ảnh tùy chỉnh */
-    background-repeat: no-repeat;
 }
 
-/* 💡 BỔ SUNG THÊM: Class tối ưu riêng cho ô nhập chữ thủ công đa dòng */
+/* Định dạng riêng biệt dành cho ô chữ hiển thị text thủ công */
 .cell-manual {
     font-family: "UTMHelvetIns", Arial, sans-serif !important;
     font-size: 85px !important;
-    text-transform: uppercase;
-    /* Đảm bảo chữ tiếng Việt có dấu (như Â, Ă, Đ, Ố...) không bị lệch dòng */
-    line-height: 145px; 
+    color: #000 !important;
+    font-weight: normal !important;
+}
+
+/* Giao diện lớp ảnh bìa Thumbnail */
+#programThumbnail {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1920px;
+    height: 1080px;
+    z-index: 999;
+    object-fit: cover;
+    display: none; /* Mặc định ẩn, điều khiển qua control */
 }
