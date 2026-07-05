@@ -94,12 +94,38 @@ function removeVietnameseTones(str) {
 }
 
 // Tọa độ cấu trúc ma trận 52 ô thực tế
-const cells = [
-    { x: 246, y: 140 }, { x: 366, y: 140 }, { x: 486, y: 140 }, { x: 606, y: 140 }, { x: 726, y: 140 }, { x: 846, y: 140 }, { x: 966, y: 140 }, { x: 1086, y: 140 }, { x: 1206, y: 140 }, { x: 1326, y: 140 }, { x: 1446, y: 140 }, { x: 1566, y: 140 },
-    { x: 126, y: 290 }, { x: 246, y: 290 }, { x: 366, y: 290 }, { x: 486, y: 290 }, { x: 606, y: 290 }, { x: 726, y: 290 }, { x: 846, y: 290 }, { x: 966, y: 290 }, { x: 1086, y: 290 }, { x: 1206, y: 290 }, { x: 1326, y: 290 }, { x: 1446, y: 290 }, { x: 1566, y: 290 }, { x: 1686, y: 290 },
-    { x: 126, y: 440 }, { x: 246, y: 440 }, { x: 366, y: 440 }, { x: 486, y: 440 }, { x: 606, y: 440 }, { x: 726, y: 440 }, { x: 846, y: 440 }, { x: 966, y: 440 }, { x: 1086, y: 440 }, { x: 1206, y: 440 }, { x: 1326, y: 440 }, { x: 1446, y: 440 }, { x: 1566, y: 440 }, { x: 1688, y: 440 },
-    { x: 246, y: 590 }, { x: 366, y: 590 }, { x: 486, y: 590 }, { x: 606, y: 590 }, { x: 726, y: 590 }, { x: 846, y: 590 }, { x: 966, y: 590 }, { x: 1086, y: 590 }, { x: 1206, y: 590 }, { x: 1326, y: 590 }, { x: 1446, y: 590 }, { x: 1566, y: 590 }
-];
+// --- ĐỊNH VỊ TỌA ĐỘ TỰ ĐỘNG THEO TỶ LỆ % (CHỐNG DỊCH CHUYỂN KHI ZOOM) ---
+const cells = [];
+const BOARD_WIDTH = 1920;
+const BOARD_HEIGHT = 1080;
+
+// Hàng 1: 12 ô, bắt đầu từ x = 246, y = 140
+for (let i = 0; i < 12; i++) {
+    let pxX = 246 + i * 120;
+    let pxY = 140;
+    cells.push({ x: (pxX / BOARD_WIDTH) * 100, y: (pxY / BOARD_HEIGHT) * 100 });
+}
+
+// Hàng 2: 14 ô, bắt đầu từ x = 126, y = 290
+for (let i = 0; i < 14; i++) {
+    let pxX = 126 + i * 120;
+    let pxY = 290;
+    cells.push({ x: (pxX / BOARD_WIDTH) * 100, y: (pxY / BOARD_HEIGHT) * 100 });
+}
+
+// Hàng 3: 14 ô, bắt đầu từ x = 126, y = 440
+for (let i = 0; i < 14; i++) {
+    let pxX = 126 + i * 120;
+    let pxY = 440;
+    cells.push({ x: (pxX / BOARD_WIDTH) * 100, y: (pxY / BOARD_HEIGHT) * 100 });
+}
+
+// Hàng 4: 12 ô, bắt đầu từ x = 246, y = 590
+for (let i = 0; i < 12; i++) {
+    let pxX = 246 + i * 120;
+    let pxY = 590;
+    cells.push({ x: (pxX / BOARD_WIDTH) * 100, y: (pxY / BOARD_HEIGHT) * 100 });
+}
 
 function syncControlUI(type, data) {
     channel.send({
@@ -138,8 +164,8 @@ function loadQuiz(quizPayload) {
         const letter = letters[i];
         const cell = document.createElement("div");
         cell.className = "cell";
-        cell.style.left = p.x + "px";
-        cell.style.top = p.y + "px";
+        cell.style.left = p.x + "%";
+        cell.style.top = p.y + "%";
 
         if (letter === "" || letter === " " || !letter) {
             cell.style.background = 'url("defaultbox.png") center center no-repeat';
