@@ -167,7 +167,6 @@
         <input type="file" id="excelInput" accept=".xlsx, .xls" style="display:none;" onchange="handleExcel(this)">
     </div>
 
-    <!-- KHU VỰC NHẬP Ô CHỮ THỦ CÔNG 4 DÒNG -->
     <div class="manual-input-container">
         <h3 style="margin-top: 0; text-align: center; color: #2196F3; border: none;">Nhập Ô Chữ Thủ Công (4 Hàng)</h3>
         <div class="manual-row">
@@ -307,11 +306,10 @@
 
     <script>
         var SUPABASE_URL = "https://tukabyhjmcyptuwmwedp.supabase.co";
-        var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OY0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
+        var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OX0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
 
-        // ĐÃ FIX: Đồng bộ lại tên biến kết nối gốc "supabase" của bạn để kích hoạt hệ thống Realtime hoạt động bình thường
-        var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        const channel = supabase.channel('crossword_broadcast_room', {
+        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const channel = supabaseClient.channel('crossword_broadcast_room', {
             config: { broadcast: { ack: false, self: false } }
         });
         channel.subscribe();
