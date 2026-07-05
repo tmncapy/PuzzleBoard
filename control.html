@@ -193,10 +193,28 @@
     </div>
 
    <h3>Nhập từ khóa thủ công (Bấm Enter để xuống hàng)</h3>
-    <div class="group" style="flex-direction: column; align-items: center;">
-        <textarea id="manualTextInput" class="input-manual" rows="3" style="height: auto; width: 350px; resize: vertical;" placeholder="DÒNG 1&#10;DÒNG 2 (BẤM ENTER)..."></textarea>
-        <button style="background-color: #27ae60; color: white; margin-top: 10px;" onclick="sendManualText()">SHOW CHỮ LÊN BẢNG</button>
+   <div class="manual-input-container" style="margin: 20px; padding: 15px; border: 1px solid #ccc; background: #f9f9f9; border-radius: 5px;">
+    <h3>Nhập Ô Chữ Thủ Công (4 Hàng)</h3>
+    <div style="margin-bottom: 8px;">
+        <label>Hàng 1 (Tối đa 12 ký tự):</label>
+        <input type="text" id="manualLine1" maxlength="12" style="width: 100%; padding: 5px; text-transform: uppercase;">
     </div>
+    <div style="margin-bottom: 8px;">
+        <label>Hàng 2 (Tối đa 14 ký tự):</label>
+        <input type="text" id="manualLine2" maxlength="14" style="width: 100%; padding: 5px; text-transform: uppercase;">
+    </div>
+    <div style="margin-bottom: 8px;">
+        <label>Hàng 3 (Tối đa 14 ký tự):</label>
+        <input type="text" id="manualLine3" maxlength="14" style="width: 100%; padding: 5px; text-transform: uppercase;">
+    </div>
+    <div style="margin-bottom: 12px;">
+        <label>Hàng 4 (Tối đa 12 ký tự):</label>
+        <input type="text" id="manualLine4" maxlength="12" style="width: 100%; padding: 5px; text-transform: uppercase;">
+    </div>
+    <button id="btnSendManual" style="padding: 10px 20px; background: #2196F3; color: white; border: none; cursor: pointer; font-weight: bold; border-radius: 4px;">
+        HIỂN THỊ Ô CHỮ THỦ CÔNG
+    </button>
+</div>
 
     <h3>Vòng đoán nhanh (Toss-up)</h3>
     <div class="group">
