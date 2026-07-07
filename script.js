@@ -1,3 +1,8 @@
+const globalFavicon = document.createElement('link');
+globalFavicon.rel = 'icon';
+globalFavicon.type = 'image/x-icon';
+globalFavicon.href = 'favicon.ico';
+document.head.appendChild(globalFavicon);
 // --- KHỞI TẠO ĐỐI TƯỢNG ĐỒNG BỘ SUPABASE ---
 var SUPABASE_URL = window.SUPABASE_URL || "https://tukabyhjmcyptuwmwedp.supabase.co";
 var SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OX0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";

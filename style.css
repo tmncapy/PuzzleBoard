@@ -1,6 +1,6 @@
 @font-face {
-    font-family: "UTMHelvetIns";
-    src: url("UTM HELVETINS_3.TTF") format("truetype");
+font-family: "HelveticaNeue-CondensedBlack";
+    src: url("helveticaneuecondensedblack.ttf") format("truetype");
 }
 
 body {
@@ -30,8 +30,8 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-family: "UTMHelvetIns", Arial, sans-serif;
-    font-size: 85px;
+font-family: "HelveticaNeue-CondensedBlack", Arial, sans-serif;
+    font-size: 90px;
     color: #000;
     cursor: pointer;
     user-select: none;
@@ -39,8 +39,8 @@ body {
 
 /* Định dạng riêng biệt dành cho ô chữ hiển thị text thủ công */
 .cell-manual {
-    font-family: "UTMHelvetIns", Arial, sans-serif !important;
-    font-size: 85px !important;
+font-family: "HelveticaNeue-CondensedBlack", Arial, sans-serif !important;
+    font-size: 90px !important;
     color: #000 !important;
     font-weight: normal !important;
 }
