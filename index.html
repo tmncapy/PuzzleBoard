@@ -11,9 +11,27 @@
 <body>
 
     <div id="board">
-        <img id="programThumbnail" src="thumbnail.png" alt="Thumbnail Chương Trình">
-    </div>
+          <img id="programThumbnail" src="thumbnail.png" alt="Thumbnail Chương Trình">
 
+    <!-- BẢNG ĐIỂM -->
+    <div id="scoreboard">
+
+        <div class="player-box">
+            <div id="playerName1" class="player-name">PLAYER 1</div>
+            <div id="playerScore1" class="player-score">0</div>
+        </div>
+
+        <div class="player-box">
+            <div id="playerName2" class="player-name">PLAYER 2</div>
+            <div id="playerScore2" class="player-score">0</div>
+        </div>
+
+        <div class="player-box">
+            <div id="playerName3" class="player-name">PLAYER 3</div>
+            <div id="playerScore3" class="player-score">0</div>
+        </div>
+    </div>
+  </div>
     <script>
         window.SUPABASE_URL = "https://tukabyhjmcyptuwmwedp.supabase.co";
         window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OX0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";

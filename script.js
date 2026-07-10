@@ -20,16 +20,18 @@ channel.subscribe();
 
 const board = document.getElementById("board");
 
-// Khởi tạo các đối tượng âm thanh
+// Khởi tạo các đối tượng âm thanh hệ thống chính
 const showSound = new Audio("reveal.mp3");
 const revealSound = new Audio("ClearTossUp.mp3");
 const clearPuzzleSound = new Audio("ClearPuzzle.mp3");
 const tossupSound = new Audio("tossup.mp3");
 tossupSound.loop = true;
 
-let currentQuizIndex = 0; 
-let allCells = [];
-let absoluteCells = new Array(52).fill(null);
+// Mảng lưu trữ các hiệu ứng âm thanh (SFX) được kích hoạt từ xa để quản lý việc dừng hoàn toàn
+let activeSFXList = [];
+
+// THÊM: Mảng toàn cục lưu danh sách các Timeout ID của Toss-up để dừng lật tự động khi bấm Pause
+let tossupTimeoutIds = [];
 
 function initAudioPermission() {
     showSound.load(); revealSound.load(); clearPuzzleSound.load(); tossupSound.load();
@@ -115,12 +117,16 @@ function syncControlUI(type, data) {
 }
 
 function clearOldBoardElements() {
-    // Dọn sạch, giữ lại thẻ ảnh thumbnail nếu có
     const thumbnailImg = document.getElementById("programThumbnail");
     board.innerHTML = "";
     if (thumbnailImg) {
         board.appendChild(thumbnailImg);
     }
+}
+
+function clearAllTossupTimeouts() {
+    tossupTimeoutIds.forEach(id => clearTimeout(id));
+    tossupTimeoutIds = [];
 }
 
 function loadQuiz(quizPayload) {
@@ -131,8 +137,9 @@ function loadQuiz(quizPayload) {
     tossupSound.load();
     initAudioPermission();
 
-    tossupSound.pause();
+  
     tossupSound.currentTime = 0;
+    clearAllTossupTimeouts(); // Reset các luồng Toss-up cũ nếu có
     syncControlUI("UPDATE_CTRL_ACTIVE", null);
 
     clearOldBoardElements();
@@ -187,48 +194,40 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     if (type === "LOAD_QUIZ") {
         loadQuiz(data);
     }
-   else if (type === "SHOW_MANUAL_TEXT") {
+    else if (type === "SHOW_MANUAL_TEXT") {
         initAudioPermission();
         tossupSound.pause();
         tossupSound.currentTime = 0;
+        clearAllTossupTimeouts();
         syncControlUI("UPDATE_CTRL_ACTIVE", null);
 
         clearOldBoardElements();
         allCells = [];
         absoluteCells = new Array(52).fill(null);
 
-        // Tách văn bản thành các dòng dựa theo phím Enter (dấu xuống dòng)
         const lines = data.split('\n').map(line => line.trim().toUpperCase()).filter(line => line !== "");
         
-        // Cấu hình ma trận ô chữ theo từng hàng thực tế của Chiếc nón kỳ diệu
-        // Hàng 1: 12 ô (index 0->11), Hàng 2: 14 ô (index 12->25), Hàng 3: 14 ô (index 26->39), Hàng 4: 12 ô (index 40->51)
         const rowConfigs = [
-            { startIdx: 0, totalCells: 12 },  // Hàng 1
-            { startIdx: 12, totalCells: 14 }, // Hàng 2
-            { startIdx: 26, totalCells: 14 }, // Hàng 3
-            { startIdx: 40, totalCells: 12 }  // Hàng 4
+            { startIdx: 0, totalCells: 12 },  
+            { startIdx: 12, totalCells: 14 }, 
+            { startIdx: 26, totalCells: 14 }, 
+            { startIdx: 40, totalCells: 12 }  
         ];
 
-        // Mảng đánh dấu xem ô nào trên bảng (0-51) sẽ chứa ký tự hiển thị
         let manualTextGrid = new Array(52).fill(null);
-
-        // Xác định hàng bắt đầu hiển thị trên bảng dựa trên số lượng dòng bạn nhập
-        // Nếu nhập 1 dòng -> Hiện ở hàng số 2 (Row index 1). Nếu nhập 2 dòng -> Hiện ở hàng 2 và hàng 3 (Row index 1 và 2)
         let targetRowIndex = lines.length === 1 ? 1 : 1; 
 
         lines.forEach((lineText, index) => {
             let currentRow = targetRowIndex + index;
-            if (currentRow > 3) currentRow = 3; // Giới hạn không vượt quá hàng số 4
+            if (currentRow > 3) currentRow = 3; 
 
             let config = rowConfigs[currentRow];
             
-            // Tính toán khoảng trống thụt lề (Offset) để chữ nằm chính giữa hàng này
             let offset = Math.floor((config.totalCells - lineText.length) / 2);
-            if (offset < 0) offset = 0; // Phòng trường hợp chữ quá dài tràn hàng
+            if (offset < 0) offset = 0; 
 
             let activeStartIdx = config.startIdx + offset;
 
-            // Điền các ký tự của dòng hiện tại vào mảng lưới tọa độ
             for (let charPos = 0; charPos < lineText.length; charPos++) {
                 let gridIndex = activeStartIdx + charPos;
                 if (gridIndex < config.startIdx + config.totalCells) {
@@ -237,10 +236,9 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
             }
         });
 
-        // Tiến hành vẽ toàn bộ giao diện 52 ô lên màn hình khán giả
         cells.forEach((p, i) => {
             const cell = document.createElement("div");
-            cell.className = "cell cell-manual"; // Giữ font chữ UTMHelvetIns chuẩn của dự án
+            cell.className = "cell cell-manual"; 
             cell.style.left = p.x + "px";
             cell.style.top = p.y + "px";
 
@@ -248,12 +246,10 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
 
             if (charAtPos !== null) {
                 if (charAtPos === " ") {
-                    // Xử lý khoảng trắng giữa các từ trong câu thủ công
                     cell.style.background = 'url("defaultbox.png") center center no-repeat';
                     cell.style.backgroundSize = "100% 100%";
                     cell.style.pointerEvents = "none";
                 } else {
-                    // Ô chứa chữ cái: Giữ nguyên vẹn dấu tiếng Việt và ký tự đặc biệt trên nền trắng occhu.png
                     cell.style.background = 'url("occhu.png") center center no-repeat';
                     cell.style.backgroundSize = "100% 100%";
                     cell.textContent = charAtPos;
@@ -263,7 +259,6 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
                     absoluteCells[i] = cellObj;
                 }
             } else {
-                // Các ô trống không chứa chữ xung quanh bảng
                 cell.style.background = 'url("defaultbox.png") center center no-repeat';
                 cell.style.backgroundSize = "100% 100%";
                 cell.style.pointerEvents = "none";
@@ -272,7 +267,6 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
             board.appendChild(cell);
         });
 
-        // Phát hiệu ứng âm thanh nạp ô chữ mượt mà
         showSound.currentTime = 0;
         showSound.play().catch(e => console.log(e));
         
@@ -287,14 +281,40 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
         if (thumb) thumb.style.display = "none";
     }
     else if (type === "PLAY_SFX") {
+        initAudioPermission();
         const sfxAudio = new Audio(data);
+        
+        activeSFXList.push(sfxAudio);
+        
         sfxAudio.play().catch(e => console.log("Lỗi phát SFX từ xa:", e));
+        
+        sfxAudio.onended = () => {
+            activeSFXList = activeSFXList.filter(audio => audio !== sfxAudio);
+            sfxAudio.remove();
+        };
     }
     else if (type === "STOP_ALL_SFX") {
         tossupSound.pause();
         showSound.pause();
         revealSound.pause();
         clearPuzzleSound.pause();
+        
+        tossupSound.currentTime = 0;
+        showSound.currentTime = 0;
+        revealSound.currentTime = 0;
+        clearPuzzleSound.currentTime = 0;
+
+        activeSFXList.forEach(audio => {
+            try {
+                audio.pause();
+                audio.currentTime = 0;
+                audio.remove();
+            } catch (e) {
+                console.log("Lỗi khi giải phóng audio:", e);
+            }
+        });
+        
+        activeSFXList = [];
     }
     else if (type === "GUESS_LETTER") {
         initAudioPermission();
@@ -339,6 +359,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
             item.revealed = false;
             item.state = 0;
         });
+        clearAllTossupTimeouts();
     }
     else if (type === "MARK_SEQ") {
         initAudioPermission();
@@ -365,7 +386,6 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
                 if (item && (item.state === 1 || item.state === 0)) {
                     item.element.style.background = 'url("occhu.png") center center no-repeat';
                     item.element.style.backgroundSize = "100% 100%";
-                    // Nếu là đề gốc từ Excel, ta hiển thị dạng không dấu khi lật bình thường
                     item.element.textContent = removeVietnameseTones(item.letter).replace("_", "").toUpperCase();
                     item.revealed = true;
                     item.state = 2;
@@ -377,6 +397,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     }
     else if (type === "START_TOSSUP") {
         initAudioPermission();
+        clearAllTossupTimeouts();
         syncControlUI("UPDATE_CTRL_ACTIVE", "startBtn");
 
         allCells.forEach(item => {
@@ -391,6 +412,8 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     }
     else if (type === "TOSSUP_REVEAL_CELL") {
         const idx = data.absoluteIndex;
+        // Ghi nhận timeout ID được gửi từ luồng chạy ngầm của control.html (nếu có cấu trúc gửi qua realtime)
+        // Hoặc lưu trữ cục bộ nếu xử lý hiệu ứng lật tại đây
         const targetItem = absoluteCells[idx - 1];
         if (targetItem && !targetItem.revealed) {
             targetItem.element.style.background = 'url("obox.png") center center no-repeat';
@@ -400,11 +423,14 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
             targetItem.state = 2;
         }
     }
-    else if (type === "PAUSE_TOSSUP") {
-        syncControlUI("UPDATE_CTRL_ACTIVE", "pauseBtn");
-        tossupSound.pause();
-        playDing();
-    }
+else if (type === "PAUSE_TOSSUP") {
+    syncControlUI("UPDATE_CTRL_ACTIVE", "pauseBtn");
+
+    // Chỉ dừng việc lật ô, KHÔNG dừng nhạc Toss-up
+    clearAllTossupTimeouts();
+
+    playDing();
+}
     else if (type === "PLAY_TOSSUP") {
         initAudioPermission();
         syncControlUI("UPDATE_CTRL_ACTIVE", "playBtn");
@@ -412,6 +438,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     }
     else if (type === "STOP_TOSSUP_MUSIC") {
         tossupSound.pause();
+        clearAllTossupTimeouts();
         syncControlUI("UPDATE_CTRL_ACTIVE", null);
     }
     else if (type === "SHOW_BOARD") {
@@ -430,6 +457,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     }
     else if (type === "REVEAL_ALL") {
         tossupSound.pause();
+        clearAllTossupTimeouts();
         syncControlUI("UPDATE_CTRL_ACTIVE", null);
 
         if ([2, 3, 4, 8].includes(currentQuizIndex)) {
