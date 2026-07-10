@@ -200,9 +200,9 @@
 
     <h3>Vòng đoán nhanh (Toss-up)</h3>
     <div class="group">
-        <button class="btn-tossup" id="startBtn" onclick="sendCmd('START_TOSSUP')">START</button>
-        <button class="btn-tossup" id="pauseBtn" onclick="sendCmd('PAUSE_TOSSUP')">PAUSE</button>
-        <button class="btn-tossup" id="playBtn" onclick="sendCmd('PLAY_TOSSUP')">PLAY</button>
+        <button class="btn-tossup" id="startBtn" onclick="clickStartTossup()">START</button>
+        <button class="btn-tossup" id="pauseBtn" onclick="clickPauseTossup()">PAUSE</button>
+        <button class="btn-tossup" id="playBtn" onclick="clickPlayTossup()">PLAY</button>
         <button class="btn-solve" id="solveBtn" onclick="solveTossUp()">SOLVE</button>
     </div>
 
@@ -459,7 +459,10 @@
         function clickPauseTossup() {
             isTossupRunning = false;
             clearTimeout(tossupTimeout);
+            // SỬA ĐỔI CHÍNH TẠI ĐÂY: Gửi đồng thời lệnh PAUSE_TOSSUP để đổi màu nút 
+            // và ép luồng hiển thị khán giả dừng phát âm thanh tossupSound ngay lập tức.
             sendCmd('PAUSE_TOSSUP');
+            sendCmd('STOP_TOSSUP_MUSIC'); 
         }
 
         function clickPlayTossup() {
@@ -468,10 +471,6 @@
             sendCmd('PLAY_TOSSUP');
             controlRevealRandomCell();
         }
-
-        document.getElementById("startBtn").setAttribute("onclick", "clickStartTossup()");
-        document.getElementById("pauseBtn").setAttribute("onclick", "clickPauseTossup()");
-        document.getElementById("playBtn").setAttribute("onclick", "clickPlayTossup()");
 
         const vietnameseAlphabet = ["A", "Ă", "Â", "B", "C", "D", "Đ", "E", "Ê", "G", "H", "I", "K", "L", "M", "N", "O", "Ô", "Ơ", "P", "Q", "R", "S", "T", "U", "Ư", "V", "X", "Y"];
         const container = document.getElementById("alphabetContainer");
@@ -491,7 +490,7 @@
             isTossupRunning = false;
             clearTimeout(tossupTimeout);
             sendCmd('REVEAL_ALL');
-            sendCmd('SOLVE_TOSSUP');
+            sendCmd('STOP_TOSSUP_MUSIC');
         }
 
         function showCustomAlert(message) {
