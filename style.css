@@ -1,5 +1,12 @@
+/* Tải font SVN-Gilroy Bold bạn cung cấp */
 @font-face {
-font-family: "HelveticaNeue-CondensedBlack";
+    font-family: "SVN-Gilroy Bold";
+    src: url("SVN-Gilroy Bold.otf") format("opentype");
+}
+
+/* Giữ font Helvetica hoặc font mặc định cho hệ thống ô chữ cũ */
+@font-face {
+    font-family: "HelveticaNeue-CondensedBlack";
     src: url("helveticaneuecondensedblack.ttf") format("truetype");
 }
 
@@ -21,8 +28,50 @@ body {
     background-size: 100% 100%;
 }
 
+/* THIẾT LẬP BẢNG ĐIỂM CHUẨN XÁC NỔI LÊN TRÊN VÀ SỬ DỤNG FONT MỚI */
+#scoreboard {
+    position: absolute;
+    top: 40px; /* Điều chỉnh số này tăng/giảm để khớp đúng cao độ với khung Đỏ-Vàng-Xanh của bạn */
+    left: 49.9%;
+    transform: translateX(-50%);
+    width: 912px; /* Tổng chiều ngang bao phủ 3 ô điểm */
+    height: 130px;
+    display: flex;
+    justify-content: space-between;
+    z-index: 99; /* Đảm bảo luôn nổi lên trên, không bị ô chữ đè mất */
+    pointer-events: none;
+}
+
+.player-box {
+    width: 300px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    /* Áp dụng font chữ SVN-Gilroy Bold */
+    font-family: "SVN-Gilroy Bold", Arial, sans-serif;
+    color: #ffffff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.player-name {
+    font-size: 26px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.player-score {
+    font-size: 40px;
+    font-weight: bold;
+    margin-top: -2.5px;
+    color: #ffffff; /* Hoặc đổi thành #ffcc00 nếu bạn muốn điểm hiển thị màu vàng sáng */
+}
+
+/* Cấu trúc các ô chữ (Giữ nguyên font chữ cũ của ô chữ để không bị lệch size) */
 .cell {
-  position: absolute;
+    position: absolute;
     width: 110px;
     height: 145px;
     background: url("defaultbox.png") center center no-repeat;
@@ -33,20 +82,17 @@ body {
     font-family: "HelveticaNeue-CondensedBlack", Arial, sans-serif;
     font-size: 90px;
     color: #000;
-    cursor: default;
+    cursor: pointer;
     user-select: none;
-    pointer-events: none;
 }
 
-/* Định dạng riêng biệt dành cho ô chữ hiển thị text thủ công */
 .cell-manual {
-font-family: "HelveticaNeue-CondensedBlack", Arial, sans-serif !important;
+    font-family: "HelveticaNeue-CondensedBlack", Arial, sans-serif !important;
     font-size: 90px !important;
     color: #000 !important;
     font-weight: normal !important;
 }
 
-/* Giao diện lớp ảnh bìa Thumbnail */
 #programThumbnail {
     position: absolute;
     top: 0;
@@ -55,66 +101,5 @@ font-family: "HelveticaNeue-CondensedBlack", Arial, sans-serif !important;
     height: 1080px;
     z-index: 999;
     object-fit: cover;
-    display: none; /* Mặc định ẩn, điều khiển qua control */
-}
-/* =========================================
-   SCOREBOARD (3 NGƯỜI CHƠI)
-========================================= */
-
-#scoreBoard{
-    position:absolute;
-    top:18px;
-    left:50%;
-    transform:translateX(-50%);
-    width:760px;
-
-    display:flex;
-    justify-content:space-between;
-
-    z-index:1000;
-    pointer-events:none;
-}
-
-.playerBox{
-    width:220px;
-    text-align:center;
-}
-
-.playerName{
-    width:220px;
-    height:42px;
-
-    font-family:Arial, Helvetica, sans-serif;
-    font-size:26px;
-    font-weight:bold;
-    color:#ffffff;
-
-    line-height:42px;
-
-    overflow:hidden;
-    white-space:nowrap;
-    text-overflow:ellipsis;
-
-    text-shadow:
-        2px 2px 4px #000,
-        0 0 8px #000;
-}
-
-.playerScore{
-    width:220px;
-    height:46px;
-
-    margin-top:8px;
-
-    font-family:Arial, Helvetica, sans-serif;
-    font-size:40px;
-    font-weight:bold;
-
-    color:#ffe600;
-
-    line-height:46px;
-
-    text-shadow:
-        2px 2px 6px #000,
-        0 0 8px #000;
+    display: none;
 }
