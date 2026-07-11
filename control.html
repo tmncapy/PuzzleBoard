@@ -194,15 +194,7 @@
 
    <h3>Nhập từ khóa thủ công (Bấm Enter để xuống hàng)</h3>
     <div class="group" style="flex-direction: column; align-items: center;">
-        <textarea id="manualTextInput"
-class="input-manual"
-rows="4"
-style="height:auto;width:420px;resize:vertical;"
-placeholder="DÒNG 1 (12 ô)
-DÒNG 2 (14 ô)
-DÒNG 3 (14 ô)
-DÒNG 4 (12 ô)">
-</textarea>
+        <textarea id="manualTextInput" class="input-manual" rows="3" style="height: auto; width: 350px; resize: vertical;" placeholder="DÒNG 1&#10;DÒNG 2 (BẤM ENTER)..."></textarea>
         <button style="background-color: #27ae60; color: white; margin-top: 10px;" onclick="sendManualText()">SHOW CHỮ LÊN BẢNG</button>
     </div>
 
@@ -265,129 +257,7 @@ DÒNG 4 (12 ô)">
             </div>
         </div>
     </div>
-<h3>Quản lý bảng điểm</h3>
 
-<div class="group" style="flex-direction:column;gap:20px;">
-
-    <!-- PLAYER 1 -->
-    <div style="border:1px solid #666;padding:15px;border-radius:8px;">
-
-        <h3 style="margin-top:0;color:#ff4d4d;">PLAYER 1</h3>
-
-        <input
-            id="playerName1"
-            type="text"
-            placeholder="Tên người chơi"
-            style="padding:8px;width:220px;font-weight:bold;text-align:center;">
-
-        <input
-            id="playerScore1"
-            type="number"
-            value="0"
-            style="padding:8px;width:120px;font-weight:bold;text-align:center;">
-
-        <br><br>
-
-        <button onclick="addScore(1,50)">+50</button>
-        <button onclick="addScore(1,100)">+100</button>
-
-        <button onclick="halfScore(1)">/2</button>
-
-        <button
-            style="background:#c0392b;color:white;"
-            onclick="resetScore(1)">
-            MẤT ĐIỂM
-        </button>
-
-        <button
-            style="background:#27ae60;color:white;"
-            onclick="updatePlayer(1)">
-            CẬP NHẬT
-        </button>
-
-    </div>
-
-
-    <!-- PLAYER 2 -->
-
-    <div style="border:1px solid #666;padding:15px;border-radius:8px;">
-
-        <h3 style="margin-top:0;color:#ffd600;">PLAYER 2</h3>
-
-        <input
-            id="playerName2"
-            type="text"
-            placeholder="Tên người chơi"
-            style="padding:8px;width:220px;font-weight:bold;text-align:center;">
-
-        <input
-            id="playerScore2"
-            type="number"
-            value="0"
-            style="padding:8px;width:120px;font-weight:bold;text-align:center;">
-
-        <br><br>
-
-        <button onclick="addScore(2,50)">+50</button>
-        <button onclick="addScore(2,100)">+100</button>
-
-        <button onclick="halfScore(2)">/2</button>
-
-        <button
-            style="background:#c0392b;color:white;"
-            onclick="resetScore(2)">
-            MẤT ĐIỂM
-        </button>
-
-        <button
-            style="background:#27ae60;color:white;"
-            onclick="updatePlayer(2)">
-            CẬP NHẬT
-        </button>
-
-    </div>
-
-
-    <!-- PLAYER 3 -->
-
-    <div style="border:1px solid #666;padding:15px;border-radius:8px;">
-
-        <h3 style="margin-top:0;color:#00b7ff;">PLAYER 3</h3>
-
-        <input
-            id="playerName3"
-            type="text"
-            placeholder="Tên người chơi"
-            style="padding:8px;width:220px;font-weight:bold;text-align:center;">
-
-        <input
-            id="playerScore3"
-            type="number"
-            value="0"
-            style="padding:8px;width:120px;font-weight:bold;text-align:center;">
-
-        <br><br>
-
-        <button onclick="addScore(3,50)">+50</button>
-        <button onclick="addScore(3,100)">+100</button>
-
-        <button onclick="halfScore(3)">/2</button>
-
-        <button
-            style="background:#c0392b;color:white;"
-            onclick="resetScore(3)">
-            MẤT ĐIỂM
-        </button>
-
-        <button
-            style="background:#27ae60;color:white;"
-            onclick="updatePlayer(3)">
-            CẬP NHẬT
-        </button>
-
-    </div>
-
-</div>
     <h3>Hệ thống âm thanh hiệu ứng (SFX)</h3>
     <div class="group">
         <button style="background-color: #d63031; color: white;" onclick="sendCmd('PLAY_SFX', 'wrong.mp3')">SAI (Wrong)</button>
@@ -432,8 +302,10 @@ DÒNG 4 (12 ô)">
                     const btn = document.getElementById(`btnQuiz${i}`);
                     if (btn) btn.classList.remove("active");
                 }
-                const activeBtn = document.getElementById(`btnQuiz${data + 1}`);
-                if (activeBtn) activeBtn.classList.add("active");
+                if(data >= 0) {
+                    const activeBtn = document.getElementById(`btnQuiz${data + 1}`);
+                    if (activeBtn) activeBtn.classList.add("active");
+                }
 
                 const targetQuizzes = [2, 3, 4, 8, 9, 10, 11];
                 if (targetQuizzes.includes(data)) {
@@ -474,29 +346,27 @@ DÒNG 4 (12 ô)">
         });
 
         function sendManualText() {
-    const txt = document.getElementById("manualTextInput").value
-        .toUpperCase()
-        .replace(/\r/g, "");
+            const txt = document.getElementById("manualTextInput").value.toUpperCase().replace(/\r/g, "");
+            const lines = txt.split("\n").map(l => l.trim()).filter(l => l !== "");
 
-    const lines = txt.split("\n");
+            if (lines.length === 0) {
+                showCustomAlert("Vui lòng nhập văn bản trước khi hiển thị.");
+                return;
+            }
+            if (lines.length > 4) {
+                showCustomAlert("Chỉ được nhập tối đa 4 dòng.");
+                return;
+            }
 
-    if (lines.length > 4) {
-        showCustomAlert("Chỉ được nhập tối đa 4 dòng.");
-        return;
-    }
+            const maxLen = [12, 14, 14, 12];
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].length > maxLen[i]) {
+                    showCustomAlert(`Dòng ${i + 1} chỉ được tối đa ${maxLen[i]} ký tự.`);
+                    return;
+                }
+            }
 
-    const maxLen = [12, 14, 14, 12];
-
-    for (let i = 0; i < lines.length; i++) {
-        if (lines[i].length > maxLen[i]) {
-            showCustomAlert(
-                `Dòng ${i + 1} chỉ được tối đa ${maxLen[i]} ký tự.`
-            );
-            return;
-        }
-    }
-
-    sendCmd("SHOW_MANUAL_TEXT", lines);
+            sendCmd("SHOW_MANUAL_TEXT", lines);
         }
 
         let importedQuizzes = [];
@@ -602,8 +472,6 @@ DÒNG 4 (12 ô)">
         function clickPauseTossup() {
             isTossupRunning = false;
             clearTimeout(tossupTimeout);
-            // SỬA ĐỔI CHÍNH TẠI ĐÂY: Gửi đồng thời lệnh PAUSE_TOSSUP để đổi màu nút 
-            // và ép luồng hiển thị khán giả dừng phát âm thanh tossupSound ngay lập tức.
             sendCmd('PAUSE_TOSSUP');
             sendCmd('STOP_TOSSUP_MUSIC'); 
         }
@@ -704,46 +572,7 @@ DÒNG 4 (12 ô)">
         function clearExtraLetters() {
             document.querySelectorAll(".extra-letter-input").forEach(inp => inp.value = "");
         }
-function updatePlayer(player){
 
-    sendCmd("UPDATE_PLAYER",{
-
-        player:player,
-
-        name:document.getElementById("playerName"+player).value,
-
-        score:parseInt(
-            document.getElementById("playerScore"+player).value
-        )||0
-
-    });
-
-}
-function addScore(player,value){
-
-    let box=document.getElementById("playerScore"+player);
-
-    box.value=(parseInt(box.value)||0)+value;
-
-    updatePlayer(player);
-
-}
-function halfScore(player){
-
-    let box=document.getElementById("playerScore"+player);
-
-    box.value=Math.floor((parseInt(box.value)||0)/2);
-
-    updatePlayer(player);
-
-}
-function resetScore(player){
-
-    document.getElementById("playerScore"+player).value=0;
-
-    updatePlayer(player);
-
-}
         document.addEventListener('keydown', function (e) {
             if (e.key === 'F12') { e.preventDefault(); return false; }
             if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) { e.preventDefault(); return false; }

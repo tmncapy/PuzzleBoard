@@ -3,6 +3,7 @@ globalFavicon.rel = 'icon';
 globalFavicon.type = 'image/x-icon';
 globalFavicon.href = 'favicon.ico';
 document.head.appendChild(globalFavicon);
+
 // --- KHỞI TẠO ĐỐI TƯỢNG ĐỒNG BỘ SUPABASE ---
 var SUPABASE_URL = window.SUPABASE_URL || "https://tukabyhjmcyptuwmwedp.supabase.co";
 var SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OX0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
@@ -27,11 +28,11 @@ const clearPuzzleSound = new Audio("ClearPuzzle.mp3");
 const tossupSound = new Audio("tossup.mp3");
 tossupSound.loop = true;
 
-// Mảng lưu trữ các hiệu ứng âm thanh (SFX) được kích hoạt từ xa để quản lý việc dừng hoàn toàn
 let activeSFXList = [];
-
-// THÊM: Mảng toàn cục lưu danh sách các Timeout ID của Toss-up để dừng lật tự động khi bấm Pause
 let tossupTimeoutIds = [];
+let allCells = [];
+let absoluteCells = new Array(52).fill(null);
+let currentQuizIndex = -1;
 
 function initAudioPermission() {
     showSound.load(); revealSound.load(); clearPuzzleSound.load(); tossupSound.load();
@@ -100,7 +101,6 @@ function removeVietnameseTones(str) {
     return str.split("").map(c => map[c] || c).join("");
 }
 
-// Tọa độ cấu trúc ma trận 52 ô thực tế
 const cells = [
     { x: 246, y: 240 }, { x: 366, y: 240 }, { x: 486, y: 240 }, { x: 606, y: 240 }, { x: 726, y: 240 }, { x: 846, y: 240 }, { x: 966, y: 240 }, { x: 1086, y: 240 }, { x: 1206, y: 240 }, { x: 1326, y: 240 }, { x: 1446, y: 240 }, { x: 1566, y: 240 },
     { x: 126, y: 390 }, { x: 246, y: 390 }, { x: 366, y: 390 }, { x: 486, y: 390 }, { x: 606, y: 390 }, { x: 726, y: 390 }, { x: 846, y: 390 }, { x: 966, y: 390 }, { x: 1086, y: 390 }, { x: 1206, y: 390 }, { x: 1326, y: 390 }, { x: 1446, y: 390 }, { x: 1566, y: 390 }, { x: 1686, y: 390 },
@@ -117,11 +117,11 @@ function syncControlUI(type, data) {
 }
 
 function clearOldBoardElements() {
+    const scoreboard = document.getElementById("scoreboard");
     const thumbnailImg = document.getElementById("programThumbnail");
     board.innerHTML = "";
-    if (thumbnailImg) {
-        board.appendChild(thumbnailImg);
-    }
+    if (thumbnailImg) board.appendChild(thumbnailImg);
+    if (scoreboard) board.appendChild(scoreboard);
 }
 
 function clearAllTossupTimeouts() {
@@ -137,9 +137,8 @@ function loadQuiz(quizPayload) {
     tossupSound.load();
     initAudioPermission();
 
-  
     tossupSound.currentTime = 0;
-    clearAllTossupTimeouts(); // Reset các luồng Toss-up cũ nếu có
+    clearAllTossupTimeouts(); 
     syncControlUI("UPDATE_CTRL_ACTIVE", null);
 
     clearOldBoardElements();
@@ -187,7 +186,6 @@ function loadQuiz(quizPayload) {
     syncControlUI("UPDATE_QUIZ_ACTIVE", index);
 }
 
-// --- CỔNG LẮNG NGHE TÍN HIỆU TỪ BẢNG ĐIỀU KHIỂN (SUPABASE REALTIME) ---
 channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     const { type, data } = payload;
 
@@ -205,7 +203,8 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
         allCells = [];
         absoluteCells = new Array(52).fill(null);
 
-        const lines = data.split('\n').map(line => line.trim().toUpperCase()).filter(line => line !== "");
+        // DATA ĐÃ LÀ MẢNG SẴN CÓ TỪ CONTROL, KHÔNG SPLIT NỮA
+        const lines = data;
         
         const rowConfigs = [
             { startIdx: 0, totalCells: 12 },  
@@ -215,14 +214,19 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
         ];
 
         let manualTextGrid = new Array(52).fill(null);
-        let targetRowIndex = lines.length === 1 ? 1 : 1; 
+        
+        // Thuật toán tự căn đều dòng dựa trên số lượng dòng nhập vào
+        let targetRowIndex = 1; 
+        if (lines.length === 1) targetRowIndex = 1;
+        else if (lines.length === 2) targetRowIndex = 1;
+        else if (lines.length === 3) targetRowIndex = 0;
+        else if (lines.length === 4) targetRowIndex = 0;
 
         lines.forEach((lineText, index) => {
             let currentRow = targetRowIndex + index;
             if (currentRow > 3) currentRow = 3; 
 
             let config = rowConfigs[currentRow];
-            
             let offset = Math.floor((config.totalCells - lineText.length) / 2);
             if (offset < 0) offset = 0; 
 
@@ -283,11 +287,8 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     else if (type === "PLAY_SFX") {
         initAudioPermission();
         const sfxAudio = new Audio(data);
-        
         activeSFXList.push(sfxAudio);
-        
         sfxAudio.play().catch(e => console.log("Lỗi phát SFX từ xa:", e));
-        
         sfxAudio.onended = () => {
             activeSFXList = activeSFXList.filter(audio => audio !== sfxAudio);
             sfxAudio.remove();
@@ -313,7 +314,6 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
                 console.log("Lỗi khi giải phóng audio:", e);
             }
         });
-        
         activeSFXList = [];
     }
     else if (type === "GUESS_LETTER") {
@@ -412,8 +412,6 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     }
     else if (type === "TOSSUP_REVEAL_CELL") {
         const idx = data.absoluteIndex;
-        // Ghi nhận timeout ID được gửi từ luồng chạy ngầm của control.html (nếu có cấu trúc gửi qua realtime)
-        // Hoặc lưu trữ cục bộ nếu xử lý hiệu ứng lật tại đây
         const targetItem = absoluteCells[idx - 1];
         if (targetItem && !targetItem.revealed) {
             targetItem.element.style.background = 'url("obox.png") center center no-repeat';
@@ -423,14 +421,11 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
             targetItem.state = 2;
         }
     }
-else if (type === "PAUSE_TOSSUP") {
-    syncControlUI("UPDATE_CTRL_ACTIVE", "pauseBtn");
-
-    // Chỉ dừng việc lật ô, KHÔNG dừng nhạc Toss-up
-    clearAllTossupTimeouts();
-
-    playDing();
-}
+    else if (type === "PAUSE_TOSSUP") {
+        syncControlUI("UPDATE_CTRL_ACTIVE", "pauseBtn");
+        clearAllTossupTimeouts();
+        playDing();
+    }
     else if (type === "PLAY_TOSSUP") {
         initAudioPermission();
         syncControlUI("UPDATE_CTRL_ACTIVE", "playBtn");
