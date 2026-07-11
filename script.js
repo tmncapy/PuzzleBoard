@@ -160,25 +160,12 @@ function loadQuiz(quizPayload) {
             return;
         }
 
+        // Đã khóa: Gán pointerEvents = "none" để không cho nhấn lật thủ công từ màn khán giả
+        cell.style.pointerEvents = "none";
+
         let cellObj = { element: cell, letter: letter, revealed: false, state: 0, absoluteIndex: i + 1 };
         allCells.push(cellObj);
         absoluteCells[i] = cellObj;
-
-        cell.addEventListener("click", () => {
-            initAudioPermission();
-            if (cellObj.state === 0) {
-                cell.style.background = 'url("choosebox.png") center center no-repeat';
-                cell.style.backgroundSize = "100% 100%";
-                playDing();
-                cellObj.state = 1;
-            } else if (cellObj.state === 1) {
-                cell.style.background = 'url("obox.png") center center no-repeat';
-                cell.style.backgroundSize = "100% 100%";
-                cell.textContent = removeVietnameseTones(cellObj.letter);
-                cellObj.state = 2;
-                cellObj.revealed = true;
-            }
-        });
 
         board.appendChild(cell);
     });
@@ -203,7 +190,6 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
         allCells = [];
         absoluteCells = new Array(52).fill(null);
 
-        // DATA ĐÃ LÀ MẢNG SẴN CÓ TỪ CONTROL, KHÔNG SPLIT NỮA
         const lines = data;
         
         const rowConfigs = [
@@ -215,7 +201,6 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
 
         let manualTextGrid = new Array(52).fill(null);
         
-        // Thuật toán tự căn đều dòng dựa trên số lượng dòng nhập vào
         let targetRowIndex = 1; 
         if (lines.length === 1) targetRowIndex = 1;
         else if (lines.length === 2) targetRowIndex = 1;
@@ -245,6 +230,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
             cell.className = "cell cell-manual"; 
             cell.style.left = p.x + "px";
             cell.style.top = p.y + "px";
+            cell.style.pointerEvents = "none"; // Khóa tương tác thủ công dòng text
 
             const charAtPos = manualTextGrid[i];
 
@@ -252,7 +238,6 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
                 if (charAtPos === " ") {
                     cell.style.background = 'url("defaultbox.png") center center no-repeat';
                     cell.style.backgroundSize = "100% 100%";
-                    cell.style.pointerEvents = "none";
                 } else {
                     cell.style.background = 'url("occhu.png") center center no-repeat';
                     cell.style.backgroundSize = "100% 100%";
@@ -265,7 +250,6 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
             } else {
                 cell.style.background = 'url("defaultbox.png") center center no-repeat';
                 cell.style.backgroundSize = "100% 100%";
-                cell.style.pointerEvents = "none";
             }
 
             board.appendChild(cell);
@@ -423,7 +407,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     }
     else if (type === "PAUSE_TOSSUP") {
         syncControlUI("UPDATE_CTRL_ACTIVE", "pauseBtn");
-        clearAllTossupTimeouts();
+        clearAllTouts();
         playDing();
     }
     else if (type === "PLAY_TOSSUP") {
