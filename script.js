@@ -1,3 +1,4 @@
+// script.js
 const globalFavicon = document.createElement('link');
 globalFavicon.rel = 'icon';
 globalFavicon.type = 'image/x-icon';
@@ -27,6 +28,11 @@ const revealSound = new Audio("ClearTossUp.mp3");
 const clearPuzzleSound = new Audio("ClearPuzzle.mp3");
 const tossupSound = new Audio("tossup.mp3");
 tossupSound.loop = true;
+
+// Lấy tham chiếu tới các đèn hiệu ứng overlay
+const lightWhite = document.getElementById("light-white");
+const lightGreen = document.getElementById("light-green");
+const lightRed = document.getElementById("light-red");
 
 let activeSFXList = [];
 let tossupTimeoutIds = [];
@@ -60,6 +66,7 @@ function playTimerSound(seconds) {
 }
 
 function playTossupMusic() {
+    tossupSound.volume = 1.0; 
     let playPromise = tossupSound.play();
     if (playPromise !== undefined) {
         playPromise.catch(() => {
@@ -68,6 +75,23 @@ function playTossupMusic() {
                 document.body.removeEventListener('click', memoPlay);
             }, { once: true });
         });
+    }
+}
+
+// Hàm hỗ trợ ẩn tất cả đèn hiệu ứng màn hình
+function hideAllLights() {
+    if (lightWhite) lightWhite.style.display = "none";
+    if (lightGreen) lightGreen.style.display = "none";
+    if (lightRed) lightRed.style.display = "none";
+}
+
+// Hàm kích hoạt nháy đèn đỏ khi đoán sai chữ
+function triggerRedLight() {
+    if (lightRed) {
+        lightRed.style.display = "block";
+        setTimeout(() => {
+            lightRed.style.display = "none";
+        }, 1000); // Đèn đỏ sáng trong 1 giây rồi tắt
     }
 }
 
@@ -86,7 +110,7 @@ function removeVietnameseTones(str) {
         "ế": "ê", "ề": "ê", "ể": "ê", "ễ": "ê", "ệ": "ê", "Ế": "Ê", "Ề": "Ê", "Ể": "Ê", "Ễ": "Ê", "Ệ": "Ê",
         "í": "i", "ì": "i", "ỉ": "i", "ĩ": "i", "ị": "i", "Í": "I", "Ì": "I", "Ỉ": "I", "Ĩ": "I", "Ị": "I",
         "ó": "o", "ò": "o", "ỏ": "o", "õ": "o", "ọ": "o", "Ó": "O", "Ò": "O", "Ỏ": "O", "Õ": "O", "Ọ": "O",
-        "ố": "ô", "ồ": "ô", "ổ": "ô", "ỗ": "ô", "ộ": "ô", "Ố": "Ô", "Ồ": "Ô", "Ổ": "Ô", "Ỗ": "Ô", "Ộ": "Ô",
+        "ố": "ô", "ồ": "ô", "ổ": "ô", "ỗ": "ô", "ộ": "ô", "Ố": "Ô", "Ồ": "Ô", "Ổ": "Ô", "Ễ": "Ô", "Ộ": "Ô",
         "ớ": "ơ", "ờ": "ơ", "ở": "ơ", "ỡ": "ơ", "ợ": "ơ", "Ớ": "Ơ", "Ờ": "Ơ", "Ở": "Ơ", "Ỡ": "Ơ", "Ợ": "Ơ",
         "ú": "u", "ù": "u", "ủ": "u", "ũ": "u", "ụ": "u", "Ú": "U", "Ù": "U", "Ủ": "U", "Ũ": "U", "Ụ": "U",
         "ứ": "ư", "ừ": "ư", "ử": "ư", "ữ": "ư", "ự": "ư", "Ứ": "Ư", "Ừ": "Ư", "Ử": "Ư", "Ữ": "Ư", "Ự": "Ư",
@@ -106,8 +130,6 @@ function syncControlUI(type, data) {
     channel.send({ type: 'broadcast', event: 'display-to-control', payload: { type: type, data: data } });
 }
 
-// --- THAY ĐỔI QUAN TRỌNG TẠI ĐÂY ---
-// Hàm dọn dẹp chỉ xóa các ô chữ cũ (.cell), giữ lại nguyên vẹn #scoreboard và #programThumbnail
 function clearOldBoardElements() {
     const oldCells = board.querySelectorAll('.cell');
     oldCells.forEach(c => c.remove());
@@ -119,6 +141,8 @@ function clearAllTossupTimeouts() {
 }
 
 function loadQuiz(quizPayload) {
+    hideAllLights(); 
+
     const index = quizPayload.index;
     const letters = quizPayload.letters;
 
@@ -127,6 +151,7 @@ function loadQuiz(quizPayload) {
     initAudioPermission();
 
     tossupSound.currentTime = 0;
+    tossupSound.volume = 1.0;
     clearAllTossupTimeouts(); 
     syncControlUI("UPDATE_CTRL_ACTIVE", null);
 
@@ -163,33 +188,34 @@ function loadQuiz(quizPayload) {
 channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     const { type, data } = payload;
 
-    // --- THÊM LOGIC NHẬN BIẾN ĐỒNG BỘ ĐIỂM SỐ SANG INDEX ---
     if (type === "UPDATE_SCOREBOARD") {
-if (document.getElementById("playerName1")) document.getElementById("playerName1").textContent = data.p1.name;
-    if (document.getElementById("playerScore1")) {
-        // Chuyển đổi điểm số sang định dạng có dấu chấm định dạng Việt Nam
-        const score1 = Number(data.p1.score) || 0;
-        document.getElementById("playerScore1").textContent = score1.toLocaleString('vi-VN');
+        if (document.getElementById("playerName1")) document.getElementById("playerName1").textContent = data.p1.name;
+        if (document.getElementById("playerScore1")) {
+            const score1 = Number(data.p1.score) || 0;
+            document.getElementById("playerScore1").textContent = score1.toLocaleString('vi-VN');
+        }
+        
+        if (document.getElementById("playerName2")) document.getElementById("playerName2").textContent = data.p2.name;
+        if (document.getElementById("playerScore2")) {
+            const score2 = Number(data.p2.score) || 0;
+            document.getElementById("playerScore2").textContent = score2.toLocaleString('vi-VN');
+        }
+        
+        if (document.getElementById("playerName3")) document.getElementById("playerName3").textContent = data.p3.name;
+        if (document.getElementById("playerScore3")) {
+            const score3 = Number(data.p3.score) || 0;
+            document.getElementById("playerScore3").textContent = score3.toLocaleString('vi-VN');
+        }
     }
-    
-    if (document.getElementById("playerName2")) document.getElementById("playerName2").textContent = data.p2.name;
-    if (document.getElementById("playerScore2")) {
-        const score2 = Number(data.p2.score) || 0;
-        document.getElementById("playerScore2").textContent = score2.toLocaleString('vi-VN');
-    }
-    
-    if (document.getElementById("playerName3")) document.getElementById("playerName3").textContent = data.p3.name;
-    if (document.getElementById("playerScore3")) {
-        const score3 = Number(data.p3.score) || 0;
-        document.getElementById("playerScore3").textContent = score3.toLocaleString('vi-VN');
-    }    }
     else if (type === "LOAD_QUIZ") {
         loadQuiz(data);
     }
     else if (type === "SHOW_MANUAL_TEXT") {
+        hideAllLights(); 
         initAudioPermission();
         tossupSound.pause();
         tossupSound.currentTime = 0;
+        tossupSound.volume = 1.0;
         clearAllTossupTimeouts();
         syncControlUI("UPDATE_CTRL_ACTIVE", null);
 
@@ -277,10 +303,16 @@ if (document.getElementById("playerName1")) document.getElementById("playerName1
             activeSFXList = activeSFXList.filter(audio => audio !== sfxAudio);
             sfxAudio.remove();
         };
+
+        // Kích hoạt đèn đỏ nếu lệnh phát SFX yêu cầu tệp wrong.mp3 từ backend thủ công
+        if (data === "wrong.mp3") {
+            triggerRedLight();
+        }
     }
     else if (type === "STOP_ALL_SFX") {
         tossupSound.pause(); showSound.pause(); revealSound.pause(); clearPuzzleSound.pause();
         tossupSound.currentTime = 0; showSound.currentTime = 0; revealSound.currentTime = 0; clearPuzzleSound.currentTime = 0;
+        tossupSound.volume = 1.0;
         activeSFXList.forEach(audio => { try { audio.pause(); audio.currentTime = 0; audio.remove(); } catch (e) {} });
         activeSFXList = [];
     }
@@ -291,7 +323,12 @@ if (document.getElementById("playerName1")) document.getElementById("playerName1
         absoluteCells.forEach(item => {
             if (item && cleanLetter(item.letter) === guessedChar && item.state === 0) matchPositions.push(item.absoluteIndex);
         });
-        if (matchPositions.length === 0) playWrong();
+
+        // BỔ SUNG: Nếu không tìm thấy chữ cái nào khớp trên bảng (Đoán sai), nháy đèn đỏ ngay lập tức
+        if (matchPositions.length === 0) {
+            triggerRedLight();
+        }
+
         syncControlUI("FILL_POSITIONS", matchPositions);
     }
     else if (type === "GUESS_MULTI_LETTERS") {
@@ -301,10 +338,16 @@ if (document.getElementById("playerName1")) document.getElementById("playerName1
         absoluteCells.forEach(item => {
             if (item && item.state === 0 && guessedChars.includes(cleanLetter(item.letter))) matchPositions.push(item.absoluteIndex);
         });
-        if (matchPositions.length === 0) playWrong();
+
+        // BỔ SUNG: Nếu chuỗi ký tự đoán đồng thời không có ký tự nào khớp, nháy đèn đỏ
+        if (matchPositions.length === 0) {
+            triggerRedLight();
+        }
+
         syncControlUI("FILL_POSITIONS", matchPositions);
     }
     else if (type === "RESET_BOARD") {
+        hideAllLights(); 
         const allDomCells = document.querySelectorAll('.cell');
         allDomCells.forEach(cell => {
             cell.style.background = 'url("defaultbox.png") center center no-repeat';
@@ -375,23 +418,33 @@ if (document.getElementById("playerName1")) document.getElementById("playerName1
     }
     else if (type === "PAUSE_TOSSUP") {
         syncControlUI("UPDATE_CTRL_ACTIVE", "pauseBtn");
-        clearAllTossupTimeouts();
-        playDing();
+        clearAllTossupTimeouts(); 
+        playDing(); 
     }
     else if (type === "PLAY_TOSSUP") {
         initAudioPermission();
         syncControlUI("UPDATE_CTRL_ACTIVE", "playBtn");
-        playTossupMusic();
+        playTossupMusic(); 
     }
     else if (type === "STOP_TOSSUP_MUSIC") {
-        tossupSound.pause();
         clearAllTossupTimeouts();
         syncControlUI("UPDATE_CTRL_ACTIVE", null);
+        tossupSound.pause();
+        tossupSound.currentTime = 0;
     }
     else if (type === "SHOW_BOARD") {
+        hideAllLights(); 
         initAudioPermission();
         showSound.currentTime = 0;
         showSound.play();
+
+        if (lightWhite) {
+            lightWhite.style.display = "block";
+            setTimeout(() => {
+                lightWhite.style.display = "none";
+            }, 1000); 
+        }
+
         allCells.forEach((item, index) => {
             setTimeout(() => {
                 item.element.style.background = 'url("obox.png") center center no-repeat';
@@ -404,6 +457,7 @@ if (document.getElementById("playerName1")) document.getElementById("playerName1
     }
     else if (type === "REVEAL_ALL") {
         tossupSound.pause();
+        tossupSound.volume = 1.0;
         clearAllTossupTimeouts();
         syncControlUI("UPDATE_CTRL_ACTIVE", null);
         if ([2, 3, 4, 8].includes(currentQuizIndex)) {
@@ -411,6 +465,11 @@ if (document.getElementById("playerName1")) document.getElementById("playerName1
         } else {
             revealSound.currentTime = 0; revealSound.play().catch(e => console.log(e));
         }
+
+        if (lightGreen) {
+            lightGreen.style.display = "block";
+        }
+
         allCells.forEach(item => {
             item.element.style.background = 'url("obox.png") center center no-repeat';
             item.element.style.backgroundSize = "100% 100%";

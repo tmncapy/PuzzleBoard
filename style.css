@@ -1,3 +1,5 @@
+/* style.css */
+
 /* Tải font SVN-Gilroy Bold bạn cung cấp */
 @font-face {
     font-family: "SVN-Gilroy Bold";
@@ -102,4 +104,31 @@ body {
     z-index: 999;
     object-fit: cover;
     display: none;
+}
+
+/* === CÁC YẾU TỐ ĐÈN MỚI THÊM VÀO (FULL MÀN HÌNH) === */
+.overlay-light {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1920px;
+    height: 1080px;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: 100; /* Nổi lên trên bảng ô chữ và bảng điểm */
+    pointer-events: none; /* Không cản trở tương tác */
+    display: none; /* Ẩn mặc định */
+}
+
+#light-white {
+    background-image: url("white.png");
+}
+
+#light-green {
+    background-image: url("green.png");
+}
+
+#light-red {
+    background-image: url("red.png");
 }
