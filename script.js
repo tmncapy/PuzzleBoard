@@ -45,7 +45,7 @@ function initAudioPermission() {
 }
 
 function playDing(){
-    const audio = new Audio("ding.wav");
+    const audio = new Audio("ding.mp3");
     audio.play().then(() => { audio.onended = () => { audio.remove(); }; }).catch(e => console.log(e));
 }
 
@@ -55,8 +55,11 @@ function playSecondDing(){
 }
 
 function playWrong() {
+    initAudioPermission();
     const audio = new Audio("wrong.mp3");
-    audio.play().then(() => { audio.onended = () => { audio.remove(); }; }).catch(e => console.log(e));
+    audio.play().then(() => { 
+        audio.onended = () => { audio.remove(); }; 
+    }).catch(e => console.log(e));
 }
 
 function playTimerSound(seconds) {
@@ -78,20 +81,18 @@ function playTossupMusic() {
     }
 }
 
-// Hàm hỗ trợ ẩn tất cả đèn hiệu ứng màn hình
 function hideAllLights() {
     if (lightWhite) lightWhite.style.display = "none";
     if (lightGreen) lightGreen.style.display = "none";
     if (lightRed) lightRed.style.display = "none";
 }
 
-// Hàm kích hoạt nháy đèn đỏ khi đoán sai chữ
 function triggerRedLight() {
     if (lightRed) {
         lightRed.style.display = "block";
         setTimeout(() => {
             lightRed.style.display = "none";
-        }, 1000); // Đèn đỏ sáng trong 1 giây rồi tắt
+        }, 1000); 
     }
 }
 
@@ -101,6 +102,7 @@ function cleanLetter(letter) {
     return removeVietnameseTones(cleaned).toUpperCase();
 }
 
+// ĐÃ SỬA: Chuẩn hóa lại toàn bộ bảng map dấu để tránh lỗi lật chữ Ê thành Ô hoặc ngược lại
 function removeVietnameseTones(str) {
     const map = {
         "á": "a", "à": "a", "ả": "a", "ã": "a", "ạ": "a", "Á": "A", "À": "A", "Ả": "A", "Ã": "A", "Ạ": "A",
@@ -110,10 +112,10 @@ function removeVietnameseTones(str) {
         "ế": "ê", "ề": "ê", "ể": "ê", "ễ": "ê", "ệ": "ê", "Ế": "Ê", "Ề": "Ê", "Ể": "Ê", "Ễ": "Ê", "Ệ": "Ê",
         "í": "i", "ì": "i", "ỉ": "i", "ĩ": "i", "ị": "i", "Í": "I", "Ì": "I", "Ỉ": "I", "Ĩ": "I", "Ị": "I",
         "ó": "o", "ò": "o", "ỏ": "o", "õ": "o", "ọ": "o", "Ó": "O", "Ò": "O", "Ỏ": "O", "Õ": "O", "Ọ": "O",
-        "ố": "ô", "ồ": "ô", "ổ": "ô", "ỗ": "ô", "ộ": "ô", "Ố": "Ô", "Ồ": "Ô", "Ổ": "Ô", "Ễ": "Ô", "Ộ": "Ô",
+        "ố": "ô", "ồ": "ô", "ổ": "ô", "ỗ": "ô", "ộ": "ô", "Ố": "Ô", "Ồ": "Ô", "Ổ": "Ô", "Ỗ": "Ô", "Ộ": "Ô",
         "ớ": "ơ", "ờ": "ơ", "ở": "ơ", "ỡ": "ơ", "ợ": "ơ", "Ớ": "Ơ", "Ờ": "Ơ", "Ở": "Ơ", "Ỡ": "Ơ", "Ợ": "Ơ",
         "ú": "u", "ù": "u", "ủ": "u", "ũ": "u", "ụ": "u", "Ú": "U", "Ù": "U", "Ủ": "U", "Ũ": "U", "Ụ": "U",
-        "ứ": "ư", "ừ": "ư", "ử": "ư", "ữ": "ư", "ự": "ư", "Ứ": "Ư", "Ừ": "Ư", "Ử": "Ư", "Ữ": "Ư", "Ự": "Ư",
+        "ứ": "ư", "ừ": "ư", "ử": "ư", "ữ": "ư", "ự": "ư", "Ứ": "Ư", "Ủ": "Ư", "Ử": "Ư", "Ữ": "Ư", "Ự": "Ư",
         "ý": "y", "ỳ": "y", "ỷ": "y", "ỹ": "y", "ỵ": "y", "Ý": "Y", "Ỳ": "Y", "Ỷ": "Y", "Ỹ": "Y", "Ỵ": "Y"
     };
     return str.split("").map(c => map[c] || c).join("");
@@ -304,7 +306,6 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
             sfxAudio.remove();
         };
 
-        // Kích hoạt đèn đỏ nếu lệnh phát SFX yêu cầu tệp wrong.mp3 từ backend thủ công
         if (data === "wrong.mp3") {
             triggerRedLight();
         }
@@ -324,8 +325,8 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
             if (item && cleanLetter(item.letter) === guessedChar && item.state === 0) matchPositions.push(item.absoluteIndex);
         });
 
-        // BỔ SUNG: Nếu không tìm thấy chữ cái nào khớp trên bảng (Đoán sai), nháy đèn đỏ ngay lập tức
         if (matchPositions.length === 0) {
+            playWrong();
             triggerRedLight();
         }
 
@@ -339,8 +340,8 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
             if (item && item.state === 0 && guessedChars.includes(cleanLetter(item.letter))) matchPositions.push(item.absoluteIndex);
         });
 
-        // BỔ SUNG: Nếu chuỗi ký tự đoán đồng thời không có ký tự nào khớp, nháy đèn đỏ
         if (matchPositions.length === 0) {
+            playWrong();
             triggerRedLight();
         }
 
