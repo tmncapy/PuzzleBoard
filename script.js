@@ -54,6 +54,7 @@ function playSecondDing(){
     audio.play().then(() => { audio.onended = () => { audio.remove(); }; }).catch(e => console.log(e));
 }
 
+// Sửa hàm phát tiếng đoán sai để quản lý vòng đời audio tốt hơn
 function playWrong() {
     initAudioPermission();
     const audio = new Audio("wrong.mp3");
@@ -81,18 +82,40 @@ function playTossupMusic() {
     }
 }
 
+// Hàm hỗ trợ ẩn tất cả đèn hiệu ứng màn hình
 function hideAllLights() {
     if (lightWhite) lightWhite.style.display = "none";
     if (lightGreen) lightGreen.style.display = "none";
     if (lightRed) lightRed.style.display = "none";
 }
 
+// Hàm kích hoạt nháy đèn đỏ khi đoán sai chữ
 function triggerRedLight() {
     if (lightRed) {
         lightRed.style.display = "block";
         setTimeout(() => {
             lightRed.style.display = "none";
-        }, 1000); 
+        }, 1000); // Đèn đỏ sáng trong 1 giây rồi tắt
+    }
+}
+
+function triggerWhiteLight() {
+    const lightWhite = document.getElementById("light-white");
+    if (lightWhite) {
+        lightWhite.style.display = "block";
+        setTimeout(() => {
+            lightWhite.style.display = "none";
+        }, 1000);
+    }
+}
+
+function triggerGreenLight() {
+    const lightGreen = document.getElementById("light-green");
+    if (lightGreen) {
+        lightGreen.style.display = "block";
+        setTimeout(() => {
+            lightGreen.style.display = "none";
+        }, 1000);
     }
 }
 
@@ -102,7 +125,6 @@ function cleanLetter(letter) {
     return removeVietnameseTones(cleaned).toUpperCase();
 }
 
-// ĐÃ SỬA: Chuẩn hóa lại toàn bộ bảng map dấu để tránh lỗi lật chữ Ê thành Ô hoặc ngược lại
 function removeVietnameseTones(str) {
     const map = {
         "á": "a", "à": "a", "ả": "a", "ã": "a", "ạ": "a", "Á": "A", "À": "A", "Ả": "A", "Ã": "A", "Ạ": "A",
@@ -112,10 +134,10 @@ function removeVietnameseTones(str) {
         "ế": "ê", "ề": "ê", "ể": "ê", "ễ": "ê", "ệ": "ê", "Ế": "Ê", "Ề": "Ê", "Ể": "Ê", "Ễ": "Ê", "Ệ": "Ê",
         "í": "i", "ì": "i", "ỉ": "i", "ĩ": "i", "ị": "i", "Í": "I", "Ì": "I", "Ỉ": "I", "Ĩ": "I", "Ị": "I",
         "ó": "o", "ò": "o", "ỏ": "o", "õ": "o", "ọ": "o", "Ó": "O", "Ò": "O", "Ỏ": "O", "Õ": "O", "Ọ": "O",
-        "ố": "ô", "ồ": "ô", "ổ": "ô", "ỗ": "ô", "ộ": "ô", "Ố": "Ô", "Ồ": "Ô", "Ổ": "Ô", "Ỗ": "Ô", "Ộ": "Ô",
+        "ố": "ô", "ồ": "ô", "ổ": "ô", "ỗ": "ô", "ộ": "ô", "Ố": "Ô", "Ồ": "Ô", "Ổ": "Ô", "Ễ": "Ô", "Ộ": "Ô",
         "ớ": "ơ", "ờ": "ơ", "ở": "ơ", "ỡ": "ơ", "ợ": "ơ", "Ớ": "Ơ", "Ờ": "Ơ", "Ở": "Ơ", "Ỡ": "Ơ", "Ợ": "Ơ",
         "ú": "u", "ù": "u", "ủ": "u", "ũ": "u", "ụ": "u", "Ú": "U", "Ù": "U", "Ủ": "U", "Ũ": "U", "Ụ": "U",
-        "ứ": "ư", "ừ": "ư", "ử": "ư", "ữ": "ư", "ự": "ư", "Ứ": "Ư", "Ủ": "Ư", "Ử": "Ư", "Ữ": "Ư", "Ự": "Ư",
+        "ứ": "ư", "ừ": "ư", "ử": "ư", "ữ": "ư", "ự": "ư", "Ứ": "Ư", "Ừ": "Ư", "Ử": "Ư", "Ữ": "Ư", "Ự": "Ư",
         "ý": "y", "ỳ": "y", "ỷ": "y", "ỹ": "y", "ỵ": "y", "Ý": "Y", "Ỳ": "Y", "Ỷ": "Y", "Ỹ": "Y", "Ỵ": "Y"
     };
     return str.split("").map(c => map[c] || c).join("");
@@ -306,8 +328,25 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
             sfxAudio.remove();
         };
 
-        if (data === "wrong.mp3") {
+        if (data === "wrong.mp3" || data === "FailBonus.mp3" || data === "FlashRed.mp3") {
             triggerRedLight();
+        }
+        else if (data === "FlashWhite.mp3") {
+            triggerWhiteLight();
+        }
+        else if (data === "FlashGreen.mp3") {
+            triggerGreenLight();
+        }
+
+        // KHI GIẢI SAI Ô CHỮ BONUS Ở ĐỀ 10, 11, 12 (Index tương ứng 9, 10, 11) -> HIỆN TOÀN BỘ Ô CHỮ
+        if (data === "FailBonus.mp3" && [9, 10, 11].includes(currentQuizIndex)) {
+            allCells.forEach(item => {
+                item.element.style.background = 'url("obox.png") center center no-repeat';
+                item.element.style.backgroundSize = "100% 100%";
+                item.element.textContent = item.letter;
+                item.revealed = true;
+                item.state = 2;
+            });
         }
     }
     else if (type === "STOP_ALL_SFX") {
@@ -325,6 +364,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
             if (item && cleanLetter(item.letter) === guessedChar && item.state === 0) matchPositions.push(item.absoluteIndex);
         });
 
+        // SỬA LỖI: Phát ngay âm thanh wrong.mp3 và nháy đèn đỏ nếu không có chữ nào khớp trên bảng
         if (matchPositions.length === 0) {
             playWrong();
             triggerRedLight();
@@ -340,6 +380,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
             if (item && item.state === 0 && guessedChars.includes(cleanLetter(item.letter))) matchPositions.push(item.absoluteIndex);
         });
 
+        // SỬA LỖI: Phát tiếng wrong.mp3 và nháy đèn đỏ nếu chuỗi ký tự đoán không có ký tự nào trùng khớp
         if (matchPositions.length === 0) {
             playWrong();
             triggerRedLight();
@@ -461,7 +502,15 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
         tossupSound.volume = 1.0;
         clearAllTossupTimeouts();
         syncControlUI("UPDATE_CTRL_ACTIVE", null);
-        if ([2, 3, 4, 8].includes(currentQuizIndex)) {
+        if ([9, 10, 11].includes(currentQuizIndex)) {
+            const bonusWinSound = new Audio("ClearBonus.mp3");
+            activeSFXList.push(bonusWinSound);
+            bonusWinSound.play().catch(e => console.log(e));
+            bonusWinSound.onended = () => {
+                activeSFXList = activeSFXList.filter(audio => audio !== bonusWinSound);
+                bonusWinSound.remove();
+            };
+        } else if ([2, 3, 4, 8].includes(currentQuizIndex)) {
             clearPuzzleSound.currentTime = 0; clearPuzzleSound.play().catch(e => console.log(e));
         } else {
             revealSound.currentTime = 0; revealSound.play().catch(e => console.log(e));
