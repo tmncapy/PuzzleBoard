@@ -229,12 +229,17 @@
 
     <!-- Embedded Audience Screen Preview Container -->
     <div id="previewSection" style="margin-bottom: 20px; background: #000; padding: 10px; border-radius: 10px; border: 2px solid #2980b9; box-shadow: 0 4px 15px rgba(0,0,0,0.6);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; color: #5ac8fa; font-weight: bold; font-size: 13px;">
-            <span>📺 MÀN HÌNH KHÁN GIẢ (XEM TRỰC TIẾP TRÊN BẢNG ĐIỀU KHIỂN)</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; color: #5ac8fa; font-weight: bold; font-size: 13px; flex-wrap: wrap; gap: 8px;">
+            <span style="display: flex; align-items: center; gap: 8px;">
+                📺 MÀN HÌNH KHÁN GIẢ (XEM TRỰC TIẾP TRÊN BẢNG ĐIỀU KHIỂN)
+                <button id="muteToggleBtn" onclick="togglePreviewAudio()" style="background: #e74c3c; color: #fff; padding: 4px 10px; border: none; border-radius: 4px; font-weight: bold; font-size: 11px; cursor: pointer;">
+                    🔇 Âm thanh Xem thử: ĐÃ TẮT
+                </button>
+            </span>
             <span style="font-size: 11px; color: #aaa;">Mọi thao tác bên dưới sẽ tác động trực tiếp lên ô chữ này và tab khán giả riêng biệt!</span>
         </div>
         <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden; border-radius: 6px;">
-            <iframe id="audiencePreviewFrame" src="index.html" style="position: absolute; top:0; left:0; width:100%; height:100%; border:none; background: #000;"></iframe>
+            <iframe id="audiencePreviewFrame" name="audiencePreviewFrame" src="index.html?muted=1" style="position: absolute; top:0; left:0; width:100%; height:100%; border:none; background: #000;"></iframe>
         </div>
     </div>
 
@@ -547,6 +552,25 @@
                 sec.style.display = "block";
             } else {
                 sec.style.display = "none";
+            }
+        }
+
+        let previewMuted = true;
+        function togglePreviewAudio() {
+            previewMuted = !previewMuted;
+            const btn = document.getElementById("muteToggleBtn");
+            if (btn) {
+                if (previewMuted) {
+                    btn.style.background = "#e74c3c";
+                    btn.textContent = "🔇 Âm thanh Xem thử: ĐÃ TẮT";
+                } else {
+                    btn.style.background = "#27ae60";
+                    btn.textContent = "🔊 Âm thanh Xem thử: ĐÃ BẬT";
+                }
+            }
+            const frame = document.getElementById("audiencePreviewFrame");
+            if (frame && frame.contentWindow) {
+                frame.contentWindow.postMessage({ type: 'SET_MUTE_STATE', muted: previewMuted }, "*");
             }
         }
 

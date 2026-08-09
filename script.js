@@ -63,22 +63,64 @@ let allCells = [];
 let absoluteCells = new Array(52).fill(null);
 let currentQuizIndex = -1;
 
+// Mute control for control page preview iframe
+const urlParams = new URLSearchParams(window.location.search);
+let isMuted = urlParams.get('muted') === '1' || urlParams.get('muted') === 'true' || window.name === 'audiencePreviewFrame';
+
+const originalAudioPlay = Audio.prototype.play;
+
+function updateMuteState(muted) {
+    isMuted = !!muted;
+    showSound.muted = isMuted;
+    revealSound.muted = isMuted;
+    clearPuzzleSound.muted = isMuted;
+    tossupSound.muted = isMuted;
+    if (isMuted) {
+        showSound.volume = 0;
+        revealSound.volume = 0;
+        clearPuzzleSound.volume = 0;
+        tossupSound.volume = 0;
+        try { tossupSound.pause(); } catch(e){}
+        Audio.prototype.play = function() {
+            return Promise.resolve();
+        };
+    } else {
+        showSound.volume = 1.0;
+        revealSound.volume = 1.0;
+        clearPuzzleSound.volume = 1.0;
+        tossupSound.volume = 1.0;
+        Audio.prototype.play = originalAudioPlay;
+    }
+}
+
+updateMuteState(isMuted);
+
+window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SET_MUTE_STATE') {
+        updateMuteState(event.data.muted);
+    }
+});
+
 function initAudioPermission() {
+    if (isMuted) return;
     showSound.load(); revealSound.load(); clearPuzzleSound.load(); tossupSound.load();
 }
 
 function playDing(){
+    if (isMuted) return;
     const audio = new Audio("ding.mp3");
     audio.play().then(() => { audio.onended = () => { audio.remove(); }; }).catch(e => console.log(e));
 }
 
 function playSecondDing(){
+    if (isMuted) return;
     const audio = new Audio("2nd_ding.wav");
     audio.play().then(() => { audio.onended = () => { audio.remove(); }; }).catch(e => console.log(e));
 }
 
 // Sửa hàm phát tiếng đoán sai để quản lý vòng đời audio tốt hơn
 function playWrong() {
+    if (isMuted) return;
     initAudioPermission();
     const audio = new Audio("wrong.mp3");
     audio.play().then(() => { 
@@ -87,6 +129,7 @@ function playWrong() {
 }
 
 function playTimerSound(seconds) {
+    if (isMuted) return;
     const filename = seconds === 30 ? "30s.mp3" : "10s.mp3";
     const audio = new Audio(filename);
     audio.play().catch(e => console.log(e));
@@ -99,7 +142,7 @@ function fadeOutTossupMusic(durationMs = 400, resetPosition = false) {
         clearInterval(fadeInterval);
         fadeInterval = null;
     }
-    if (tossupSound.paused) {
+    if (tossupSound.paused || isMuted) {
         if (resetPosition) tossupSound.currentTime = 0;
         return;
     }
@@ -125,6 +168,7 @@ function fadeOutTossupMusic(durationMs = 400, resetPosition = false) {
 }
 
 function playTossupMusic() {
+    if (isMuted) return;
     if (fadeInterval) {
         clearInterval(fadeInterval);
         fadeInterval = null;
@@ -134,7 +178,7 @@ function playTossupMusic() {
     if (playPromise !== undefined) {
         playPromise.catch(() => {
             document.body.addEventListener('click', function memoPlay() {
-                tossupSound.play();
+                if (!isMuted) tossupSound.play();
                 document.body.removeEventListener('click', memoPlay);
             }, { once: true });
         });
