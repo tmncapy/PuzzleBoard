@@ -215,9 +215,27 @@
 
 <body>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; flex-wrap: wrap; gap: 10px;">
         <h2 style="margin: 0; text-align: left;">BẢNG ĐIỀU KHIỂN TRÒ CHƠI (REALTIME)</h2>
-        <a href="index.html" style="background: #2980b9; color: #fff; padding: 8px 16px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">📺 Màn Hình Khán Giả (Audience View)</a>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button onclick="togglePreview()" style="background: #27ae60; color: #fff; padding: 8px 16px; border: none; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                👁️ Live Preview (Hiện/Ẩn Màn Hình Khán Giả)
+            </button>
+            <a href="index.html" target="_blank" style="background: #2980b9; color: #fff; padding: 8px 16px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+                📺 Mở Màn Hình Khán Giả (Tab Mới)
+            </a>
+        </div>
+    </div>
+
+    <!-- Embedded Audience Screen Preview Container -->
+    <div id="previewSection" style="margin-bottom: 20px; background: #000; padding: 10px; border-radius: 10px; border: 2px solid #2980b9; box-shadow: 0 4px 15px rgba(0,0,0,0.6);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; color: #5ac8fa; font-weight: bold; font-size: 13px;">
+            <span>📺 MÀN HÌNH KHÁN GIẢ (XEM TRỰC TIẾP TRÊN BẢNG ĐIỀU KHIỂN)</span>
+            <span style="font-size: 11px; color: #aaa;">Mọi thao tác bên dưới sẽ tác động trực tiếp lên ô chữ này và tab khán giả riêng biệt!</span>
+        </div>
+        <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden; border-radius: 6px;">
+            <iframe id="audiencePreviewFrame" src="index.html" style="position: absolute; top:0; left:0; width:100%; height:100%; border:none; background: #000;"></iframe>
+        </div>
     </div>
 
     <div class="main-layout">
@@ -523,30 +541,66 @@
             }
         }
 
+        function togglePreview() {
+            const sec = document.getElementById("previewSection");
+            if (sec.style.display === "none") {
+                sec.style.display = "block";
+            } else {
+                sec.style.display = "none";
+            }
+        }
+
+        let lastProcessedDisplayTs = 0;
+
+        function handleDisplayMessageWrapper(payload, ts) {
+            if (!payload) return;
+            if (ts && ts <= lastProcessedDisplayTs) return;
+            if (ts) lastProcessedDisplayTs = ts;
+            handleDisplayMessage(payload);
+        }
+
         if (channel) {
             try {
-                channel.on('broadcast', { event: 'display-to-control' }, ({ payload }) => handleDisplayMessage(payload));
+                channel.on('broadcast', { event: 'display-to-control' }, ({ payload }) => handleDisplayMessageWrapper(payload, Date.now()));
             } catch (e) {}
         }
 
         if (localBC) {
             localBC.onmessage = (event) => {
                 if (event.data && event.data.event === 'display-to-control') {
-                    handleDisplayMessage(event.data.payload);
+                    handleDisplayMessageWrapper(event.data.payload, event.data.ts || Date.now());
                 }
             };
         }
+
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.event === 'display-to-control') {
+                handleDisplayMessageWrapper(event.data.payload, event.data.ts || Date.now());
+            }
+        });
 
         window.addEventListener('storage', (e) => {
             if (e.key === 'display-to-control-msg' && e.newValue) {
                 try {
                     const data = JSON.parse(e.newValue);
                     if (data && data.payload) {
-                        handleDisplayMessage(data.payload);
+                        handleDisplayMessageWrapper(data.payload, data.ts);
                     }
                 } catch (err) {}
             }
         });
+
+        setInterval(() => {
+            try {
+                const raw = localStorage.getItem('display-to-control-msg');
+                if (raw) {
+                    const data = JSON.parse(raw);
+                    if (data && data.payload && data.ts && data.ts > lastProcessedDisplayTs) {
+                        handleDisplayMessageWrapper(data.payload, data.ts);
+                    }
+                }
+            } catch (err) {}
+        }, 100);
 
         function sendManualText() {
             const txt = document.getElementById("manualTextInput").value.toUpperCase().replace(/\r/g, "");
@@ -666,6 +720,9 @@
         function closePopup() { document.getElementById("customPopup").style.display = "none"; }
         function sendCmd(type, data = null) {
             const payload = { type: type, data: data };
+            const ts = Date.now();
+            const msgObj = { event: 'control-to-display', payload: payload, ts: ts };
+
             if (channel) {
                 try {
                     channel.send({ type: 'broadcast', event: 'control-to-display', payload: payload });
@@ -673,11 +730,21 @@
             }
             if (localBC) {
                 try {
-                    localBC.postMessage({ event: 'control-to-display', payload: payload });
+                    localBC.postMessage(msgObj);
                 } catch (e) {}
             }
             try {
-                localStorage.setItem('control-to-display-msg', JSON.stringify({ payload: payload, ts: Date.now() }));
+                localStorage.setItem('control-to-display-msg', JSON.stringify(msgObj));
+            } catch (e) {}
+
+            try {
+                window.postMessage(msgObj, "*");
+                if (window.opener) window.opener.postMessage(msgObj, "*");
+                if (window.parent && window.parent !== window) window.parent.postMessage(msgObj, "*");
+                const previewFrame = document.getElementById("audiencePreviewFrame");
+                if (previewFrame && previewFrame.contentWindow) {
+                    previewFrame.contentWindow.postMessage(msgObj, "*");
+                }
             } catch (e) {}
         }
 

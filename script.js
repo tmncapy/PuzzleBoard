@@ -606,27 +606,54 @@ function handleControlCommand(payload) {
     }
 }
 
+let lastProcessedControlTs = 0;
+
+function handleControlCommandWrapper(payload, ts) {
+    if (!payload) return;
+    if (ts && ts <= lastProcessedControlTs) return;
+    if (ts) lastProcessedControlTs = ts;
+    handleControlCommand(payload);
+}
+
 if (channel) {
     try {
-        channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => handleControlCommand(payload));
+        channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => handleControlCommandWrapper(payload, Date.now()));
     } catch (e) {}
 }
 
 if (localBC) {
     localBC.onmessage = (event) => {
         if (event.data && event.data.event === 'control-to-display') {
-            handleControlCommand(event.data.payload);
+            handleControlCommandWrapper(event.data.payload, event.data.ts || Date.now());
         }
     };
 }
+
+window.addEventListener('message', (event) => {
+    if (event.data && event.data.event === 'control-to-display') {
+        handleControlCommandWrapper(event.data.payload, event.data.ts || Date.now());
+    }
+});
 
 window.addEventListener('storage', (e) => {
     if (e.key === 'control-to-display-msg' && e.newValue) {
         try {
             const data = JSON.parse(e.newValue);
             if (data && data.payload) {
-                handleControlCommand(data.payload);
+                handleControlCommandWrapper(data.payload, data.ts);
             }
         } catch (err) {}
     }
 });
+
+setInterval(() => {
+    try {
+        const raw = localStorage.getItem('control-to-display-msg');
+        if (raw) {
+            const data = JSON.parse(raw);
+            if (data && data.payload && data.ts && data.ts > lastProcessedControlTs) {
+                handleControlCommandWrapper(data.payload, data.ts);
+            }
+        }
+    } catch (err) {}
+}, 100);
