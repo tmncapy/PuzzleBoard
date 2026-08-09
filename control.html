@@ -215,7 +215,10 @@
 
 <body>
 
-    <h2>BẢNG ĐIỀU KHIỂN TRÒ CHƠI (REALTIME)</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px;">
+        <h2 style="margin: 0; text-align: left;">BẢNG ĐIỀU KHIỂN TRÒ CHƠI (REALTIME)</h2>
+        <a href="index.html" style="background: #2980b9; color: #fff; padding: 8px 16px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">📺 Màn Hình Khán Giả (Audience View)</a>
+    </div>
 
     <div class="main-layout">
         
@@ -435,11 +438,21 @@
         var SUPABASE_URL = "https://tukabyhjmcyptuwmwedp.supabase.co";
         var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OX0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
 
-        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        const channel = supabaseClient.channel('crossword_broadcast_room', {
-            config: { broadcast: { ack: false, self: false } }
-        });
-        channel.subscribe();
+        var supabaseClient = null;
+        var channel = null;
+        try {
+            if (typeof supabase !== "undefined" && supabase.createClient) {
+                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                channel = supabaseClient.channel('crossword_broadcast_room', {
+                    config: { broadcast: { ack: false, self: false } }
+                });
+                channel.subscribe();
+            }
+        } catch (err) {
+            console.warn("Supabase initialization error, falling back to BroadcastChannel/localStorage:", err);
+        }
+
+        const localBC = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel('crossword_broadcast_room') : null;
 
         let tossupTimeout = null;
         let isTossupRunning = false;
@@ -466,7 +479,8 @@
             updateScoreboard();
         }
 
-        channel.on('broadcast', { event: 'display-to-control' }, ({ payload }) => {
+        function handleDisplayMessage(payload) {
+            if (!payload) return;
             const { type, data } = payload;
             if (type === "UPDATE_QUIZ_ACTIVE") {
                 for (let i = 1; i <= 12; i++) {
@@ -507,6 +521,31 @@
                 document.getElementById("numCells").value = data.length;
                 generateChildTextBoxes(data);
             }
+        }
+
+        if (channel) {
+            try {
+                channel.on('broadcast', { event: 'display-to-control' }, ({ payload }) => handleDisplayMessage(payload));
+            } catch (e) {}
+        }
+
+        if (localBC) {
+            localBC.onmessage = (event) => {
+                if (event.data && event.data.event === 'display-to-control') {
+                    handleDisplayMessage(event.data.payload);
+                }
+            };
+        }
+
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'display-to-control-msg' && e.newValue) {
+                try {
+                    const data = JSON.parse(e.newValue);
+                    if (data && data.payload) {
+                        handleDisplayMessage(data.payload);
+                    }
+                } catch (err) {}
+            }
         });
 
         function sendManualText() {
@@ -525,6 +564,30 @@
         }
 
         let importedQuizzes = [];
+
+        // Auto-load default excel data on start if available
+        window.addEventListener('DOMContentLoaded', () => {
+            const loadDefaultFile = (filename) => {
+                fetch(filename)
+                    .then(res => {
+                        if (!res.ok) throw new Error("File not found");
+                        return res.arrayBuffer();
+                    })
+                    .then(buffer => {
+                        const data = new Uint8Array(buffer);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        importedQuizzes = [];
+                        for (let i = 0; i < Math.min(workbook.SheetNames.length, 12); i++) {
+                            importedQuizzes.push(parseExcelGrid(workbook.Sheets[workbook.SheetNames[i]]));
+                        }
+                    })
+                    .catch(() => {
+                        if (filename === 'data.xlsx') loadDefaultFile('2B.xlsx');
+                    });
+            };
+            loadDefaultFile('data.xlsx');
+        });
+
         function handleExcel(input) {
             const file = input.files[0];
             if (!file) return;
@@ -584,7 +647,7 @@
             controlRevealRandomCell();
         }
 
-        function clickPauseTossup() { isTossupRunning = false; clearTimeout(tossupTimeout); sendCmd('PAUSE_TOSSUP'); sendCmd('STOP_TOSSUP_MUSIC'); }
+        function clickPauseTossup() { isTossupRunning = false; clearTimeout(tossupTimeout); sendCmd('PAUSE_TOSSUP'); }
         function clickPlayTossup() { if (isTossupRunning) return; isTossupRunning = true; sendCmd('PLAY_TOSSUP'); controlRevealRandomCell(); }
 
         const vietnameseAlphabet = ["A", "Ă", "Â", "B", "C", "D", "Đ", "E", "Ê", "G", "H", "I", "K", "L", "M", "N", "O", "Ô", "Ơ", "P", "Q", "R", "S", "T", "U", "Ư", "V", "X", "Y"];
@@ -601,7 +664,22 @@
         function solveTossUp() { isTossupRunning = false; clearTimeout(tossupTimeout); sendCmd('REVEAL_ALL'); sendCmd('STOP_TOSSUP_MUSIC'); }
         function showCustomAlert(message) { document.getElementById("popupMessage").textContent = message; document.getElementById("customPopup").style.display = "flex"; }
         function closePopup() { document.getElementById("customPopup").style.display = "none"; }
-        function sendCmd(type, data = null) { channel.send({ type: 'broadcast', event: 'control-to-display', payload: { type: type, data: data } }); }
+        function sendCmd(type, data = null) {
+            const payload = { type: type, data: data };
+            if (channel) {
+                try {
+                    channel.send({ type: 'broadcast', event: 'control-to-display', payload: payload });
+                } catch (e) {}
+            }
+            if (localBC) {
+                try {
+                    localBC.postMessage({ event: 'control-to-display', payload: payload });
+                } catch (e) {}
+            }
+            try {
+                localStorage.setItem('control-to-display-msg', JSON.stringify({ payload: payload, ts: Date.now() }));
+            } catch (e) {}
+        }
 
         function generateChildTextBoxes(autoValues = []) {
             const num = parseInt(document.getElementById("numCells").value) || 0;

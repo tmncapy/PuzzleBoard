@@ -5,7 +5,7 @@ globalFavicon.type = 'image/x-icon';
 globalFavicon.href = 'favicon.ico';
 document.head.appendChild(globalFavicon);
 
-// --- KHỞI TẠO ĐỐI TƯỢNG ĐỒNG BỘ SUPABASE ---
+// --- KHỞI TẠO ĐỐI TƯỢNG ĐỒNG BỘ SUPABASE & BROADCAST CHANNEL ---
 var SUPABASE_URL = window.SUPABASE_URL || "https://tukabyhjmcyptuwmwedp.supabase.co";
 var SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OX0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
 
@@ -13,12 +13,35 @@ if (SUPABASE_URL && !SUPABASE_URL.startsWith("http://") && !SUPABASE_URL.startsW
     SUPABASE_URL = "https://" + SUPABASE_URL;
 }
 
-var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+var supabaseClient = null;
+var channel = null;
+try {
+    if (typeof supabase !== "undefined" && supabase.createClient) {
+        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        channel = supabaseClient.channel('crossword_broadcast_room', {
+            config: { broadcast: { ack: false, self: false } }
+        });
+        channel.subscribe();
+    }
+} catch (err) {
+    console.warn("Supabase initialization error, falling back to BroadcastChannel/localStorage:", err);
+}
 
-const channel = supabaseClient.channel('crossword_broadcast_room', {
-    config: { broadcast: { ack: false, self: false } }
-});
-channel.subscribe();
+// Fallback local BroadcastChannel for tab-to-tab communication without external server dependency
+const localBC = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel('crossword_broadcast_room') : null;
+
+// Auto-scale board to fit preview / window size
+function fitGameContainer() {
+    const container = document.getElementById("game-container");
+    if (!container) return;
+    const scaleX = window.innerWidth / 1920;
+    const scaleY = window.innerHeight / 1080;
+    const scale = Math.min(scaleX, scaleY, 1);
+    container.style.transform = `scale(${scale})`;
+}
+window.addEventListener("resize", fitGameContainer);
+window.addEventListener("DOMContentLoaded", fitGameContainer);
+setTimeout(fitGameContainer, 100);
 
 const board = document.getElementById("board");
 
@@ -69,7 +92,43 @@ function playTimerSound(seconds) {
     audio.play().catch(e => console.log(e));
 }
 
+let fadeInterval = null;
+
+function fadeOutTossupMusic(durationMs = 400, resetPosition = false) {
+    if (fadeInterval) {
+        clearInterval(fadeInterval);
+        fadeInterval = null;
+    }
+    if (tossupSound.paused) {
+        if (resetPosition) tossupSound.currentTime = 0;
+        return;
+    }
+    const startVolume = tossupSound.volume || 1.0;
+    const steps = 20;
+    const stepTime = Math.max(10, durationMs / steps);
+    const volumeStep = startVolume / steps;
+
+    fadeInterval = setInterval(() => {
+        if (tossupSound.volume - volumeStep > 0) {
+            tossupSound.volume -= volumeStep;
+        } else {
+            tossupSound.volume = 0;
+            tossupSound.pause();
+            if (resetPosition) {
+                tossupSound.currentTime = 0;
+            }
+            tossupSound.volume = 1.0;
+            clearInterval(fadeInterval);
+            fadeInterval = null;
+        }
+    }, stepTime);
+}
+
 function playTossupMusic() {
+    if (fadeInterval) {
+        clearInterval(fadeInterval);
+        fadeInterval = null;
+    }
     tossupSound.volume = 1.0; 
     let playPromise = tossupSound.play();
     if (playPromise !== undefined) {
@@ -151,7 +210,20 @@ const cells = [
 ];
 
 function syncControlUI(type, data) {
-    channel.send({ type: 'broadcast', event: 'display-to-control', payload: { type: type, data: data } });
+    const payload = { type: type, data: data };
+    if (channel) {
+        try {
+            channel.send({ type: 'broadcast', event: 'display-to-control', payload: payload });
+        } catch (e) {}
+    }
+    if (localBC) {
+        try {
+            localBC.postMessage({ event: 'display-to-control', payload: payload });
+        } catch (e) {}
+    }
+    try {
+        localStorage.setItem('display-to-control-msg', JSON.stringify({ payload: payload, ts: Date.now() }));
+    } catch(e) {}
 }
 
 function clearOldBoardElements() {
@@ -209,7 +281,8 @@ function loadQuiz(quizPayload) {
     syncControlUI("UPDATE_QUIZ_ACTIVE", index);
 }
 
-channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
+function handleControlCommand(payload) {
+    if (!payload) return;
     const { type, data } = payload;
 
     if (type === "UPDATE_SCOREBOARD") {
@@ -462,6 +535,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
         syncControlUI("UPDATE_CTRL_ACTIVE", "pauseBtn");
         clearAllTossupTimeouts(); 
         playDing(); 
+        fadeOutTossupMusic(400, false);
     }
     else if (type === "PLAY_TOSSUP") {
         initAudioPermission();
@@ -471,8 +545,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     else if (type === "STOP_TOSSUP_MUSIC") {
         clearAllTossupTimeouts();
         syncControlUI("UPDATE_CTRL_ACTIVE", null);
-        tossupSound.pause();
-        tossupSound.currentTime = 0;
+        fadeOutTossupMusic(300, true);
     }
     else if (type === "SHOW_BOARD") {
         hideAllLights(); 
@@ -498,8 +571,7 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
         });
     }
     else if (type === "REVEAL_ALL") {
-        tossupSound.pause();
-        tossupSound.volume = 1.0;
+        fadeOutTossupMusic(200, true);
         clearAllTossupTimeouts();
         syncControlUI("UPDATE_CTRL_ACTIVE", null);
         if ([9, 10, 11].includes(currentQuizIndex)) {
@@ -531,5 +603,30 @@ channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
     else if (type === "PLAY_TIMER") {
         initAudioPermission();
         playTimerSound(data);
+    }
+}
+
+if (channel) {
+    try {
+        channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => handleControlCommand(payload));
+    } catch (e) {}
+}
+
+if (localBC) {
+    localBC.onmessage = (event) => {
+        if (event.data && event.data.event === 'control-to-display') {
+            handleControlCommand(event.data.payload);
+        }
+    };
+}
+
+window.addEventListener('storage', (e) => {
+    if (e.key === 'control-to-display-msg' && e.newValue) {
+        try {
+            const data = JSON.parse(e.newValue);
+            if (data && data.payload) {
+                handleControlCommand(data.payload);
+            }
+        } catch (err) {}
     }
 });
