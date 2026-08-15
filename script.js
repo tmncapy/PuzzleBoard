@@ -581,8 +581,10 @@ function handleControlCommand(payload) {
     else if (type === "PAUSE_TOSSUP") {
         syncControlUI("UPDATE_CTRL_ACTIVE", "pauseBtn");
         clearAllTossupTimeouts(); 
-        playDing(); 
-        fadeOutTossupMusic(400, false);
+        if (!data || !data.keepMusic) {
+            playDing(); 
+            fadeOutTossupMusic(400, false);
+        }
     }
     else if (type === "PLAY_TOSSUP") {
         clearBuzzerHighlights();

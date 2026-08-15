@@ -683,8 +683,8 @@
                 banner.style.display = "block";
             }
             
-            // Pause the Tossup reveal instantly
-            clickPauseTossup();
+            // Pause the Tossup reveal instantly, but keep the music playing
+            clickPauseTossup(true);
             
             // Send command to display to show the winner highlight and play ding
             sendCmd('PLAYER_BUZZ_WIN', { playerNum: playerNum });
@@ -878,7 +878,7 @@
             controlRevealRandomCell();
         }
 
-        function clickPauseTossup() { isTossupRunning = false; clearTimeout(tossupTimeout); sendCmd('PAUSE_TOSSUP'); }
+        function clickPauseTossup(keepMusic = false) { isTossupRunning = false; clearTimeout(tossupTimeout); sendCmd('PAUSE_TOSSUP', { keepMusic: keepMusic }); }
         function clickPlayTossup() { if (isTossupRunning) return; isTossupRunning = true; sendCmd('PLAY_TOSSUP'); clearControlBuzzer(); controlRevealRandomCell(); }
 
         const vietnameseAlphabet = ["A", "Ă", "Â", "B", "C", "D", "Đ", "E", "Ê", "G", "H", "I", "K", "L", "M", "N", "O", "Ô", "Ơ", "P", "Q", "R", "S", "T", "U", "Ư", "V", "X", "Y"];
