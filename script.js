@@ -21,7 +21,6 @@ try {
         channel = supabaseClient.channel('crossword_broadcast_room', {
             config: { broadcast: { ack: false, self: false } }
         });
-        channel.subscribe();
     }
 } catch (err) {
     console.warn("Supabase initialization error, falling back to BroadcastChannel/localStorage:", err);
@@ -349,9 +348,11 @@ function handleControlCommand(payload) {
         }
     }
     else if (type === "LOAD_QUIZ") {
+        clearBuzzerHighlights();
         loadQuiz(data);
     }
     else if (type === "SHOW_MANUAL_TEXT") {
+        clearBuzzerHighlights();
         hideAllLights(); 
         initAudioPermission();
         tossupSound.pause();
@@ -506,6 +507,7 @@ function handleControlCommand(payload) {
         syncControlUI("FILL_POSITIONS", matchPositions);
     }
     else if (type === "RESET_BOARD") {
+        clearBuzzerHighlights();
         hideAllLights(); 
         const allDomCells = document.querySelectorAll('.cell');
         allDomCells.forEach(cell => {
@@ -551,6 +553,7 @@ function handleControlCommand(payload) {
         });
     }
     else if (type === "START_TOSSUP") {
+        clearBuzzerHighlights();
         initAudioPermission();
         clearAllTossupTimeouts();
         syncControlUI("UPDATE_CTRL_ACTIVE", "startBtn");
@@ -582,6 +585,7 @@ function handleControlCommand(payload) {
         fadeOutTossupMusic(400, false);
     }
     else if (type === "PLAY_TOSSUP") {
+        clearBuzzerHighlights();
         initAudioPermission();
         syncControlUI("UPDATE_CTRL_ACTIVE", "playBtn");
         playTossupMusic(); 
@@ -659,23 +663,61 @@ function handleControlCommandWrapper(payload, ts) {
     handleControlCommand(payload);
 }
 
+function clearBuzzerHighlights() {
+    document.querySelectorAll('.player-box').forEach(box => box.classList.remove('buzzed-active'));
+    try {
+        localStorage.removeItem('tossup-buzzer-winner');
+    } catch(e){}
+}
+
+function handlePlayerBuzz(playerNum) {
+    if (!playerNum) return;
+    document.querySelectorAll('.player-box').forEach(box => box.classList.remove('buzzed-active'));
+    const pBox = document.querySelector(`.player-box.player-${playerNum}`);
+    if (pBox) {
+        pBox.classList.add('buzzed-active');
+    }
+    // Play ding.wav (or ding.mp3 as fallback)
+    if (!isMuted) {
+        const audio = new Audio("ding.wav");
+        audio.play().catch(() => {
+            const fallback = new Audio("ding.mp3");
+            fallback.play().catch(e => console.log(e));
+        });
+    }
+}
+
 if (channel) {
     try {
         channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => handleControlCommandWrapper(payload, Date.now()));
+        channel.on('broadcast', { event: 'player-buzz' }, ({ payload }) => {
+            if (payload && payload.playerNum) {
+                handlePlayerBuzz(payload.playerNum);
+            }
+        });
+        channel.subscribe();
     } catch (e) {}
 }
 
 if (localBC) {
     localBC.onmessage = (event) => {
-        if (event.data && event.data.event === 'control-to-display') {
-            handleControlCommandWrapper(event.data.payload, event.data.ts || Date.now());
+        if (event.data) {
+            if (event.data.event === 'control-to-display') {
+                handleControlCommandWrapper(event.data.payload, event.data.ts || Date.now());
+            } else if (event.data.event === 'player-buzz' && event.data.payload) {
+                handlePlayerBuzz(event.data.payload.playerNum);
+            }
         }
     };
 }
 
 window.addEventListener('message', (event) => {
-    if (event.data && event.data.event === 'control-to-display') {
-        handleControlCommandWrapper(event.data.payload, event.data.ts || Date.now());
+    if (event.data) {
+        if (event.data.event === 'control-to-display') {
+            handleControlCommandWrapper(event.data.payload, event.data.ts || Date.now());
+        } else if (event.data.event === 'player-buzz' && event.data.payload) {
+            handlePlayerBuzz(event.data.payload.playerNum);
+        }
     }
 });
 
@@ -685,6 +727,14 @@ window.addEventListener('storage', (e) => {
             const data = JSON.parse(e.newValue);
             if (data && data.payload) {
                 handleControlCommandWrapper(data.payload, data.ts);
+            }
+        } catch (err) {}
+    }
+    if (e.key === 'player-buzz-msg' && e.newValue) {
+        try {
+            const data = JSON.parse(e.newValue);
+            if (data && data.payload && data.payload.playerNum) {
+                handlePlayerBuzz(data.payload.playerNum);
             }
         } catch (err) {}
     }

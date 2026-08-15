@@ -11,7 +11,7 @@
             font-family: 'Segoe UI', Arial, sans-serif;
             background: #1a1a1a;
             color: #fff;
-            padding: 20px;
+            padding: 8px;
             margin: 0;
             box-sizing: border-box;
         }
@@ -19,17 +19,18 @@
         h2 {
             color: #5ac8fa;
             margin-top: 0;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
             text-align: center;
+            font-size: 20px;
         }
 
         /* Bố cục chia 3 cột chính nằm ngang */
         .main-layout {
             display: grid;
             grid-template-columns: 1fr 1fr 1.1fr;
-            gap: 20px;
+            gap: 12px;
             align-items: start;
         }
 
@@ -38,25 +39,25 @@
             background: #262626;
             border: 1px solid #3a3a3a;
             border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
+            padding: 10px;
+            margin-bottom: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
         }
 
         h3 {
             margin-top: 0;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             border-bottom: 2px solid #3a3a3a;
-            padding-bottom: 8px;
+            padding-bottom: 6px;
             color: #5ac8fa;
-            font-size: 15px;
+            font-size: 13.5px;
             text-transform: uppercase;
         }
 
         .group {
             display: flex;
-            gap: 8px;
-            margin-bottom: 10px;
+            gap: 6px;
+            margin-bottom: 8px;
             flex-wrap: wrap;
             align-items: center;
         }
@@ -66,12 +67,12 @@
         }
 
         button {
-            padding: 10px 14px;
+            padding: 6px 10px;
             font-weight: bold;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
             transition: all 0.2s ease;
         }
 
@@ -82,20 +83,20 @@
 
         /* Định nghĩa màu sắc cố định theo thiết kế gốc */
         .btn-main { background-color: #27ae60; color: white; }
-        .btn-excel { background-color: #8e44ad; color: white; width: 100%; padding: 12px; }
+        .btn-excel { background-color: #8e44ad; color: white; width: 100%; padding: 8px; }
         .btn-reveal { background-color: #2980b9; color: white; }
         .btn-reset { background-color: #ff00ff; color: white; }
         .btn-tossup, .btn-solve { background-color: #f1c40f; color: black; flex: 1; }
-        .btn-quiz { background-color: #34495e; color: white; width: calc(33.33% - 6px); box-sizing: border-box; }
+        .btn-quiz { background-color: #34495e; color: white; width: calc(33.33% - 4px); box-sizing: border-box; }
         .btn-time-30 { background-color: #2980b9; color: white; }
         .btn-time-10 { background-color: #27ae60; color: white; }
 
         .btn-letter {
             background-color: #8e44ad;
             color: #fff;
-            width: calc(14.28% - 6px);
-            padding: 10px 0;
-            font-size: 14px;
+            width: calc(14.28% - 4px);
+            padding: 6px 0;
+            font-size: 12px;
             border-radius: 4px;
             text-align: center;
         }
@@ -228,7 +229,7 @@
     </div>
 
     <!-- Embedded Audience Screen Preview Container -->
-    <div id="previewSection" style="margin-bottom: 20px; background: #000; padding: 10px; border-radius: 10px; border: 2px solid #2980b9; box-shadow: 0 4px 15px rgba(0,0,0,0.6);">
+    <div id="previewSection" style="display: none; margin-bottom: 15px; background: #000; padding: 10px; border-radius: 10px; border: 2px solid #2980b9; box-shadow: 0 4px 15px rgba(0,0,0,0.6);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; color: #5ac8fa; font-weight: bold; font-size: 13px; flex-wrap: wrap; gap: 8px;">
             <span style="display: flex; align-items: center; gap: 8px;">
                 📺 MÀN HÌNH KHÁN GIẢ (XEM TRỰC TIẾP TRÊN BẢNG ĐIỀU KHIỂN)
@@ -268,6 +269,22 @@
                 <textarea id="manualTextInput" class="input-manual" rows="3" placeholder="DÒNG 1&#10;DÒNG 2&#10;DÒNG 3..."></textarea>
                 <button class="btn-main" style="width: 100%; margin-top: 8px; padding: 12px 0;" onclick="sendManualText()">SHOW CHỮ LÊN BẢNG</button>
             </div>
+
+            <div class="section-wrapper">
+                <h3>🔍 Xem Đề Ô Chữ Đã Nạp</h3>
+                <div class="group" style="gap: 4px; margin-bottom: 8px; display: grid; grid-template-columns: repeat(4, 1fr);">
+                    <script>
+                        for (let i = 1; i <= 12; i++) {
+                            document.write(`<button id="btnPreviewQuiz${i}" style="background: #34495e; color: #fff; padding: 6px 0; font-size: 10px; border-radius: 3px;" onclick="selectPreviewQuiz(${i - 1})">ĐỀ ${i}</button>`);
+                        }
+                    </script>
+                </div>
+                <div id="quizPreviewBox">
+                    <div style="color: #aaa; font-style: italic; text-align: center; padding: 15px; font-size: 11px;">
+                        Chưa có dữ liệu đề. Hãy nạp file Excel để xem!
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="column">
@@ -282,6 +299,9 @@
 
             <div class="section-wrapper">
                 <h3>5. Vòng Lật Ô Nhanh (Toss-Up)</h3>
+                <div id="buzzerStatusBanner" style="display: none; background: #c0392b; color: #fff; padding: 10px; border-radius: 6px; font-weight: bold; text-align: center; margin-bottom: 10px; border: 1px solid #ff3b30; box-shadow: 0 0 10px rgba(255,59,48,0.5);">
+                    🔔 PLAYER <span id="buzzerWinnerNum">1</span> ĐÃ BẤM CHUÔNG KHÓA!
+                </div>
                 <div class="group" style="margin-bottom: 8px;">
                     <button class="btn-tossup" id="startBtn" onclick="clickStartTossup()">START</button>
                     <button class="btn-tossup" id="pauseBtn" onclick="clickPauseTossup()">PAUSE</button>
@@ -292,7 +312,7 @@
 
             <div class="section-wrapper" style="background: #1f1f1f;">
                 <h3>6. Âm Thanh SFX & Khẩn Cấp</h3>
-                                <div class="group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; max-height: 450px; overflow-y: auto; padding-right: 4px;">
+                                <div class="group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; max-height: 250px; overflow-y: auto; padding-right: 4px;">
                     <!-- Hệ Thống & Đoán Ô Chữ -->
                     <button style="background-color: #2ecc71; color: white;" onclick="sendCmd('PLAY_SFX', 'ding.mp3')">🔔 DING (ĐÚNG CHỮ)</button>
                     <button style="background-color: #d63031; color: white;" onclick="sendCmd('PLAY_SFX', 'wrong.mp3')">❌ SAI (Wrong)</button>
@@ -469,7 +489,6 @@
                 channel = supabaseClient.channel('crossword_broadcast_room', {
                     config: { broadcast: { ack: false, self: false } }
                 });
-                channel.subscribe();
             }
         } catch (err) {
             console.warn("Supabase initialization error, falling back to BroadcastChannel/localStorage:", err);
@@ -586,20 +605,34 @@
         if (channel) {
             try {
                 channel.on('broadcast', { event: 'display-to-control' }, ({ payload }) => handleDisplayMessageWrapper(payload, Date.now()));
+                channel.on('broadcast', { event: 'player-buzz' }, ({ payload }) => {
+                    if (payload && payload.playerNum) {
+                        handlePlayerBuzz(payload.playerNum);
+                    }
+                });
+                channel.subscribe();
             } catch (e) {}
         }
 
         if (localBC) {
             localBC.onmessage = (event) => {
-                if (event.data && event.data.event === 'display-to-control') {
-                    handleDisplayMessageWrapper(event.data.payload, event.data.ts || Date.now());
+                if (event.data) {
+                    if (event.data.event === 'display-to-control') {
+                        handleDisplayMessageWrapper(event.data.payload, event.data.ts || Date.now());
+                    } else if (event.data.event === 'player-buzz' && event.data.payload) {
+                        handlePlayerBuzz(event.data.payload.playerNum);
+                    }
                 }
             };
         }
 
         window.addEventListener('message', (event) => {
-            if (event.data && event.data.event === 'display-to-control') {
-                handleDisplayMessageWrapper(event.data.payload, event.data.ts || Date.now());
+            if (event.data) {
+                if (event.data.event === 'display-to-control') {
+                    handleDisplayMessageWrapper(event.data.payload, event.data.ts || Date.now());
+                } else if (event.data.event === 'player-buzz' && event.data.payload) {
+                    handlePlayerBuzz(event.data.payload.playerNum);
+                }
             }
         });
 
@@ -609,6 +642,14 @@
                     const data = JSON.parse(e.newValue);
                     if (data && data.payload) {
                         handleDisplayMessageWrapper(data.payload, data.ts);
+                    }
+                } catch (err) {}
+            }
+            if (e.key === 'player-buzz-msg' && e.newValue) {
+                try {
+                    const data = JSON.parse(e.newValue);
+                    if (data && data.payload && data.payload.playerNum) {
+                        handlePlayerBuzz(data.payload.playerNum);
                     }
                 } catch (err) {}
             }
@@ -626,6 +667,111 @@
             } catch (err) {}
         }, 100);
 
+        let activeBuzzerWinner = null;
+        function handlePlayerBuzz(playerNum) {
+            if (!playerNum) return;
+            if (activeBuzzerWinner !== null) return;
+            
+            activeBuzzerWinner = playerNum;
+            localStorage.setItem('tossup-buzzer-winner', playerNum);
+            
+            // Show status on host banner
+            const banner = document.getElementById("buzzerStatusBanner");
+            const numSpan = document.getElementById("buzzerWinnerNum");
+            if (banner && numSpan) {
+                numSpan.textContent = playerNum;
+                banner.style.display = "block";
+            }
+            
+            // Pause the Tossup reveal instantly
+            clickPauseTossup();
+            
+            // Send command to display to show the winner highlight and play ding
+            sendCmd('PLAYER_BUZZ_WIN', { playerNum: playerNum });
+        }
+        
+        function clearControlBuzzer() {
+            activeBuzzerWinner = null;
+            localStorage.removeItem('tossup-buzzer-winner');
+            const banner = document.getElementById("buzzerStatusBanner");
+            if (banner) {
+                banner.style.display = "none";
+            }
+        }
+
+        let activePreviewIndex = 0;
+        function selectPreviewQuiz(index) {
+            activePreviewIndex = index;
+            // Update active state of the preview buttons
+            for (let i = 1; i <= 12; i++) {
+                const btn = document.getElementById(`btnPreviewQuiz${i}`);
+                if (btn) {
+                    if (i === (index + 1)) {
+                        btn.style.background = "#2ecc71";
+                        btn.style.color = "#000";
+                    } else {
+                        btn.style.background = "#34495e";
+                        btn.style.color = "#fff";
+                    }
+                }
+            }
+            
+            // Reconstruct and display preview
+            const container = document.getElementById("quizPreviewBox");
+            if (!container) return;
+            
+            const letters = importedQuizzes[index];
+            if (!letters || letters.length === 0) {
+                container.innerHTML = "<div style='color: #aaa; font-style: italic; text-align: center; padding: 15px; font-size: 11px;'>Chưa có dữ liệu cho Đề này. Hãy nạp file Excel trước!</div>";
+                return;
+            }
+            
+            let html = '<div style="display: flex; flex-direction: column; gap: 4px; padding: 10px; background: #111; border-radius: 6px;">';
+            const lines = [
+                { start: 0, end: 12 },
+                { start: 12, end: 26 },
+                { start: 26, end: 40 },
+                { start: 40, end: 52 }
+            ];
+            
+            let reconstructedWords = [];
+            let currentWord = "";
+            
+            lines.forEach((line, lineIdx) => {
+                html += '<div style="display: flex; justify-content: center; gap: 2px;">';
+                for (let i = line.start; i < line.end; i++) {
+                    const char = letters[i] || "";
+                    const isLetter = char.trim() !== "";
+                    const displayChar = isLetter ? char : " ";
+                    const bgColor = isLetter ? "#27ae60" : "#222";
+                    const borderColor = isLetter ? "#2ecc71" : "#333";
+                    html += `<span style="display: inline-block; width: 14px; height: 18px; line-height: 18px; text-align: center; background: ${bgColor}; border: 1px solid ${borderColor}; color: #fff; font-weight: bold; border-radius: 2px; font-size: 10px;">${displayChar}</span>`;
+                    
+                    if (isLetter) {
+                        currentWord += char;
+                    } else {
+                        if (currentWord) {
+                            reconstructedWords.push(currentWord);
+                            currentWord = "";
+                        }
+                    }
+                }
+                if (currentWord) {
+                    reconstructedWords.push(currentWord);
+                    currentWord = "";
+                }
+                html += '</div>';
+            });
+            html += '</div>';
+            
+            // Filter empty items
+            reconstructedWords = reconstructedWords.filter(w => w.trim() !== "");
+            const fullAnswer = reconstructedWords.join(" ");
+            
+            html += `<div style="margin-top: 10px; padding: 8px; background: #222; border-radius: 4px; font-weight: bold; font-size: 12px; color: #ffcc00; word-break: break-all;">🔑 ĐÁP ÁN: ${fullAnswer || "Trống"}</div>`;
+            container.innerHTML = html;
+        }
+
         function sendManualText() {
             const txt = document.getElementById("manualTextInput").value.toUpperCase().replace(/\r/g, "");
             const lines = txt.split("\n").map(l => l.trim()).filter(l => l !== "");
@@ -639,6 +785,7 @@
                 }
             }
             sendCmd("SHOW_MANUAL_TEXT", lines);
+            clearControlBuzzer();
         }
 
         let importedQuizzes = [];
@@ -658,12 +805,14 @@
                         for (let i = 0; i < Math.min(workbook.SheetNames.length, 12); i++) {
                             importedQuizzes.push(parseExcelGrid(workbook.Sheets[workbook.SheetNames[i]]));
                         }
+                        setTimeout(() => { selectPreviewQuiz(0); }, 500);
                     })
                     .catch(() => {
                         if (filename === 'data.xlsx') loadDefaultFile('2B.xlsx');
                     });
             };
             loadDefaultFile('data.xlsx');
+            clearControlBuzzer();
         });
 
         function handleExcel(input) {
@@ -678,6 +827,7 @@
                     importedQuizzes.push(parseExcelGrid(workbook.Sheets[workbook.SheetNames[i]]));
                 }
                 showCustomAlert(`Thành công! Đã nạp ${importedQuizzes.length} đề.`);
+                selectPreviewQuiz(0);
             };
             reader.readAsArrayBuffer(file);
         }
@@ -700,6 +850,8 @@
             clearTimeout(tossupTimeout);
             isTossupRunning = false;
             sendCmd('LOAD_QUIZ', { index: quizIndex, letters: quizLetters });
+            clearControlBuzzer();
+            selectPreviewQuiz(quizIndex);
             setTimeout(updateScoreboard, 300);
         }
 
@@ -722,11 +874,12 @@
             controlRevealedStates = new Array(52).fill(false);
             isTossupRunning = true;
             sendCmd('START_TOSSUP');
+            clearControlBuzzer();
             controlRevealRandomCell();
         }
 
         function clickPauseTossup() { isTossupRunning = false; clearTimeout(tossupTimeout); sendCmd('PAUSE_TOSSUP'); }
-        function clickPlayTossup() { if (isTossupRunning) return; isTossupRunning = true; sendCmd('PLAY_TOSSUP'); controlRevealRandomCell(); }
+        function clickPlayTossup() { if (isTossupRunning) return; isTossupRunning = true; sendCmd('PLAY_TOSSUP'); clearControlBuzzer(); controlRevealRandomCell(); }
 
         const vietnameseAlphabet = ["A", "Ă", "Â", "B", "C", "D", "Đ", "E", "Ê", "G", "H", "I", "K", "L", "M", "N", "O", "Ô", "Ơ", "P", "Q", "R", "S", "T", "U", "Ư", "V", "X", "Y"];
         const container = document.getElementById("alphabetContainer");
@@ -739,7 +892,7 @@
             container.appendChild(btn);
         });
 
-        function solveTossUp() { isTossupRunning = false; clearTimeout(tossupTimeout); sendCmd('REVEAL_ALL'); sendCmd('STOP_TOSSUP_MUSIC'); }
+        function solveTossUp() { isTossupRunning = false; clearTimeout(tossupTimeout); sendCmd('REVEAL_ALL'); sendCmd('STOP_TOSSUP_MUSIC'); clearControlBuzzer(); }
         function showCustomAlert(message) { document.getElementById("popupMessage").textContent = message; document.getElementById("customPopup").style.display = "flex"; }
         function closePopup() { document.getElementById("customPopup").style.display = "none"; }
         function sendCmd(type, data = null) {

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Người Chơi 3 - Chuông Bấm</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(circle at center, #1e1e24 0%, #0f0f12 100%);
+            color: #fff;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .header {
+            width: 100%;
+            text-align: center;
+            padding: 20px 10px 10px;
+            background: rgba(0, 0, 0, 0.4);
+            border-bottom: 1px solid #007aff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            letter-spacing: 1px;
+            color: #007aff;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(0, 122, 255, 0.6);
+        }
+
+        .status-badge {
+            display: inline-block;
+            margin-top: 8px;
+            background: #27ae60;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .buzzer-container {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .buzzer-btn {
+            width: min(80vw, 80vh);
+            height: min(80vw, 80vh);
+            max-width: 380px;
+            max-height: 380px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #007aff 0%, #2980b9 60%, #1f3a60 100%);
+            border: 10px solid #007aff;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6), 
+                        0 0 0 15px rgba(0, 122, 255, 0.1),
+                        inset 0 10px 20px rgba(255,255,255,0.4),
+                        inset 0 -10px 20px rgba(0,0,0,0.4);
+            color: #fff;
+            font-size: min(8vw, 32px);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .buzzer-btn:active:not(.disabled) {
+            transform: scale(0.95);
+            background: radial-gradient(circle at 35% 35%, #3498db 0%, #1f3a60 100%);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.8), 
+                        0 0 0 15px rgba(0, 122, 255, 0.2),
+                        inset 0 5px 10px rgba(0,0,0,0.6);
+        }
+
+        .buzzer-btn.disabled {
+            background: radial-gradient(circle at center, #555 0%, #333 100%);
+            border-color: #444;
+            box-shadow: none;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .buzzer-btn.success {
+            background: radial-gradient(circle at 35% 35%, #2ecc71 0%, #27ae60 70%, #1e824c 100%);
+            border-color: #2ecc71;
+            box-shadow: 0 0 40px rgba(46, 204, 113, 0.8),
+                        0 0 0 15px rgba(46, 204, 113, 0.2);
+            animation: success-pulse 1s infinite alternate;
+        }
+
+        @keyframes success-pulse {
+            from { box-shadow: 0 0 30px rgba(46, 204, 113, 0.6), 0 0 0 10px rgba(46, 204, 113, 0.1); }
+            to { box-shadow: 0 0 50px rgba(46, 204, 113, 1), 0 0 0 25px rgba(46, 204, 113, 0.3); }
+        }
+
+        .footer {
+            width: 100%;
+            text-align: center;
+            padding: 15px;
+            font-size: 12px;
+            color: #666;
+            background: rgba(0, 0, 0, 0.2);
+            border-top: 1px solid #222;
+        }
+
+        .buzzer-subtext {
+            font-size: 12px;
+            font-weight: normal;
+            opacity: 0.8;
+            margin-top: 5px;
+            text-transform: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>NGƯỜI CHƠI 3</h1>
+        <div id="statusBadge" class="status-badge">SẴN SÀNG</div>
+    </div>
+
+    <div class="buzzer-container">
+        <button id="buzzerBtn" class="buzzer-btn" onclick="buzz()">
+            <span style="font-size: 48px;">🔔</span>
+            <span>BẤM CHUÔNG</span>
+            <span id="buzzerSubtext" class="buzzer-subtext">Nhấn để giành quyền trả lời</span>
+        </button>
+    </div>
+
+    <div class="footer">
+        Hệ thống chuông bấm kỹ thuật số • Vòng chơi Toss-up
+    </div>
+
+    <script>
+        const PLAYER_NUM = 3;
+        const SUPABASE_URL = "https://tukabyhjmcyptuwmwedp.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OY0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
+
+        let supabase = null;
+        let channel = null;
+        let localBC = null;
+
+        // Initialize connection
+        try {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            channel = supabase.channel('crossword_broadcast_room', {
+                config: { broadcast: { self: true } }
+            });
+            
+            // Listen for updates - MUST be bound BEFORE subscribing
+            channel.on('broadcast', { event: 'player-buzz' }, ({ payload }) => {
+                if (payload && payload.playerNum) {
+                    localStorage.setItem('tossup-buzzer-winner', payload.playerNum);
+                    syncBuzzerState();
+                }
+            });
+            channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
+                if (payload && (payload.type === 'START_TOSSUP' || payload.type === 'PLAY_TOSSUP' || payload.type === 'LOAD_QUIZ' || payload.type === 'RESET_BOARD')) {
+                    localStorage.removeItem('tossup-buzzer-winner');
+                    syncBuzzerState();
+                }
+            });
+            
+            channel.subscribe((status) => {
+                console.log("Supabase status:", status);
+            });
+        } catch (e) {
+            console.error("Supabase failed to initialize", e);
+        }
+
+        try {
+            localBC = new BroadcastChannel('crossword_broadcast_room');
+        } catch (e) {
+            console.error("BroadcastChannel not supported", e);
+        }
+
+        function playLocalDing() {
+            try {
+                const snd = new Audio("ding.mp3");
+                snd.play().catch(err => console.log(err));
+            } catch(e) {}
+        }
+
+        function buzz() {
+            const btn = document.getElementById("buzzerBtn");
+            if (btn.classList.contains("disabled") || btn.classList.contains("success")) {
+                return;
+            }
+
+            // Sync check locally first
+            const winner = localStorage.getItem('tossup-buzzer-winner');
+            if (winner) {
+                // Someone else got it! Sync state.
+                syncBuzzerState();
+                return;
+            }
+
+            // Write to localStorage immediately to secure lock
+            localStorage.setItem('tossup-buzzer-winner', PLAYER_NUM);
+
+            // Vibrate mobile device
+            if (navigator.vibrate) {
+                navigator.vibrate([150]);
+            }
+
+            // Trigger local success feel
+            playLocalDing();
+            setBuzzerSuccess();
+
+            // Broadcast to everyone
+            const payload = { playerNum: PLAYER_NUM, ts: Date.now() };
+            const msgObj = { event: 'player-buzz', payload: payload, ts: Date.now() };
+
+            if (channel) {
+                try {
+                    channel.send({ type: 'broadcast', event: 'player-buzz', payload: payload });
+                } catch(e){}
+            }
+            if (localBC) {
+                try {
+                    localBC.postMessage(msgObj);
+                } catch(e){}
+            }
+            try {
+                localStorage.setItem('player-buzz-msg', JSON.stringify(msgObj));
+                localStorage.removeItem('player-buzz-msg');
+            } catch(e){}
+
+            // Post message to top frame / parents
+            try {
+                window.postMessage(msgObj, "*");
+                if (window.opener) window.opener.postMessage(msgObj, "*");
+                if (window.parent && window.parent !== window) window.parent.postMessage(msgObj, "*");
+            } catch(e){}
+        }
+
+        function setBuzzerSuccess() {
+            const btn = document.getElementById("buzzerBtn");
+            const badge = document.getElementById("statusBadge");
+            const subtext = document.getElementById("buzzerSubtext");
+
+            btn.className = "buzzer-btn success";
+            badge.textContent = "BẠN ĐÃ BẤM CHUÔNG!";
+            badge.style.background = "#2ecc71";
+            subtext.textContent = "Dành quyền trả lời thành công";
+        }
+
+        function setBuzzerLocked(winnerNum) {
+            const btn = document.getElementById("buzzerBtn");
+            const badge = document.getElementById("statusBadge");
+            const subtext = document.getElementById("buzzerSubtext");
+
+            btn.className = "buzzer-btn disabled";
+            badge.textContent = "CHUÔNG ĐÃ KHÓA";
+            badge.style.background = "#e74c3c";
+            subtext.textContent = `Player ${winnerNum} đã bấm trước!`;
+        }
+
+        function resetBuzzer() {
+            const btn = document.getElementById("buzzerBtn");
+            const badge = document.getElementById("statusBadge");
+            const subtext = document.getElementById("buzzerSubtext");
+
+            btn.className = "buzzer-btn";
+            badge.textContent = "SẴN SÀNG";
+            badge.style.background = "#27ae60";
+            subtext.textContent = "Nhấn để giành quyền trả lời";
+        }
+
+        function syncBuzzerState() {
+            const winner = localStorage.getItem('tossup-buzzer-winner');
+            if (winner) {
+                if (parseInt(winner) === PLAYER_NUM) {
+                    setBuzzerSuccess();
+                } else {
+                    setBuzzerLocked(winner);
+                }
+            } else {
+                resetBuzzer();
+            }
+        }
+
+
+
+        if (localBC) {
+            localBC.onmessage = (event) => {
+                if (event.data) {
+                    if (event.data.event === 'player-buzz' && event.data.payload) {
+                        localStorage.setItem('tossup-buzzer-winner', event.data.payload.playerNum);
+                        syncBuzzerState();
+                    }
+                    if (event.data.event === 'control-to-display' && event.data.payload) {
+                        const type = event.data.payload.type;
+                        if (type === 'START_TOSSUP' || type === 'PLAY_TOSSUP' || type === 'LOAD_QUIZ' || type === 'RESET_BOARD') {
+                            localStorage.removeItem('tossup-buzzer-winner');
+                            syncBuzzerState();
+                        }
+                    }
+                }
+            };
+        }
+
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'tossup-buzzer-winner') {
+                syncBuzzerState();
+            }
+            if (e.key === 'player-buzz-msg' && e.newValue) {
+                try {
+                    const data = JSON.parse(e.newValue);
+                    if (data && data.payload) {
+                        localStorage.setItem('tossup-buzzer-winner', data.payload.playerNum);
+                        syncBuzzerState();
+                    }
+                } catch(err){}
+            }
+            if (e.key === 'control-to-display-msg' && e.newValue) {
+                try {
+                    const data = JSON.parse(e.newValue);
+                    if (data && data.payload) {
+                        const type = data.payload.type;
+                        if (type === 'START_TOSSUP' || type === 'PLAY_TOSSUP' || type === 'LOAD_QUIZ' || type === 'RESET_BOARD') {
+                            localStorage.removeItem('tossup-buzzer-winner');
+                            syncBuzzerState();
+                        }
+                    }
+                } catch(err){}
+            }
+        });
+
+        window.addEventListener('message', (event) => {
+            if (event.data) {
+                if (event.data.event === 'player-buzz' && event.data.payload) {
+                    localStorage.setItem('tossup-buzzer-winner', event.data.payload.playerNum);
+                    syncBuzzerState();
+                }
+                if (event.data.event === 'control-to-display' && event.data.payload) {
+                    const type = event.data.payload.type;
+                    if (type === 'START_TOSSUP' || type === 'PLAY_TOSSUP' || type === 'LOAD_QUIZ' || type === 'RESET_BOARD') {
+                        localStorage.removeItem('tossup-buzzer-winner');
+                        syncBuzzerState();
+                    }
+                }
+            }
+        });
+
+        // Initialize state on load
+        syncBuzzerState();
+    </script>
+</body>
+</html>
