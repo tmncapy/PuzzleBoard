@@ -4,158 +4,244 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Người Chơi 2 - Chuông Bấm</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Quicksand:wght@700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body {
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            background: radial-gradient(circle at center, #1e1e24 0%, #0f0f12 100%);
-            color: #fff;
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
+        }
+
+        html, body {
+            width: 100vw;
             height: 100vh;
-            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
             overflow: hidden;
+            background: #239d67;
+            font-family: 'Nunito', 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             user-select: none;
             -webkit-user-select: none;
+            touch-action: manipulation;
         }
 
-        .header {
-            width: 100%;
-            text-align: center;
-            padding: 20px 10px 10px;
-            background: rgba(0, 0, 0, 0.4);
-            border-bottom: 1px solid #4cd964;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
-
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-            letter-spacing: 1px;
-            color: #4cd964;
-            text-transform: uppercase;
-            text-shadow: 0 0 10px rgba(76, 217, 100, 0.6);
-        }
-
-        .status-badge {
-            display: inline-block;
-            margin-top: 8px;
-            background: #27ae60;
-            color: #fff;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .buzzer-container {
-            flex: 1;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .buzzer-btn {
-            width: min(80vw, 80vh);
-            height: min(80vw, 80vh);
-            max-width: 380px;
-            max-height: 380px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 35% 35%, #4cd964 0%, #27ae60 60%, #1e824c 100%);
-            border: 10px solid #4cd964;
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6), 
-                        0 0 0 15px rgba(76, 217, 100, 0.1),
-                        inset 0 10px 20px rgba(255,255,255,0.4),
-                        inset 0 -10px 20px rgba(0,0,0,0.4);
-            color: #fff;
-            font-size: min(8vw, 32px);
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        /* Fullscreen Buzzer Canvas */
+        #buzzerBtn {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            gap: 15px;
-            cursor: pointer;
-            transition: all 0.1s ease;
+            background: radial-gradient(circle at 50% 48%, #2fa872 0%, #228f5c 70%, #1a754a 100%);
+            border: none;
             outline: none;
+            cursor: pointer;
+            color: #ffffff;
+            transition: background 0.3s ease, transform 0.08s ease, filter 0.2s ease;
             -webkit-tap-highlight-color: transparent;
+            z-index: 10;
         }
 
-        .buzzer-btn:active:not(.disabled) {
-            transform: scale(0.95);
-            background: radial-gradient(circle at 35% 35%, #2ecc71 0%, #1e824c 100%);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.8), 
-                        0 0 0 15px rgba(76, 217, 100, 0.2),
-                        inset 0 5px 10px rgba(0,0,0,0.6);
+        #buzzerBtn:active:not(.disabled):not(.success) {
+            transform: scale(0.985);
+            background: radial-gradient(circle at 50% 48%, #36bd81 0%, #1e8755 100%);
+            filter: brightness(1.08);
         }
 
-        .buzzer-btn.disabled {
-            background: radial-gradient(circle at center, #555 0%, #333 100%);
-            border-color: #444;
-            box-shadow: none;
-            cursor: not-allowed;
-            opacity: 0.5;
+        /* Main Rounded Display Text: "trả lời" */
+        .answer-text {
+            font-size: min(23vw, 28vh, 210px);
+            font-weight: 800;
+            color: #f1fcf6;
+            letter-spacing: -0.5px;
+            line-height: 1;
+            text-align: center;
+            text-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+            font-family: 'Nunito', 'Quicksand', sans-serif;
+            pointer-events: none;
+            transition: all 0.2s ease;
         }
 
-        .buzzer-btn.success {
-            background: radial-gradient(circle at 35% 35%, #2ecc71 0%, #27ae60 70%, #1e824c 100%);
-            border-color: #2ecc71;
-            box-shadow: 0 0 40px rgba(46, 204, 113, 0.8),
-                        0 0 0 15px rgba(46, 204, 113, 0.2);
-            animation: success-pulse 1s infinite alternate;
+        /* Subtle floating top header overlay */
+        .top-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 22px;
+            z-index: 30;
+            pointer-events: none;
         }
 
-        @keyframes success-pulse {
-            from { box-shadow: 0 0 30px rgba(46, 204, 113, 0.6), 0 0 0 10px rgba(46, 204, 113, 0.1); }
-            to { box-shadow: 0 0 50px rgba(46, 204, 113, 1), 0 0 0 25px rgba(46, 204, 113, 0.3); }
+        .player-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
         }
 
-        .footer {
+        .player-tag .dot {
+            width: 9px;
+            height: 9px;
+            background: #2ecc71;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #2ecc71;
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.7; }
+        }
+
+        .action-btns {
+            pointer-events: auto;
+            display: flex;
+            gap: 8px;
+        }
+
+        .header-btn {
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .header-btn:hover {
+            background: rgba(0, 0, 0, 0.55);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Subtle Bottom Instruction Hint */
+        .bottom-hint {
+            position: fixed;
+            bottom: 18px;
+            left: 0;
             width: 100%;
             text-align: center;
-            padding: 15px;
-            font-size: 12px;
-            color: #666;
-            background: rgba(0, 0, 0, 0.2);
-            border-top: 1px solid #222;
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            z-index: 30;
+            pointer-events: none;
+            text-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
 
-        .buzzer-subtext {
-            font-size: 12px;
-            font-weight: normal;
-            opacity: 0.8;
-            margin-top: 5px;
-            text-transform: none;
+        /* SUCCESS / WON BUZZ STATE */
+        #buzzerBtn.success {
+            background: radial-gradient(circle at 50% 48%, #22c55e 0%, #15803d 80%, #14532d 100%);
+            animation: pulse-success 1.2s infinite alternate;
+        }
+
+        #buzzerBtn.success .answer-text {
+            color: #ffffff;
+            transform: scale(1.04);
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.8), 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes pulse-success {
+            0% { box-shadow: inset 0 0 60px rgba(255, 255, 255, 0.3); }
+            100% { box-shadow: inset 0 0 120px rgba(255, 255, 255, 0.6); }
+        }
+
+        /* LOCKED / ANOTHER PLAYER BUZZED STATE */
+        #buzzerBtn.disabled {
+            background: radial-gradient(circle at 50% 48%, #2c1719 0%, #1a0f10 80%, #100809 100%);
+            cursor: not-allowed;
+        }
+
+        #buzzerBtn.disabled .answer-text {
+            color: rgba(255, 255, 255, 0.25);
+            text-shadow: none;
+            filter: grayscale(1);
+        }
+
+        /* Success/Lock Banner overlay on the button */
+        .status-pill {
+            margin-top: 15px;
+            font-size: min(4vw, 20px);
+            font-weight: 800;
+            padding: 8px 24px;
+            border-radius: 30px;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        #buzzerBtn.success .status-pill {
+            background: #ffffff;
+            color: #15803d;
+            border-color: #ffffff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+        }
+
+        #buzzerBtn.disabled .status-pill {
+            background: #c0392b;
+            color: #ffffff;
+            border-color: #ff5252;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
         }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>NGƯỜI CHƠI 2</h1>
-        <div id="statusBadge" class="status-badge">SẴN SÀNG</div>
+    <!-- Header Overlay -->
+    <div class="top-overlay">
+        <div class="player-tag">
+            <span class="dot"></span>
+            <span>NGƯỜI CHƠI 2</span>
+        </div>
+        <div class="action-btns">
+            <button class="header-btn" onclick="toggleFullScreen()" title="Toàn màn hình">
+                ⛶ Toàn màn hình
+            </button>
+        </div>
     </div>
 
-    <div class="buzzer-container">
-        <button id="buzzerBtn" class="buzzer-btn" onclick="buzz()">
-            <span style="font-size: 48px;">🔔</span>
-            <span>BẤM CHUÔNG</span>
-            <span id="buzzerSubtext" class="buzzer-subtext">Nhấn để dành quyền trả lời</span>
-        </button>
-    </div>
+    <!-- Full Screen Interactive Buzzer Area -->
+    <button id="buzzerBtn" onclick="buzz()" aria-label="Bấm chuông trả lời">
+        <div class="answer-text">trả lời</div>
+        <div id="statusPill" class="status-pill" style="display: none;">SẴN SÀNG</div>
+    </button>
 
-    <div class="footer">
-        Hệ thống chuông bấm kỹ thuật số • Vòng chơi Toss-up
+    <!-- Bottom Hint -->
+    <div id="bottomHint" class="bottom-hint">
+        Chạm màn hình hoặc phím Cách [Space] để chuông
     </div>
 
     <script>
@@ -166,6 +252,16 @@
         let supabaseClient = null;
         let channel = null;
         let localBC = null;
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
+        }
 
         // 1. Initialize Supabase Realtime
         try {
@@ -264,7 +360,7 @@
             localStorage.setItem('tossup-buzzer-winner', PLAYER_NUM);
 
             if (navigator.vibrate) {
-                navigator.vibrate([150]);
+                navigator.vibrate([180]);
             }
 
             playLocalDing();
@@ -312,35 +408,34 @@
 
         function setBuzzerSuccess() {
             const btn = document.getElementById("buzzerBtn");
-            const badge = document.getElementById("statusBadge");
-            const subtext = document.getElementById("buzzerSubtext");
+            const pill = document.getElementById("statusPill");
+            const hint = document.getElementById("bottomHint");
 
-            btn.className = "buzzer-btn success";
-            badge.textContent = "BẠN ĐÃ BẤM CHUÔNG!";
-            badge.style.background = "#2ecc71";
-            subtext.textContent = "Dành quyền trả lời thành công";
+            btn.className = "success";
+            pill.style.display = "inline-flex";
+            pill.textContent = "🔔 BẠN ĐÃ DÀNH QUYỀN TRẢ LỜI!";
+            hint.textContent = "Đang trong lượt trả lời của bạn";
         }
 
         function setBuzzerLocked(winnerNum) {
             const btn = document.getElementById("buzzerBtn");
-            const badge = document.getElementById("statusBadge");
-            const subtext = document.getElementById("buzzerSubtext");
+            const pill = document.getElementById("statusPill");
+            const hint = document.getElementById("bottomHint");
 
-            btn.className = "buzzer-btn disabled";
-            badge.textContent = "CHUÔNG ĐÃ KHÓA";
-            badge.style.background = "#e74c3c";
-            subtext.textContent = `Player ${winnerNum} đã bấm trước!`;
+            btn.className = "disabled";
+            pill.style.display = "inline-flex";
+            pill.textContent = `🔒 Người chơi ${winnerNum} đã bấm trước!`;
+            hint.textContent = "Chuông đã khóa cho lượt này";
         }
 
         function resetBuzzer() {
             const btn = document.getElementById("buzzerBtn");
-            const badge = document.getElementById("statusBadge");
-            const subtext = document.getElementById("buzzerSubtext");
+            const pill = document.getElementById("statusPill");
+            const hint = document.getElementById("bottomHint");
 
-            btn.className = "buzzer-btn";
-            badge.textContent = "SẴN SÀNG";
-            badge.style.background = "#27ae60";
-            subtext.textContent = "Nhấn để giành quyền trả lời";
+            btn.className = "";
+            pill.style.display = "none";
+            hint.textContent = "Chạm màn hình hoặc phím Cách [Space] để chuông";
         }
 
         function syncBuzzerState() {
@@ -355,6 +450,17 @@
                 resetBuzzer();
             }
         }
+
+        // Keyboard Shortcut: Space or Enter to Buzz
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                buzz();
+            }
+            if (e.key === 'f' || e.key === 'F') {
+                toggleFullScreen();
+            }
+        });
 
         window.addEventListener('storage', (e) => {
             if (e.key === 'tossup-buzzer-winner') {
