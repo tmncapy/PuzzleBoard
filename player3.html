@@ -161,44 +161,83 @@
     <script>
         const PLAYER_NUM = 3;
         const SUPABASE_URL = "https://tukabyhjmcyptuwmwedp.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OY0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OX0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
 
         let supabaseClient = null;
         let channel = null;
         let localBC = null;
 
-        // Initialize connection
+        // 1. Initialize Supabase Realtime
         try {
-            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            channel = supabaseClient.channel('crossword_broadcast_room', {
-                config: { broadcast: { self: true } }
-            });
-            
-            // Listen for updates - MUST be bound BEFORE subscribing
-            channel.on('broadcast', { event: 'player-buzz' }, ({ payload }) => {
-                if (payload && payload.playerNum) {
-                    localStorage.setItem('tossup-buzzer-winner', payload.playerNum);
-                    syncBuzzerState();
-                }
-            });
-            channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
-                if (payload && (payload.type === 'START_TOSSUP' || payload.type === 'PLAY_TOSSUP' || payload.type === 'LOAD_QUIZ' || payload.type === 'RESET_BOARD')) {
-                    localStorage.removeItem('tossup-buzzer-winner');
-                    syncBuzzerState();
-                }
-            });
-            
-            channel.subscribe((status) => {
-                console.log("Supabase status:", status);
-            });
+            if (typeof window.supabase !== "undefined" && window.supabase.createClient) {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                channel = supabaseClient.channel('crossword_broadcast_room', {
+                    config: { broadcast: { ack: false, self: true } }
+                });
+                
+                channel.on('broadcast', { event: 'player-buzz' }, ({ payload }) => {
+                    if (payload && payload.playerNum) {
+                        handleIncomingBuzz(payload.playerNum);
+                    }
+                });
+                channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
+                    if (payload) {
+                        handleIncomingControl(payload);
+                    }
+                });
+                
+                channel.subscribe((status) => {
+                    console.log("Supabase connection status:", status);
+                });
+            }
         } catch (e) {
-            console.error("Supabase failed to initialize", e);
+            console.error("Supabase failed to initialize:", e);
         }
 
+        // 2. Initialize Server-Sent Events (SSE) for instant multi-device sync
+        try {
+            if (typeof EventSource !== "undefined") {
+                const sse = new EventSource('/api/events');
+                sse.onmessage = (e) => {
+                    try {
+                        const msg = JSON.parse(e.data);
+                        if (!msg) return;
+                        if (msg.event === 'player-buzz' && msg.payload && msg.payload.playerNum) {
+                            handleIncomingBuzz(msg.payload.playerNum);
+                        } else if (msg.event === 'control-to-display' && msg.payload) {
+                            handleIncomingControl(msg.payload);
+                        }
+                    } catch(err){}
+                };
+            }
+        } catch(e) {}
+
+        // 3. Local BroadcastChannel
         try {
             localBC = new BroadcastChannel('crossword_broadcast_room');
-        } catch (e) {
-            console.error("BroadcastChannel not supported", e);
+            localBC.onmessage = (event) => {
+                if (event.data) {
+                    if (event.data.event === 'player-buzz' && event.data.payload) {
+                        handleIncomingBuzz(event.data.payload.playerNum);
+                    }
+                    if (event.data.event === 'control-to-display' && event.data.payload) {
+                        handleIncomingControl(event.data.payload);
+                    }
+                }
+            };
+        } catch (e) {}
+
+        function handleIncomingBuzz(pNum) {
+            localStorage.setItem('tossup-buzzer-winner', pNum);
+            syncBuzzerState();
+        }
+
+        function handleIncomingControl(payload) {
+            const type = payload.type;
+            if (type === 'START_TOSSUP' || type === 'PLAY_TOSSUP' || type === 'LOAD_QUIZ' || type === 'RESET_BOARD' || type === 'SHOW_MANUAL_TEXT') {
+                localStorage.removeItem('tossup-buzzer-winner');
+                syncBuzzerState();
+            }
         }
 
         function playLocalDing() {
@@ -214,46 +253,56 @@
                 return;
             }
 
-            // Sync check locally first
+            // Check if someone else already won
             const winner = localStorage.getItem('tossup-buzzer-winner');
             if (winner) {
-                // Someone else got it! Sync state.
                 syncBuzzerState();
                 return;
             }
 
-            // Write to localStorage immediately to secure lock
+            // Write to localStorage
             localStorage.setItem('tossup-buzzer-winner', PLAYER_NUM);
 
-            // Vibrate mobile device
             if (navigator.vibrate) {
                 navigator.vibrate([150]);
             }
 
-            // Trigger local success feel
             playLocalDing();
             setBuzzerSuccess();
 
-            // Broadcast to everyone
             const payload = { playerNum: PLAYER_NUM, ts: Date.now() };
             const msgObj = { event: 'player-buzz', payload: payload, ts: Date.now() };
 
+            // 1. Post to Server API
+            try {
+                fetch('/api/broadcast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(msgObj)
+                }).catch(() => {});
+            } catch(e) {}
+
+            // 2. Send via Supabase Realtime
             if (channel) {
                 try {
                     channel.send({ type: 'broadcast', event: 'player-buzz', payload: payload });
                 } catch(e){}
             }
+
+            // 3. Local BroadcastChannel
             if (localBC) {
                 try {
                     localBC.postMessage(msgObj);
                 } catch(e){}
             }
+
+            // 4. LocalStorage
             try {
                 localStorage.setItem('player-buzz-msg', JSON.stringify(msgObj));
                 localStorage.removeItem('player-buzz-msg');
             } catch(e){}
 
-            // Post message to top frame / parents
+            // 5. Post message
             try {
                 window.postMessage(msgObj, "*");
                 if (window.opener) window.opener.postMessage(msgObj, "*");
@@ -307,26 +356,6 @@
             }
         }
 
-
-
-        if (localBC) {
-            localBC.onmessage = (event) => {
-                if (event.data) {
-                    if (event.data.event === 'player-buzz' && event.data.payload) {
-                        localStorage.setItem('tossup-buzzer-winner', event.data.payload.playerNum);
-                        syncBuzzerState();
-                    }
-                    if (event.data.event === 'control-to-display' && event.data.payload) {
-                        const type = event.data.payload.type;
-                        if (type === 'START_TOSSUP' || type === 'PLAY_TOSSUP' || type === 'LOAD_QUIZ' || type === 'RESET_BOARD') {
-                            localStorage.removeItem('tossup-buzzer-winner');
-                            syncBuzzerState();
-                        }
-                    }
-                }
-            };
-        }
-
         window.addEventListener('storage', (e) => {
             if (e.key === 'tossup-buzzer-winner') {
                 syncBuzzerState();
@@ -335,8 +364,7 @@
                 try {
                     const data = JSON.parse(e.newValue);
                     if (data && data.payload) {
-                        localStorage.setItem('tossup-buzzer-winner', data.payload.playerNum);
-                        syncBuzzerState();
+                        handleIncomingBuzz(data.payload.playerNum);
                     }
                 } catch(err){}
             }
@@ -344,11 +372,7 @@
                 try {
                     const data = JSON.parse(e.newValue);
                     if (data && data.payload) {
-                        const type = data.payload.type;
-                        if (type === 'START_TOSSUP' || type === 'PLAY_TOSSUP' || type === 'LOAD_QUIZ' || type === 'RESET_BOARD') {
-                            localStorage.removeItem('tossup-buzzer-winner');
-                            syncBuzzerState();
-                        }
+                        handleIncomingControl(data.payload);
                     }
                 } catch(err){}
             }
@@ -357,15 +381,10 @@
         window.addEventListener('message', (event) => {
             if (event.data) {
                 if (event.data.event === 'player-buzz' && event.data.payload) {
-                    localStorage.setItem('tossup-buzzer-winner', event.data.payload.playerNum);
-                    syncBuzzerState();
+                    handleIncomingBuzz(event.data.payload.playerNum);
                 }
                 if (event.data.event === 'control-to-display' && event.data.payload) {
-                    const type = event.data.payload.type;
-                    if (type === 'START_TOSSUP' || type === 'PLAY_TOSSUP' || type === 'LOAD_QUIZ' || type === 'RESET_BOARD') {
-                        localStorage.removeItem('tossup-buzzer-winner');
-                        syncBuzzerState();
-                    }
+                    handleIncomingControl(event.data.payload);
                 }
             }
         });

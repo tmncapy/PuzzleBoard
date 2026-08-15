@@ -487,11 +487,11 @@
             if (typeof supabase !== "undefined" && supabase.createClient) {
                 supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 channel = supabaseClient.channel('crossword_broadcast_room', {
-                    config: { broadcast: { ack: false, self: false } }
+                    config: { broadcast: { ack: false, self: true } }
                 });
             }
         } catch (err) {
-            console.warn("Supabase initialization error, falling back to BroadcastChannel/localStorage:", err);
+            console.warn("Supabase initialization error, falling back to Server/BroadcastChannel/localStorage:", err);
         }
 
         const localBC = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel('crossword_broadcast_room') : null;
@@ -602,6 +602,7 @@
             handleDisplayMessage(payload);
         }
 
+        // 1. Supabase Realtime Listener
         if (channel) {
             try {
                 channel.on('broadcast', { event: 'display-to-control' }, ({ payload }) => handleDisplayMessageWrapper(payload, Date.now()));
@@ -614,6 +615,25 @@
             } catch (e) {}
         }
 
+        // 2. Server-Sent Events (SSE) Listener for multi-device
+        try {
+            if (typeof EventSource !== "undefined") {
+                const sse = new EventSource('/api/events');
+                sse.onmessage = (e) => {
+                    try {
+                        const msg = JSON.parse(e.data);
+                        if (!msg) return;
+                        if (msg.event === 'display-to-control' && msg.payload) {
+                            handleDisplayMessageWrapper(msg.payload, msg.ts || Date.now());
+                        } else if (msg.event === 'player-buzz' && msg.payload && msg.payload.playerNum) {
+                            handlePlayerBuzz(msg.payload.playerNum);
+                        }
+                    } catch(err){}
+                };
+            }
+        } catch(e) {}
+
+        // 3. Local BroadcastChannel
         if (localBC) {
             localBC.onmessage = (event) => {
                 if (event.data) {
@@ -900,20 +920,35 @@
             const ts = Date.now();
             const msgObj = { event: 'control-to-display', payload: payload, ts: ts };
 
+            // 1. Post to Server API for instant multi-device sync
+            try {
+                fetch('/api/broadcast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(msgObj)
+                }).catch(() => {});
+            } catch (e) {}
+
+            // 2. Supabase Realtime Broadcast
             if (channel) {
                 try {
                     channel.send({ type: 'broadcast', event: 'control-to-display', payload: payload });
                 } catch (e) {}
             }
+
+            // 3. Local BroadcastChannel
             if (localBC) {
                 try {
                     localBC.postMessage(msgObj);
                 } catch (e) {}
             }
+
+            // 4. LocalStorage fallback
             try {
                 localStorage.setItem('control-to-display-msg', JSON.stringify(msgObj));
             } catch (e) {}
 
+            // 5. PostMessage for preview iframe and parent windows
             try {
                 window.postMessage(msgObj, "*");
                 if (window.opener) window.opener.postMessage(msgObj, "*");
