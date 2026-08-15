@@ -163,14 +163,14 @@
         const SUPABASE_URL = "https://tukabyhjmcyptuwmwedp.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OY0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
 
-        let supabase = null;
+        let supabaseClient = null;
         let channel = null;
         let localBC = null;
 
         // Initialize connection
         try {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            channel = supabase.channel('crossword_broadcast_room', {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            channel = supabaseClient.channel('crossword_broadcast_room', {
                 config: { broadcast: { self: true } }
             });
             
