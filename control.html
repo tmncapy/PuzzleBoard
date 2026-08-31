@@ -1079,8 +1079,10 @@
         }
 
         function revealRound30Answer() {
-            isTossupRunning = false;
-            clearTimeout(tossupTimeout);
+            if (!isRound30Running) {
+                isTossupRunning = false;
+                clearTimeout(tossupTimeout);
+            }
             round30SolvedStatus[currentRound30SubIndex] = true;
             renderRound30SubButtons();
             sendCmd('REVEAL_ALL');
