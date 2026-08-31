@@ -1250,36 +1250,45 @@
             if (!sheet) return [];
             let subPuzzles = [];
             
-            // As shown in the Round 13 sheet template:
-            // Left grid starts at col A (index 0), Right grid starts at col P (index 15)
+            // Exact coordinates according to Round13 sheet template:
+            // Left grid starts at col A (c=0), Right grid starts at col P (c=15)
+            // 5 row blocks: Row 2 (r=1), Row 8 (r=7), Row 14 (r=13), Row 20 (r=19), Row 26 (r=25)
             const colStarts = [0, 15];
-            const rowStarts = [1, 7, 13, 19, 25, 31, 37, 43, 49, 55];
+            const rowStarts = [1, 7, 13, 19, 25];
             
             for (let rIdx = 0; rIdx < rowStarts.length; rIdx++) {
                 for (let cIdx = 0; cIdx < colStarts.length; cIdx++) {
                     const rBase = rowStarts[rIdx];
                     const cBase = colStarts[cIdx];
                     let letters = [];
+                    
+                    // Helper to get string value from sheet cell
+                    const getVal = (r, c) => {
+                        const ref = XLSX.utils.encode_cell({ r, c });
+                        const cell = sheet[ref];
+                        if (!cell) return "";
+                        if (cell.v !== undefined && cell.v !== null) return String(cell.v).trim();
+                        if (cell.w !== undefined && cell.w !== null) return String(cell.w).trim();
+                        return "";
+                    };
+
                     // Line 1: 12 cells (cols 1..12 relative to cBase, i.e. B..M or Q..AB)
                     for (let c = 1; c <= 12; c++) {
-                        let ref = XLSX.utils.encode_cell({ r: rBase, c: cBase + c });
-                        letters.push(sheet[ref] && sheet[ref].v !== undefined ? String(sheet[ref].v).trim() : "");
+                        letters.push(getVal(rBase, cBase + c));
                     }
                     // Line 2: 14 cells (cols 0..13 relative to cBase, i.e. A..N or P..AC)
                     for (let c = 0; c <= 13; c++) {
-                        let ref = XLSX.utils.encode_cell({ r: rBase + 1, c: cBase + c });
-                        letters.push(sheet[ref] && sheet[ref].v !== undefined ? String(sheet[ref].v).trim() : "");
+                        letters.push(getVal(rBase + 1, cBase + c));
                     }
                     // Line 3: 14 cells (cols 0..13 relative to cBase, i.e. A..N or P..AC)
                     for (let c = 0; c <= 13; c++) {
-                        let ref = XLSX.utils.encode_cell({ r: rBase + 2, c: cBase + c });
-                        letters.push(sheet[ref] && sheet[ref].v !== undefined ? String(sheet[ref].v).trim() : "");
+                        letters.push(getVal(rBase + 2, cBase + c));
                     }
                     // Line 4: 12 cells (cols 1..12 relative to cBase, i.e. B..M or Q..AB)
                     for (let c = 1; c <= 12; c++) {
-                        let ref = XLSX.utils.encode_cell({ r: rBase + 3, c: cBase + c });
-                        letters.push(sheet[ref] && sheet[ref].v !== undefined ? String(sheet[ref].v).trim() : "");
+                        letters.push(getVal(rBase + 3, cBase + c));
                     }
+                    
                     const hasLetters = letters.some(ch => ch && ch.trim() !== "");
                     if (hasLetters) {
                         subPuzzles.push(letters);
@@ -1287,30 +1296,27 @@
                 }
             }
 
-            // Fallback for alternative column offsets (e.g. [0, 16] or [0, 17])
+            // Fallback for alternative layout starting at row 1 or other column offsets
             if (subPuzzles.length === 0) {
+                const altRowStarts = [0, 6, 12, 18, 24];
                 const altColStarts = [0, 16, 17];
-                for (let rIdx = 0; rIdx < rowStarts.length; rIdx++) {
+                for (let rIdx = 0; rIdx < altRowStarts.length; rIdx++) {
                     for (let cIdx = 0; cIdx < altColStarts.length; cIdx++) {
-                        const rBase = rowStarts[rIdx];
+                        const rBase = altRowStarts[rIdx];
                         const cBase = altColStarts[cIdx];
                         let letters = [];
-                        for (let c = 1; c <= 12; c++) {
-                            let ref = XLSX.utils.encode_cell({ r: rBase, c: cBase + c });
-                            letters.push(sheet[ref] && sheet[ref].v !== undefined ? String(sheet[ref].v).trim() : "");
-                        }
-                        for (let c = 0; c <= 13; c++) {
-                            let ref = XLSX.utils.encode_cell({ r: rBase + 1, c: cBase + c });
-                            letters.push(sheet[ref] && sheet[ref].v !== undefined ? String(sheet[ref].v).trim() : "");
-                        }
-                        for (let c = 0; c <= 13; c++) {
-                            let ref = XLSX.utils.encode_cell({ r: rBase + 2, c: cBase + c });
-                            letters.push(sheet[ref] && sheet[ref].v !== undefined ? String(sheet[ref].v).trim() : "");
-                        }
-                        for (let c = 1; c <= 12; c++) {
-                            let ref = XLSX.utils.encode_cell({ r: rBase + 3, c: cBase + c });
-                            letters.push(sheet[ref] && sheet[ref].v !== undefined ? String(sheet[ref].v).trim() : "");
-                        }
+                        const getVal = (r, c) => {
+                            const ref = XLSX.utils.encode_cell({ r, c });
+                            const cell = sheet[ref];
+                            if (!cell) return "";
+                            if (cell.v !== undefined && cell.v !== null) return String(cell.v).trim();
+                            if (cell.w !== undefined && cell.w !== null) return String(cell.w).trim();
+                            return "";
+                        };
+                        for (let c = 1; c <= 12; c++) letters.push(getVal(rBase, cBase + c));
+                        for (let c = 0; c <= 13; c++) letters.push(getVal(rBase + 1, cBase + c));
+                        for (let c = 0; c <= 13; c++) letters.push(getVal(rBase + 2, cBase + c));
+                        for (let c = 1; c <= 12; c++) letters.push(getVal(rBase + 3, cBase + c));
                         if (letters.some(ch => ch && ch.trim() !== "")) {
                             subPuzzles.push(letters);
                         }
@@ -1327,7 +1333,7 @@
             // Look for sheet explicitly named Round13 / De13 / Vong13 / 30s
             const sheet13Name = workbook.SheetNames.find(name => {
                 const clean = name.toLowerCase().replace(/[\s_\-]/g, "");
-                return clean === "round13" || clean === "de13" || clean === "đề13" || clean === "vong13" || clean === "vòng13" || clean === "30s" || clean === "round30" || clean === "round30s";
+                return clean === "round13" || clean === "de13" || clean === "đề13" || clean === "vong13" || clean === "vòng13" || clean === "30s" || clean === "round30" || clean === "round30s" || clean.includes("round13") || clean.includes("de13") || clean.includes("đề13") || clean.includes("30s");
             });
             
             // Standard sheets 1 to 12
@@ -1348,6 +1354,8 @@
                 sheet13 = workbook.Sheets[sheet13Name];
             } else if (workbook.SheetNames.length >= 13) {
                 sheet13 = workbook.Sheets[workbook.SheetNames[12]];
+            } else if (workbook.SheetNames.length === 1) {
+                sheet13 = workbook.Sheets[workbook.SheetNames[0]];
             }
             
             let subPuzzles = parseSheet13SubGrids(sheet13);
@@ -1355,6 +1363,13 @@
                 subPuzzles = window.quizData[12].subPuzzles.map(p => window.quizItemTo52Array ? window.quizItemTo52Array(p) : p);
             }
             importedQuizzes[12] = subPuzzles;
+
+            // Auto-update Round 30 state
+            if (subPuzzles && subPuzzles.length > 0) {
+                round30SubPuzzles = subPuzzles;
+                round30SolvedStatus = new Array(Math.max(10, round30SubPuzzles.length)).fill(false);
+                renderRound30SubButtons();
+            }
         }
 
         // Auto-load default excel data on start if available
@@ -1401,8 +1416,9 @@
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 populateQuizzesFromWorkbook(workbook);
-                showCustomAlert(`Thành công! Đã nạp ${importedQuizzes.length} đề thi.`);
-                selectPreviewQuiz(0);
+                const r13Count = (importedQuizzes[12] && Array.isArray(importedQuizzes[12])) ? importedQuizzes[12].length : 0;
+                showCustomAlert(`Thành công! Đã nạp 12 đề chuẩn và ${r13Count} ô chữ liên hoàn Đề 13.`);
+                selectPreviewQuiz(activePreviewIndex || 0);
             };
             reader.readAsArrayBuffer(file);
         }
