@@ -954,8 +954,7 @@
             isRound30Running = true;
             isTossupRunning = true;
             
-            sendCmd('START_TOSSUP');
-            sendCmd('PLAY_SFX', '30s.mp3');
+            sendCmd('START_ROUND30');
             
             // Start 30s Countdown
             round30TimerInterval = setInterval(() => {
@@ -968,6 +967,7 @@
                     isTossupRunning = false;
                     clearTimeout(tossupTimeout);
                     
+                    sendCmd('STOP_ROUND30_MUSIC');
                     sendCmd('PLAY_SFX', 'horn.mp3');
                     sendCmd('UPDATE_ROUND30_TIMER', {
                         seconds: 0,
@@ -1091,6 +1091,7 @@
             updateRound30TimerUI();
             selectRound30Sub(0);
             clearControlBuzzer();
+            sendCmd('STOP_ROUND30_MUSIC');
             sendCmd('UPDATE_ROUND30_TIMER', {
                 seconds: 30,
                 visible: true,
@@ -1384,6 +1385,7 @@
             // Normal quizzes 1 to 12
             document.getElementById("standardTossupSection").style.display = "block";
             document.getElementById("round30Section").style.display = "none";
+            sendCmd('STOP_ROUND30_MUSIC');
             sendCmd('UPDATE_ROUND30_TIMER', { visible: false });
 
             if (importedQuizzes.length === 0) { showCustomAlert("Vui lòng nạp file Excel trước!"); return; }

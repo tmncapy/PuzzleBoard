@@ -50,6 +50,7 @@ const revealSound = new Audio("ClearTossUp.mp3");
 const clearPuzzleSound = new Audio("ClearPuzzle.mp3");
 const tossupSound = new Audio("tossup.mp3");
 tossupSound.loop = true;
+const round30Sound = new Audio("30s.mp3");
 
 // Lấy tham chiếu tới các đèn hiệu ứng overlay
 const lightWhite = document.getElementById("light-white");
@@ -74,12 +75,15 @@ function updateMuteState(muted) {
     revealSound.muted = isMuted;
     clearPuzzleSound.muted = isMuted;
     tossupSound.muted = isMuted;
+    round30Sound.muted = isMuted;
     if (isMuted) {
         showSound.volume = 0;
         revealSound.volume = 0;
         clearPuzzleSound.volume = 0;
         tossupSound.volume = 0;
+        round30Sound.volume = 0;
         try { tossupSound.pause(); } catch(e){}
+        try { round30Sound.pause(); } catch(e){}
         Audio.prototype.play = function() {
             return Promise.resolve();
         };
@@ -88,6 +92,7 @@ function updateMuteState(muted) {
         revealSound.volume = 1.0;
         clearPuzzleSound.volume = 1.0;
         tossupSound.volume = 1.0;
+        round30Sound.volume = 1.0;
         Audio.prototype.play = originalAudioPlay;
     }
 }
@@ -102,7 +107,7 @@ window.addEventListener('message', (event) => {
 
 function initAudioPermission() {
     if (isMuted) return;
-    showSound.load(); revealSound.load(); clearPuzzleSound.load(); tossupSound.load();
+    showSound.load(); revealSound.load(); clearPuzzleSound.load(); tossupSound.load(); round30Sound.load();
 }
 
 function playDing(){
@@ -181,6 +186,27 @@ function playTossupMusic() {
                 document.body.removeEventListener('click', memoPlay);
             }, { once: true });
         });
+    }
+}
+
+function playRound30Music() {
+    if (isMuted) return;
+    round30Sound.volume = 1.0;
+    let playPromise = round30Sound.play();
+    if (playPromise !== undefined) {
+        playPromise.catch(() => {
+            document.body.addEventListener('click', function memoPlay() {
+                if (!isMuted) round30Sound.play();
+                document.body.removeEventListener('click', memoPlay);
+            }, { once: true });
+        });
+    }
+}
+
+function stopRound30Music(resetPosition = true) {
+    round30Sound.pause();
+    if (resetPosition) {
+        round30Sound.currentTime = 0;
     }
 }
 
@@ -302,12 +328,20 @@ function loadQuiz(quizPayload) {
     const index = quizPayload.index;
     const letters = quizPayload.letters;
 
+    const prevIndex = currentQuizIndex;
     currentQuizIndex = index;
+    
+    if (index !== 12) {
+        stopRound30Music(true);
+    }
+    
     tossupSound.load();
     initAudioPermission();
 
-    tossupSound.currentTime = 0;
-    tossupSound.volume = 1.0;
+    if (index !== 12) {
+        tossupSound.currentTime = 0;
+        tossupSound.volume = 1.0;
+    }
     clearAllTossupTimeouts(); 
     syncControlUI("UPDATE_CTRL_ACTIVE", null);
 
@@ -581,8 +615,43 @@ function handleControlCommand(payload) {
             item.revealed = false;
             item.state = 0;
         });
+        if (currentQuizIndex === 12) {
+            tossupSound.pause();
+            tossupSound.currentTime = 0;
+            if (round30Sound.paused) {
+                round30Sound.currentTime = 0;
+                playRound30Music();
+            }
+        } else {
+            stopRound30Music(true);
+            tossupSound.currentTime = 0;
+            playTossupMusic();
+        }
+    }
+    else if (type === "START_ROUND30") {
+        clearBuzzerHighlights();
+        initAudioPermission();
+        clearAllTossupTimeouts();
+        allCells.forEach(item => {
+            item.element.style.background = 'url("obox.png") center center no-repeat';
+            item.element.style.backgroundSize = "100% 100%";
+            item.element.textContent = "";
+            item.revealed = false;
+            item.state = 0;
+        });
+        tossupSound.pause();
         tossupSound.currentTime = 0;
-        playTossupMusic();
+        round30Sound.currentTime = 0;
+        playRound30Music();
+    }
+    else if (type === "STOP_ROUND30_MUSIC") {
+        stopRound30Music(true);
+    }
+    else if (type === "PAUSE_ROUND30_MUSIC") {
+        stopRound30Music(false);
+    }
+    else if (type === "RESUME_ROUND30_MUSIC") {
+        playRound30Music();
     }
     else if (type === "TOSSUP_REVEAL_CELL") {
         const idx = data.absoluteIndex;
@@ -598,16 +667,22 @@ function handleControlCommand(payload) {
     else if (type === "PAUSE_TOSSUP") {
         syncControlUI("UPDATE_CTRL_ACTIVE", "pauseBtn");
         clearAllTossupTimeouts(); 
-        if (!data || !data.keepMusic) {
-            playDing(); 
-            fadeOutTossupMusic(400, false);
+        if (currentQuizIndex !== 12) {
+            if (!data || !data.keepMusic) {
+                playDing(); 
+                fadeOutTossupMusic(400, false);
+            }
         }
     }
     else if (type === "PLAY_TOSSUP") {
         clearBuzzerHighlights();
         initAudioPermission();
         syncControlUI("UPDATE_CTRL_ACTIVE", "playBtn");
-        playTossupMusic(); 
+        if (currentQuizIndex === 12) {
+            playRound30Music();
+        } else {
+            playTossupMusic(); 
+        }
     }
     else if (type === "STOP_TOSSUP_MUSIC") {
         clearAllTossupTimeouts();
@@ -638,7 +713,9 @@ function handleControlCommand(payload) {
         });
     }
     else if (type === "REVEAL_ALL") {
-        fadeOutTossupMusic(200, true);
+        if (currentQuizIndex !== 12) {
+            fadeOutTossupMusic(200, true);
+        }
         clearAllTossupTimeouts();
         syncControlUI("UPDATE_CTRL_ACTIVE", null);
         if ([9, 10, 11].includes(currentQuizIndex)) {
@@ -651,6 +728,14 @@ function handleControlCommand(payload) {
             };
         } else if ([2, 3, 4, 8].includes(currentQuizIndex)) {
             clearPuzzleSound.currentTime = 0; clearPuzzleSound.play().catch(e => console.log(e));
+        } else if (currentQuizIndex === 12) {
+            const winAudio = new Audio("ClearTossUp.mp3");
+            activeSFXList.push(winAudio);
+            winAudio.play().catch(e => console.log(e));
+            winAudio.onended = () => {
+                activeSFXList = activeSFXList.filter(audio => audio !== winAudio);
+                winAudio.remove();
+            };
         } else {
             revealSound.currentTime = 0; revealSound.play().catch(e => console.log(e));
         }
@@ -725,7 +810,10 @@ function clearBuzzerHighlights() {
 function handlePlayerBuzz(playerNum) {
     if (!playerNum) return;
     clearAllTossupTimeouts();
-    fadeOutTossupMusic(300, false);
+    // In Đề 13 (Round 30s), 30s.mp3 keeps playing when buzzing!
+    if (currentQuizIndex !== 12) {
+        fadeOutTossupMusic(300, false);
+    }
     document.querySelectorAll('.player-box').forEach(box => box.classList.remove('buzzed-active'));
     const pBox = document.querySelector(`.player-box.player-${playerNum}`);
     if (pBox) {
