@@ -600,6 +600,7 @@
             let currentScore = parseInt(scoreInput.value) || 0;
             if (action === 50) currentScore += 50;
             else if (action === 100) currentScore += 100;
+            else if (action === 1000) currentScore += 1000;
             else if (action === 'x2') currentScore *= 2;
             else if (action === '0') currentScore = 0;
             scoreInput.value = currentScore;

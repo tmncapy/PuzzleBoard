@@ -51,6 +51,11 @@ const clearPuzzleSound = new Audio("ClearPuzzle.mp3");
 const tossupSound = new Audio("tossup.mp3");
 tossupSound.loop = true;
 const round30Sound = new Audio("30s.mp3");
+round30Sound.loop = false;
+round30Sound.addEventListener('ended', () => {
+    round30Sound.pause();
+    round30Sound.currentTime = 0;
+});
 const correctSound = new Audio("Correct.mp3");
 
 // Lấy tham chiếu tới các đèn hiệu ứng overlay
