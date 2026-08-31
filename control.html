@@ -852,9 +852,9 @@
 
         function initRound30Engine(forceReset = false) {
             if (importedQuizzes[12] && Array.isArray(importedQuizzes[12]) && importedQuizzes[12].length > 0 && Array.isArray(importedQuizzes[12][0])) {
-                round30SubPuzzles = importedQuizzes[12].slice(0, 8);
+                round30SubPuzzles = importedQuizzes[12];
             } else if (window.quizData && window.quizData[12] && window.quizData[12].subPuzzles) {
-                round30SubPuzzles = window.quizData[12].subPuzzles.slice(0, 8).map(p => window.quizItemTo52Array ? window.quizItemTo52Array(p) : p);
+                round30SubPuzzles = window.quizData[12].subPuzzles.map(p => window.quizItemTo52Array ? window.quizItemTo52Array(p) : p);
             } else {
                 round30SubPuzzles = [];
             }
@@ -863,8 +863,8 @@
                 round30SubPuzzles.push(new Array(52).fill(""));
             }
             
-            if (forceReset || round30SolvedStatus.length === 0) {
-                round30SolvedStatus = new Array(8).fill(false);
+            if (forceReset || round30SolvedStatus.length !== round30SubPuzzles.length) {
+                round30SolvedStatus = new Array(round30SubPuzzles.length).fill(false);
                 currentRound30SubIndex = 0;
                 round30Seconds = 30.0;
             }
@@ -876,7 +876,7 @@
             const container = document.getElementById("round30SubButtonsContainer");
             if (!container) return;
             container.innerHTML = "";
-            const total = 8;
+            const total = round30SubPuzzles.length;
             for (let i = 0; i < total; i++) {
                 const btn = document.createElement("button");
                 btn.style.cssText = "padding: 6px 2px; font-size: 11px; font-weight: bold; border-radius: 4px; transition: all 0.2s;";
@@ -929,13 +929,14 @@
 
         function selectRound30Sub(subIndex) {
             currentRound30SubIndex = subIndex;
+            const total = round30SubPuzzles.length || 8;
             const subLetters = round30SubPuzzles[subIndex] || new Array(52).fill("");
             controlActiveQuizLetters = subLetters;
             controlRevealedStates = new Array(52).fill(false);
             
             // Update UI
             const badge = document.getElementById("round30SubBadgeCtrl");
-            if (badge) badge.textContent = `Ô ${subIndex + 1} / 8`;
+            if (badge) badge.textContent = `Ô ${subIndex + 1} / ${total}`;
             
             const ansText = document.getElementById("round30AnswerText");
             if (ansText) ansText.textContent = extractAnswerFromLetters(subLetters) || "(Chưa có dữ liệu)";
@@ -947,7 +948,7 @@
             sendCmd('UPDATE_ROUND30_TIMER', {
                 seconds: Math.ceil(round30Seconds),
                 visible: true,
-                subTitle: `Ô CHỮ ${subIndex + 1}/8`
+                subTitle: `Ô CHỮ ${subIndex + 1}/${total}`
             });
 
             // Nếu vòng 30s đang chạy và còn thời gian, hiển thị trọn vẹn toàn bộ khung ô chữ trắng trước, sau đó mới bắt đầu lật mở ngẫu nhiên các chữ cái
@@ -991,8 +992,6 @@
                     isTossupRunning = false;
                     clearTimeout(tossupTimeout);
                     
-                    sendCmd('STOP_ROUND30_MUSIC');
-                    sendCmd('PLAY_SFX', 'horn.mp3');
                     sendCmd('UPDATE_ROUND30_TIMER', {
                         seconds: 0,
                         visible: true,
@@ -1026,11 +1025,12 @@
                 }
             }
             
+            const total = round30SubPuzzles.length || 8;
             // Periodic sync to display (every full second)
             sendCmd('UPDATE_ROUND30_TIMER', {
                 seconds: Math.ceil(round30Seconds),
                 visible: true,
-                subTitle: `Ô CHỮ ${currentRound30SubIndex + 1}/8`
+                subTitle: `Ô CHỮ ${currentRound30SubIndex + 1}/${total}`
             });
         }
 
@@ -1067,8 +1067,6 @@
                             isRound30Running = false;
                             isTossupRunning = false;
                             clearTimeout(tossupTimeout);
-                            sendCmd('STOP_ROUND30_MUSIC');
-                            sendCmd('PLAY_SFX', 'horn.mp3');
                             updateRound30TimerUI();
                             return;
                         }
@@ -1093,7 +1091,8 @@
 
         function nextRound30Puzzle() {
             clearControlBuzzer();
-            currentRound30SubIndex = (currentRound30SubIndex + 1) % 8;
+            const total = round30SubPuzzles.length || 8;
+            currentRound30SubIndex = (currentRound30SubIndex + 1) % total;
             selectRound30Sub(currentRound30SubIndex);
         }
 
@@ -1106,7 +1105,8 @@
             isRound30Running = false;
             isTossupRunning = false;
             round30Seconds = 30.0;
-            round30SolvedStatus = new Array(8).fill(false);
+            const total = round30SubPuzzles.length || 8;
+            round30SolvedStatus = new Array(total).fill(false);
             
             updateRound30TimerUI();
             selectRound30Sub(0);
@@ -1115,7 +1115,7 @@
             sendCmd('UPDATE_ROUND30_TIMER', {
                 seconds: 30,
                 visible: true,
-                subTitle: `Ô CHỮ 1/8`
+                subTitle: `Ô CHỮ 1/${total}`
             });
         }
 
@@ -1124,7 +1124,7 @@
                 if (activeBuzzerWinner) {
                     modifyScore(activeBuzzerWinner, 1000);
                 }
-                sendCmd('PLAY_SFX', 'ClearTossUp.mp3');
+                sendCmd('PLAY_SFX', 'Correct.mp3');
                 sendCmd('PLAY_SFX', 'FlashGreen.mp3');
                 revealRound30Answer();
                 clearControlBuzzer();
@@ -1176,8 +1176,8 @@
                 }
                 
                 let html = '<div style="background: #111; border-radius: 6px; padding: 10px; max-height: 280px; overflow-y: auto;">';
-                html += '<div style="color: #f1c40f; font-weight: bold; font-size: 12px; margin-bottom: 8px; text-transform: uppercase;">⏱️ TỔ HỢP 8 Ô CHỮ ĐỀ 13 (VÒNG 30S):</div>';
-                subList.slice(0, 8).forEach((sub, sIdx) => {
+                html += `<div style="color: #f1c40f; font-weight: bold; font-size: 12px; margin-bottom: 8px; text-transform: uppercase;">⏱️ TỔ HỢP ${subList.length} Ô CHỮ ĐỀ 13 (VÒNG 30S):</div>`;
+                subList.forEach((sub, sIdx) => {
                     const ans = extractAnswerFromLetters(sub);
                     html += `<div style="display: flex; justify-content: space-between; align-items: center; background: #222; padding: 6px 10px; border-radius: 4px; margin-bottom: 4px; font-size: 11px;">
                         <span style="color: #5ac8fa; font-weight: bold;">Ô ${sIdx + 1}:</span>
@@ -1263,41 +1263,43 @@
             if (!sheet) return [];
             let subPuzzles = [];
             
-            // Exact coordinates according to Round13 sheet template:
-            // Left grid starts at col A (c=0), Right grid starts at col P (c=15)
-            // 5 row blocks: Row 2 (r=1), Row 8 (r=7), Row 14 (r=13), Row 20 (r=19), Row 26 (r=25)
-            const colStarts = [0, 15];
-            const rowStarts = [1, 7, 13, 19, 25];
+            // Grid coordinates for Round13 sheet template:
+            // Left grid starts at col A (c=0), Middle col P (c=15), Right col AE (c=30), col AT (c=45)...
+            // Row blocks spaced every 6 rows: Row 2 (r=1), Row 8 (r=7), Row 14 (r=13), Row 20 (r=19)...
+            const colStarts = [0, 15, 30, 45];
+            const rowStarts = [];
+            for (let r = 1; r <= 150; r += 6) {
+                rowStarts.push(r);
+            }
             
+            const getVal = (r, c) => {
+                const ref = XLSX.utils.encode_cell({ r, c });
+                const cell = sheet[ref];
+                if (!cell) return "";
+                if (cell.v !== undefined && cell.v !== null) return String(cell.v).trim();
+                if (cell.w !== undefined && cell.w !== null) return String(cell.w).trim();
+                return "";
+            };
+
             for (let rIdx = 0; rIdx < rowStarts.length; rIdx++) {
                 for (let cIdx = 0; cIdx < colStarts.length; cIdx++) {
                     const rBase = rowStarts[rIdx];
                     const cBase = colStarts[cIdx];
                     let letters = [];
                     
-                    // Helper to get string value from sheet cell
-                    const getVal = (r, c) => {
-                        const ref = XLSX.utils.encode_cell({ r, c });
-                        const cell = sheet[ref];
-                        if (!cell) return "";
-                        if (cell.v !== undefined && cell.v !== null) return String(cell.v).trim();
-                        if (cell.w !== undefined && cell.w !== null) return String(cell.w).trim();
-                        return "";
-                    };
-
-                    // Line 1: 12 cells (cols 1..12 relative to cBase, i.e. B..M or Q..AB)
+                    // Line 1: 12 cells (cols 1..12 relative to cBase)
                     for (let c = 1; c <= 12; c++) {
                         letters.push(getVal(rBase, cBase + c));
                     }
-                    // Line 2: 14 cells (cols 0..13 relative to cBase, i.e. A..N or P..AC)
+                    // Line 2: 14 cells (cols 0..13 relative to cBase)
                     for (let c = 0; c <= 13; c++) {
                         letters.push(getVal(rBase + 1, cBase + c));
                     }
-                    // Line 3: 14 cells (cols 0..13 relative to cBase, i.e. A..N or P..AC)
+                    // Line 3: 14 cells (cols 0..13 relative to cBase)
                     for (let c = 0; c <= 13; c++) {
                         letters.push(getVal(rBase + 2, cBase + c));
                     }
-                    // Line 4: 12 cells (cols 1..12 relative to cBase, i.e. B..M or Q..AB)
+                    // Line 4: 12 cells (cols 1..12 relative to cBase)
                     for (let c = 1; c <= 12; c++) {
                         letters.push(getVal(rBase + 3, cBase + c));
                     }
@@ -1311,21 +1313,14 @@
 
             // Fallback for alternative layout starting at row 1 or other column offsets
             if (subPuzzles.length === 0) {
-                const altRowStarts = [0, 6, 12, 18, 24];
-                const altColStarts = [0, 16, 17];
+                const altRowStarts = [];
+                for (let r = 0; r <= 150; r += 6) altRowStarts.push(r);
+                const altColStarts = [0, 15, 16, 17, 30, 31, 32];
                 for (let rIdx = 0; rIdx < altRowStarts.length; rIdx++) {
                     for (let cIdx = 0; cIdx < altColStarts.length; cIdx++) {
                         const rBase = altRowStarts[rIdx];
                         const cBase = altColStarts[cIdx];
                         let letters = [];
-                        const getVal = (r, c) => {
-                            const ref = XLSX.utils.encode_cell({ r, c });
-                            const cell = sheet[ref];
-                            if (!cell) return "";
-                            if (cell.v !== undefined && cell.v !== null) return String(cell.v).trim();
-                            if (cell.w !== undefined && cell.w !== null) return String(cell.w).trim();
-                            return "";
-                        };
                         for (let c = 1; c <= 12; c++) letters.push(getVal(rBase, cBase + c));
                         for (let c = 0; c <= 13; c++) letters.push(getVal(rBase + 1, cBase + c));
                         for (let c = 0; c <= 13; c++) letters.push(getVal(rBase + 2, cBase + c));
