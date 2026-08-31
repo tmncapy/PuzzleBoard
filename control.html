@@ -689,18 +689,30 @@
         }
 
         let lastProcessedDisplayTs = 0;
+        const processedDisplayMsgIds = new Set();
 
-        function handleDisplayMessageWrapper(payload, ts) {
+        function handleDisplayMessageWrapper(payload, ts, msgId) {
             if (!payload) return;
-            if (ts && ts <= lastProcessedDisplayTs) return;
-            if (ts) lastProcessedDisplayTs = ts;
+            const id = msgId || payload.msgId || (payload.type + '_' + (payload.ts || ts));
+            if (id && processedDisplayMsgIds.has(id)) return;
+            if (id) {
+                processedDisplayMsgIds.add(id);
+                if (processedDisplayMsgIds.size > 200) {
+                    const first = processedDisplayMsgIds.values().next().value;
+                    processedDisplayMsgIds.delete(first);
+                }
+            }
+            if (ts && ts <= lastProcessedDisplayTs && !msgId && !payload.msgId) return;
+            if (ts && ts > lastProcessedDisplayTs) lastProcessedDisplayTs = ts;
             handleDisplayMessage(payload);
         }
 
         // 1. Supabase Realtime Listener
         if (channel) {
             try {
-                channel.on('broadcast', { event: 'display-to-control' }, ({ payload }) => handleDisplayMessageWrapper(payload, Date.now()));
+                channel.on('broadcast', { event: 'display-to-control' }, ({ payload }) => {
+                    handleDisplayMessageWrapper(payload, payload ? payload.ts : null, payload ? payload.msgId : null);
+                });
                 channel.on('broadcast', { event: 'player-buzz' }, ({ payload }) => {
                     if (payload && payload.playerNum) {
                         handlePlayerBuzz(payload.playerNum);
@@ -719,7 +731,7 @@
                         const msg = JSON.parse(e.data);
                         if (!msg) return;
                         if (msg.event === 'display-to-control' && msg.payload) {
-                            handleDisplayMessageWrapper(msg.payload, msg.ts || Date.now());
+                            handleDisplayMessageWrapper(msg.payload, msg.ts || (msg.payload ? msg.payload.ts : null), msg.msgId || (msg.payload ? msg.payload.msgId : null));
                         } else if (msg.event === 'player-buzz' && msg.payload && msg.payload.playerNum) {
                             handlePlayerBuzz(msg.payload.playerNum);
                         }
@@ -733,7 +745,7 @@
             localBC.onmessage = (event) => {
                 if (event.data) {
                     if (event.data.event === 'display-to-control') {
-                        handleDisplayMessageWrapper(event.data.payload, event.data.ts || Date.now());
+                        handleDisplayMessageWrapper(event.data.payload, event.data.ts || (event.data.payload ? event.data.payload.ts : null), event.data.msgId || (event.data.payload ? event.data.payload.msgId : null));
                     } else if (event.data.event === 'player-buzz' && event.data.payload) {
                         handlePlayerBuzz(event.data.payload.playerNum);
                     }
@@ -744,7 +756,7 @@
         window.addEventListener('message', (event) => {
             if (event.data) {
                 if (event.data.event === 'display-to-control') {
-                    handleDisplayMessageWrapper(event.data.payload, event.data.ts || Date.now());
+                    handleDisplayMessageWrapper(event.data.payload, event.data.ts || (event.data.payload ? event.data.payload.ts : null), event.data.msgId || (event.data.payload ? event.data.payload.msgId : null));
                 } else if (event.data.event === 'player-buzz' && event.data.payload) {
                     handlePlayerBuzz(event.data.payload.playerNum);
                 }
@@ -756,7 +768,7 @@
                 try {
                     const data = JSON.parse(e.newValue);
                     if (data && data.payload) {
-                        handleDisplayMessageWrapper(data.payload, data.ts);
+                        handleDisplayMessageWrapper(data.payload, data.ts, data.msgId);
                     }
                 } catch (err) {}
             }
@@ -776,7 +788,7 @@
                 if (raw) {
                     const data = JSON.parse(raw);
                     if (data && data.payload && data.ts && data.ts > lastProcessedDisplayTs) {
-                        handleDisplayMessageWrapper(data.payload, data.ts);
+                        handleDisplayMessageWrapper(data.payload, data.ts, data.msgId);
                     }
                 }
             } catch (err) {}
@@ -1020,7 +1032,7 @@
                     round30TimerInterval = null;
                 }
                 clearTimeout(tossupTimeout);
-                sendCmd('PAUSE_TOSSUP', { keepMusic: false });
+                sendCmd('PAUSE_ROUND30_MUSIC');
                 sendCmd('UPDATE_ROUND30_TIMER', {
                     seconds: Math.ceil(round30Seconds),
                     visible: true,
@@ -1033,7 +1045,7 @@
                     isTossupRunning = true;
                     clearControlBuzzer();
                     
-                    sendCmd('PLAY_TOSSUP');
+                    sendCmd('RESUME_ROUND30_MUSIC');
                     round30TimerInterval = setInterval(() => {
                         round30Seconds -= 0.1;
                         if (round30Seconds <= 0.05) {
@@ -1043,6 +1055,7 @@
                             isRound30Running = false;
                             isTossupRunning = false;
                             clearTimeout(tossupTimeout);
+                            sendCmd('STOP_ROUND30_MUSIC');
                             sendCmd('PLAY_SFX', 'horn.mp3');
                             updateRound30TimerUI();
                             return;
@@ -1070,7 +1083,7 @@
             clearControlBuzzer();
             
             if (isRound30Running && round30Seconds > 0) {
-                sendCmd('START_TOSSUP');
+                sendCmd('RESET_ROUND30_GRID');
                 controlRevealedStates = new Array(52).fill(false);
                 clearTimeout(tossupTimeout);
                 controlRevealRandomCell();
@@ -1236,33 +1249,36 @@
         function parseSheet13SubGrids(sheet) {
             if (!sheet) return [];
             let subPuzzles = [];
-            const colStarts = [0, 17];
-            const rowStarts = [1, 7, 13, 19, 25];
+            
+            // As shown in the Round 13 sheet template:
+            // Left grid starts at col A (index 0), Right grid starts at col P (index 15)
+            const colStarts = [0, 15];
+            const rowStarts = [1, 7, 13, 19, 25, 31, 37, 43, 49, 55];
             
             for (let rIdx = 0; rIdx < rowStarts.length; rIdx++) {
                 for (let cIdx = 0; cIdx < colStarts.length; cIdx++) {
                     const rBase = rowStarts[rIdx];
                     const cBase = colStarts[cIdx];
                     let letters = [];
-                    // Line 1: 12 cells
+                    // Line 1: 12 cells (cols 1..12 relative to cBase, i.e. B..M or Q..AB)
                     for (let c = 1; c <= 12; c++) {
                         let ref = XLSX.utils.encode_cell({ r: rBase, c: cBase + c });
-                        letters.push(sheet[ref] ? String(sheet[ref].v) : "");
+                        letters.push(sheet[ref] && sheet[ref].v !== undefined ? String(sheet[ref].v).trim() : "");
                     }
-                    // Line 2: 14 cells
+                    // Line 2: 14 cells (cols 0..13 relative to cBase, i.e. A..N or P..AC)
                     for (let c = 0; c <= 13; c++) {
                         let ref = XLSX.utils.encode_cell({ r: rBase + 1, c: cBase + c });
-                        letters.push(sheet[ref] ? String(sheet[ref].v) : "");
+                        letters.push(sheet[ref] && sheet[ref].v !== undefined ? String(sheet[ref].v).trim() : "");
                     }
-                    // Line 3: 14 cells
+                    // Line 3: 14 cells (cols 0..13 relative to cBase, i.e. A..N or P..AC)
                     for (let c = 0; c <= 13; c++) {
                         let ref = XLSX.utils.encode_cell({ r: rBase + 2, c: cBase + c });
-                        letters.push(sheet[ref] ? String(sheet[ref].v) : "");
+                        letters.push(sheet[ref] && sheet[ref].v !== undefined ? String(sheet[ref].v).trim() : "");
                     }
-                    // Line 4: 12 cells
+                    // Line 4: 12 cells (cols 1..12 relative to cBase, i.e. B..M or Q..AB)
                     for (let c = 1; c <= 12; c++) {
                         let ref = XLSX.utils.encode_cell({ r: rBase + 3, c: cBase + c });
-                        letters.push(sheet[ref] ? String(sheet[ref].v) : "");
+                        letters.push(sheet[ref] && sheet[ref].v !== undefined ? String(sheet[ref].v).trim() : "");
                     }
                     const hasLetters = letters.some(ch => ch && ch.trim() !== "");
                     if (hasLetters) {
@@ -1270,14 +1286,55 @@
                     }
                 }
             }
+
+            // Fallback for alternative column offsets (e.g. [0, 16] or [0, 17])
+            if (subPuzzles.length === 0) {
+                const altColStarts = [0, 16, 17];
+                for (let rIdx = 0; rIdx < rowStarts.length; rIdx++) {
+                    for (let cIdx = 0; cIdx < altColStarts.length; cIdx++) {
+                        const rBase = rowStarts[rIdx];
+                        const cBase = altColStarts[cIdx];
+                        let letters = [];
+                        for (let c = 1; c <= 12; c++) {
+                            let ref = XLSX.utils.encode_cell({ r: rBase, c: cBase + c });
+                            letters.push(sheet[ref] && sheet[ref].v !== undefined ? String(sheet[ref].v).trim() : "");
+                        }
+                        for (let c = 0; c <= 13; c++) {
+                            let ref = XLSX.utils.encode_cell({ r: rBase + 1, c: cBase + c });
+                            letters.push(sheet[ref] && sheet[ref].v !== undefined ? String(sheet[ref].v).trim() : "");
+                        }
+                        for (let c = 0; c <= 13; c++) {
+                            let ref = XLSX.utils.encode_cell({ r: rBase + 2, c: cBase + c });
+                            letters.push(sheet[ref] && sheet[ref].v !== undefined ? String(sheet[ref].v).trim() : "");
+                        }
+                        for (let c = 1; c <= 12; c++) {
+                            let ref = XLSX.utils.encode_cell({ r: rBase + 3, c: cBase + c });
+                            letters.push(sheet[ref] && sheet[ref].v !== undefined ? String(sheet[ref].v).trim() : "");
+                        }
+                        if (letters.some(ch => ch && ch.trim() !== "")) {
+                            subPuzzles.push(letters);
+                        }
+                    }
+                }
+            }
+
             return subPuzzles;
         }
 
         function populateQuizzesFromWorkbook(workbook) {
             importedQuizzes = [];
+            
+            // Look for sheet explicitly named Round13 / De13 / Vong13 / 30s
+            const sheet13Name = workbook.SheetNames.find(name => {
+                const clean = name.toLowerCase().replace(/[\s_\-]/g, "");
+                return clean === "round13" || clean === "de13" || clean === "đề13" || clean === "vong13" || clean === "vòng13" || clean === "30s" || clean === "round30" || clean === "round30s";
+            });
+            
+            // Standard sheets 1 to 12
+            const normalSheetNames = workbook.SheetNames.filter(name => name !== sheet13Name);
             for (let i = 0; i < 12; i++) {
-                if (i < workbook.SheetNames.length) {
-                    importedQuizzes.push(parseExcelGrid(workbook.Sheets[workbook.SheetNames[i]]));
+                if (i < normalSheetNames.length) {
+                    importedQuizzes.push(parseExcelGrid(workbook.Sheets[normalSheetNames[i]]));
                 } else if (window.quizData && window.quizData[i]) {
                     importedQuizzes.push(window.quizItemTo52Array(window.quizData[i]));
                 } else {
@@ -1286,10 +1343,16 @@
             }
             
             // Sheet 13 / De 13
-            let sheet13 = workbook.SheetNames.length >= 13 ? workbook.Sheets[workbook.SheetNames[12]] : null;
+            let sheet13 = null;
+            if (sheet13Name) {
+                sheet13 = workbook.Sheets[sheet13Name];
+            } else if (workbook.SheetNames.length >= 13) {
+                sheet13 = workbook.Sheets[workbook.SheetNames[12]];
+            }
+            
             let subPuzzles = parseSheet13SubGrids(sheet13);
             if (subPuzzles.length === 0 && window.quizData && window.quizData[12] && window.quizData[12].subPuzzles) {
-                subPuzzles = window.quizData[12].subPuzzles.map(p => window.quizItemTo52Array(p));
+                subPuzzles = window.quizData[12].subPuzzles.map(p => window.quizItemTo52Array ? window.quizItemTo52Array(p) : p);
             }
             importedQuizzes[12] = subPuzzles;
         }
@@ -1441,10 +1504,12 @@
         function solveTossUp() { isTossupRunning = false; clearTimeout(tossupTimeout); sendCmd('REVEAL_ALL'); sendCmd('STOP_TOSSUP_MUSIC'); clearControlBuzzer(); }
         function showCustomAlert(message) { document.getElementById("popupMessage").textContent = message; document.getElementById("customPopup").style.display = "flex"; }
         function closePopup() { document.getElementById("customPopup").style.display = "none"; }
+        let cmdCounter = 0;
         function sendCmd(type, data = null) {
-            const payload = { type: type, data: data };
             const ts = Date.now();
-            const msgObj = { event: 'control-to-display', payload: payload, ts: ts };
+            const msgId = `cmd_${ts}_${++cmdCounter}_${Math.random().toString(36).slice(2, 7)}`;
+            const payload = { type: type, data: data, ts: ts, msgId: msgId };
+            const msgObj = { event: 'control-to-display', payload: payload, ts: ts, msgId: msgId };
 
             // 1. Post to Server API for instant multi-device sync
             try {

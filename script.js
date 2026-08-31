@@ -172,17 +172,21 @@ function fadeOutTossupMusic(durationMs = 400, resetPosition = false) {
 }
 
 function playTossupMusic() {
-    if (isMuted) return;
+    if (isMuted || currentQuizIndex === 12) return;
     if (fadeInterval) {
         clearInterval(fadeInterval);
         fadeInterval = null;
+    }
+    if (!tossupSound.paused && tossupSound.currentTime > 0) {
+        tossupSound.volume = 1.0;
+        return;
     }
     tossupSound.volume = 1.0; 
     let playPromise = tossupSound.play();
     if (playPromise !== undefined) {
         playPromise.catch(() => {
             document.body.addEventListener('click', function memoPlay() {
-                if (!isMuted) tossupSound.play();
+                if (!isMuted && currentQuizIndex !== 12) tossupSound.play();
                 document.body.removeEventListener('click', memoPlay);
             }, { once: true });
         });
@@ -191,6 +195,10 @@ function playTossupMusic() {
 
 function playRound30Music() {
     if (isMuted) return;
+    if (!round30Sound.paused && round30Sound.currentTime > 0) {
+        round30Sound.volume = 1.0;
+        return;
+    }
     round30Sound.volume = 1.0;
     let playPromise = round30Sound.play();
     if (playPromise !== undefined) {
@@ -489,13 +497,15 @@ function handleControlCommand(payload) {
     }
     else if (type === "PLAY_SFX") {
         initAudioPermission();
-        const sfxAudio = new Audio(data);
-        activeSFXList.push(sfxAudio);
-        sfxAudio.play().catch(e => console.log(e));
-        sfxAudio.onended = () => {
-            activeSFXList = activeSFXList.filter(audio => audio !== sfxAudio);
-            sfxAudio.remove();
-        };
+        if (!isMuted) {
+            const sfxAudio = new Audio(data);
+            activeSFXList.push(sfxAudio);
+            sfxAudio.play().catch(e => console.log(e));
+            sfxAudio.onended = () => {
+                activeSFXList = activeSFXList.filter(audio => audio !== sfxAudio);
+                sfxAudio.remove();
+            };
+        }
 
         if (data === "wrong.mp3" || data === "FailBonus.mp3" || data === "FlashRed.mp3") {
             triggerRedLight();
@@ -643,6 +653,17 @@ function handleControlCommand(payload) {
         tossupSound.currentTime = 0;
         round30Sound.currentTime = 0;
         playRound30Music();
+    }
+    else if (type === "RESET_ROUND30_GRID") {
+        clearBuzzerHighlights();
+        clearAllTossupTimeouts();
+        allCells.forEach(item => {
+            item.element.style.background = 'url("obox.png") center center no-repeat';
+            item.element.style.backgroundSize = "100% 100%";
+            item.element.textContent = "";
+            item.revealed = false;
+            item.state = 0;
+        });
     }
     else if (type === "STOP_ROUND30_MUSIC") {
         stopRound30Music(true);
@@ -792,11 +813,21 @@ function handleControlCommand(payload) {
 }
 
 let lastProcessedControlTs = 0;
+const processedControlMsgIds = new Set();
 
-function handleControlCommandWrapper(payload, ts) {
+function handleControlCommandWrapper(payload, ts, msgId) {
     if (!payload) return;
-    if (ts && ts <= lastProcessedControlTs) return;
-    if (ts) lastProcessedControlTs = ts;
+    const id = msgId || payload.msgId || (payload.type + '_' + (payload.ts || ts));
+    if (id && processedControlMsgIds.has(id)) return;
+    if (id) {
+        processedControlMsgIds.add(id);
+        if (processedControlMsgIds.size > 200) {
+            const first = processedControlMsgIds.values().next().value;
+            processedControlMsgIds.delete(first);
+        }
+    }
+    if (ts && ts <= lastProcessedControlTs && !msgId && !payload.msgId) return;
+    if (ts && ts > lastProcessedControlTs) lastProcessedControlTs = ts;
     handleControlCommand(payload);
 }
 
@@ -807,8 +838,18 @@ function clearBuzzerHighlights() {
     } catch(e){}
 }
 
+let lastBuzzedPlayer = null;
+let lastBuzzedTime = 0;
+
 function handlePlayerBuzz(playerNum) {
     if (!playerNum) return;
+    const now = Date.now();
+    if (now - lastBuzzedTime < 800 && lastBuzzedPlayer === playerNum) {
+        return; // prevent duplicate buzz trigger
+    }
+    lastBuzzedTime = now;
+    lastBuzzedPlayer = playerNum;
+
     clearAllTossupTimeouts();
     // In Đề 13 (Round 30s), 30s.mp3 keeps playing when buzzing!
     if (currentQuizIndex !== 12) {
@@ -832,7 +873,9 @@ function handlePlayerBuzz(playerNum) {
 // 1. Supabase Realtime Listener
 if (channel) {
     try {
-        channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => handleControlCommandWrapper(payload, Date.now()));
+        channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
+            handleControlCommandWrapper(payload, payload ? payload.ts : null, payload ? payload.msgId : null);
+        });
         channel.on('broadcast', { event: 'player-buzz' }, ({ payload }) => {
             if (payload && payload.playerNum) {
                 handlePlayerBuzz(payload.playerNum);
@@ -851,7 +894,7 @@ try {
                 const msg = JSON.parse(e.data);
                 if (!msg) return;
                 if (msg.event === 'control-to-display' && msg.payload) {
-                    handleControlCommandWrapper(msg.payload, msg.ts || Date.now());
+                    handleControlCommandWrapper(msg.payload, msg.ts || (msg.payload ? msg.payload.ts : null), msg.msgId || (msg.payload ? msg.payload.msgId : null));
                 } else if (msg.event === 'player-buzz' && msg.payload && msg.payload.playerNum) {
                     handlePlayerBuzz(msg.payload.playerNum);
                 }
@@ -865,7 +908,7 @@ if (localBC) {
     localBC.onmessage = (event) => {
         if (event.data) {
             if (event.data.event === 'control-to-display') {
-                handleControlCommandWrapper(event.data.payload, event.data.ts || Date.now());
+                handleControlCommandWrapper(event.data.payload, event.data.ts || (event.data.payload ? event.data.payload.ts : null), event.data.msgId || (event.data.payload ? event.data.payload.msgId : null));
             } else if (event.data.event === 'player-buzz' && event.data.payload) {
                 handlePlayerBuzz(event.data.payload.playerNum);
             }
@@ -876,7 +919,7 @@ if (localBC) {
 window.addEventListener('message', (event) => {
     if (event.data) {
         if (event.data.event === 'control-to-display') {
-            handleControlCommandWrapper(event.data.payload, event.data.ts || Date.now());
+            handleControlCommandWrapper(event.data.payload, event.data.ts || (event.data.payload ? event.data.payload.ts : null), event.data.msgId || (event.data.payload ? event.data.payload.msgId : null));
         } else if (event.data.event === 'player-buzz' && event.data.payload) {
             handlePlayerBuzz(event.data.payload.playerNum);
         }
@@ -888,7 +931,7 @@ window.addEventListener('storage', (e) => {
         try {
             const data = JSON.parse(e.newValue);
             if (data && data.payload) {
-                handleControlCommandWrapper(data.payload, data.ts);
+                handleControlCommandWrapper(data.payload, data.ts, data.msgId);
             }
         } catch (err) {}
     }
@@ -908,7 +951,7 @@ setInterval(() => {
         if (raw) {
             const data = JSON.parse(raw);
             if (data && data.payload && data.ts && data.ts > lastProcessedControlTs) {
-                handleControlCommandWrapper(data.payload, data.ts);
+                handleControlCommandWrapper(data.payload, data.ts, data.msgId);
             }
         }
     } catch (err) {}
