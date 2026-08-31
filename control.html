@@ -944,6 +944,13 @@
                 visible: true,
                 subTitle: `Ô CHỮ ${subIndex + 1}/${Math.max(10, round30SubPuzzles.length)}`
             });
+
+            // If Round 30 is active, start revealing letters immediately on the newly selected puzzle
+            if (isRound30Running && round30Seconds > 0) {
+                isTossupRunning = true;
+                clearTimeout(tossupTimeout);
+                controlRevealRandomCell();
+            }
         }
 
         function startRound30() {
@@ -1078,16 +1085,9 @@
         }
 
         function nextRound30Puzzle() {
+            clearControlBuzzer();
             currentRound30SubIndex = (currentRound30SubIndex + 1) % Math.max(10, round30SubPuzzles.length);
             selectRound30Sub(currentRound30SubIndex);
-            clearControlBuzzer();
-            
-            if (isRound30Running && round30Seconds > 0) {
-                sendCmd('RESET_ROUND30_GRID');
-                controlRevealedStates = new Array(52).fill(false);
-                clearTimeout(tossupTimeout);
-                controlRevealRandomCell();
-            }
         }
 
         function resetRound30Timer() {
