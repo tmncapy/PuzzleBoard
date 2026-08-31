@@ -349,9 +349,11 @@ function loadQuiz(quizPayload) {
     if (index !== 12) {
         tossupSound.currentTime = 0;
         tossupSound.volume = 1.0;
+        clearAllTossupTimeouts(); 
+        syncControlUI("UPDATE_CTRL_ACTIVE", null);
+    } else {
+        clearAllTossupTimeouts();
     }
-    clearAllTossupTimeouts(); 
-    syncControlUI("UPDATE_CTRL_ACTIVE", null);
 
     clearOldBoardElements();
     allCells = [];
@@ -373,6 +375,12 @@ function loadQuiz(quizPayload) {
         }
 
         cell.style.pointerEvents = "none";
+
+        // Vòng 13 (Vòng 30s Liên Hoàn): Các ô chữ sử dụng sẽ lập tức hiển thị màu trắng (obox.png)
+        if (index === 12) {
+            cell.style.background = 'url("obox.png") center center no-repeat';
+            cell.style.backgroundSize = "100% 100%";
+        }
 
         let cellObj = { element: cell, letter: letter, revealed: false, state: 0, absoluteIndex: i + 1 };
         allCells.push(cellObj);
