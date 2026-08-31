@@ -51,6 +51,7 @@ const clearPuzzleSound = new Audio("ClearPuzzle.mp3");
 const tossupSound = new Audio("tossup.mp3");
 tossupSound.loop = true;
 const round30Sound = new Audio("30s.mp3");
+const correctSound = new Audio("Correct.mp3");
 
 // Lấy tham chiếu tới các đèn hiệu ứng overlay
 const lightWhite = document.getElementById("light-white");
@@ -84,14 +85,17 @@ function updateMuteState(muted) {
     clearPuzzleSound.muted = isMuted;
     tossupSound.muted = isMuted;
     round30Sound.muted = isMuted;
+    correctSound.muted = isMuted;
     if (isMuted) {
         showSound.volume = 0;
         revealSound.volume = 0;
         clearPuzzleSound.volume = 0;
         tossupSound.volume = 0;
         round30Sound.volume = 0;
+        correctSound.volume = 0;
         try { tossupSound.pause(); } catch(e){}
         try { round30Sound.pause(); } catch(e){}
+        try { correctSound.pause(); } catch(e){}
         Audio.prototype.play = function() {
             return Promise.resolve();
         };
@@ -101,6 +105,7 @@ function updateMuteState(muted) {
         clearPuzzleSound.volume = 1.0;
         tossupSound.volume = 1.0;
         round30Sound.volume = 1.0;
+        correctSound.volume = 1.0;
         Audio.prototype.play = originalAudioPlay;
     }
 }
@@ -120,6 +125,7 @@ function initAudioPermission() {
     if (clearPuzzleSound.paused && clearPuzzleSound.readyState === 0) clearPuzzleSound.load();
     if (tossupSound.paused && tossupSound.readyState === 0) tossupSound.load();
     if (round30Sound.paused && round30Sound.readyState === 0) round30Sound.load();
+    if (correctSound.paused && correctSound.readyState === 0) correctSound.load();
 }
 
 function playDing(){
@@ -770,13 +776,8 @@ function handleControlCommand(payload) {
         } else if ([2, 3, 4, 8].includes(currentQuizIndex)) {
             clearPuzzleSound.currentTime = 0; clearPuzzleSound.play().catch(e => console.log(e));
         } else if (currentQuizIndex === 12) {
-            const winAudio = new Audio("ClearTossUp.mp3");
-            activeSFXList.push(winAudio);
-            winAudio.play().catch(e => console.log(e));
-            winAudio.onended = () => {
-                activeSFXList = activeSFXList.filter(audio => audio !== winAudio);
-                winAudio.remove();
-            };
+            correctSound.currentTime = 0;
+            correctSound.play().catch(e => console.log(e));
         } else {
             revealSound.currentTime = 0; revealSound.play().catch(e => console.log(e));
         }
