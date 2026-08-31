@@ -940,7 +940,7 @@
             
             renderRound30SubButtons();
             
-            // Send to display: tải ngay ô chữ (hiển thị obox.png cho các ô có chữ)
+            // Send to display: tải ngay ô chữ (hiển thị khung trắng obox.png cho toàn bộ các ô sử dụng trước)
             sendCmd('LOAD_QUIZ', { index: 12, letters: subLetters });
             sendCmd('UPDATE_ROUND30_TIMER', {
                 seconds: Math.ceil(round30Seconds),
@@ -948,11 +948,11 @@
                 subTitle: `Ô CHỮ ${subIndex + 1}/8`
             });
 
-            // Nếu vòng 30s đang chạy và còn thời gian, ngay lập tức tự động lật mở ngẫu nhiên các chữ cái
+            // Nếu vòng 30s đang chạy và còn thời gian, hiển thị trọn vẹn toàn bộ khung ô chữ trắng trước, sau đó mới bắt đầu lật mở ngẫu nhiên các chữ cái
             if (isRound30Running && round30Seconds > 0) {
                 isTossupRunning = true;
                 clearTimeout(tossupTimeout);
-                tossupTimeout = setTimeout(controlRevealRandomCell, 100);
+                tossupTimeout = setTimeout(controlRevealRandomCell, 500);
             }
         }
 
@@ -1005,8 +1005,8 @@
                 updateRound30TimerUI();
             }, 100);
             
-            // Start random letter reveal
-            controlRevealRandomCell();
+            // Start random letter reveal after a brief moment to show all white boxes first
+            tossupTimeout = setTimeout(controlRevealRandomCell, 500);
         }
 
         function updateRound30TimerUI() {

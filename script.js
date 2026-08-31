@@ -63,9 +63,17 @@ let allCells = [];
 let absoluteCells = new Array(52).fill(null);
 let currentQuizIndex = -1;
 
-// Mute control for control page preview iframe
+// Mute control: Âm thanh CHỈ phát trên màn hình chính (index.html), tắt hoàn toàn trên frame xem thử / iframe và các trang khác
 const urlParams = new URLSearchParams(window.location.search);
-let isMuted = urlParams.get('muted') === '1' || urlParams.get('muted') === 'true' || window.name === 'audiencePreviewFrame';
+const isInIframe = (function() {
+    try {
+        return window.self !== window.top;
+    } catch (e) {
+        return true;
+    }
+})();
+
+let isMuted = urlParams.get('muted') === '1' || urlParams.get('muted') === 'true' || window.name === 'audiencePreviewFrame' || isInIframe;
 
 const originalAudioPlay = Audio.prototype.play;
 
@@ -333,20 +341,15 @@ function clearAllTossupTimeouts() {
 function loadQuiz(quizPayload) {
     hideAllLights(); 
 
-    const index = quizPayload.index;
+    const index = Number(quizPayload.index);
     const letters = quizPayload.letters;
 
     const prevIndex = currentQuizIndex;
     currentQuizIndex = index;
     
+    // Nhạc 30s sẽ KHÔNG dừng khi chuyển qua lại các ô con trong Vòng 30s (Đề 13 / Index 12)
     if (index !== 12) {
         stopRound30Music(true);
-    }
-    
-    tossupSound.load();
-    initAudioPermission();
-
-    if (index !== 12) {
         tossupSound.currentTime = 0;
         tossupSound.volume = 1.0;
         clearAllTossupTimeouts(); 
@@ -354,6 +357,9 @@ function loadQuiz(quizPayload) {
     } else {
         clearAllTossupTimeouts();
     }
+    
+    tossupSound.load();
+    initAudioPermission();
 
     clearOldBoardElements();
     allCells = [];
@@ -376,7 +382,7 @@ function loadQuiz(quizPayload) {
 
         cell.style.pointerEvents = "none";
 
-        // Vòng 13 (Vòng 30s Liên Hoàn): Các ô chữ sử dụng sẽ lập tức hiển thị màu trắng (obox.png)
+        // Vòng 13 (Vòng 30s Liên Hoàn): BẮT BUỘC hiển thị khung trắng (obox.png) ngay lập tức cho tất cả các ô chữ sử dụng
         if (index === 12) {
             cell.style.background = 'url("obox.png") center center no-repeat';
             cell.style.backgroundSize = "100% 100%";
@@ -659,8 +665,10 @@ function handleControlCommand(payload) {
         });
         tossupSound.pause();
         tossupSound.currentTime = 0;
-        round30Sound.currentTime = 0;
-        playRound30Music();
+        if (round30Sound.paused || round30Sound.currentTime === 0) {
+            round30Sound.currentTime = 0;
+            playRound30Music();
+        }
     }
     else if (type === "RESET_ROUND30_GRID") {
         clearBuzzerHighlights();
