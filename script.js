@@ -115,7 +115,11 @@ window.addEventListener('message', (event) => {
 
 function initAudioPermission() {
     if (isMuted) return;
-    showSound.load(); revealSound.load(); clearPuzzleSound.load(); tossupSound.load(); round30Sound.load();
+    if (showSound.paused && showSound.readyState === 0) showSound.load();
+    if (revealSound.paused && revealSound.readyState === 0) revealSound.load();
+    if (clearPuzzleSound.paused && clearPuzzleSound.readyState === 0) clearPuzzleSound.load();
+    if (tossupSound.paused && tossupSound.readyState === 0) tossupSound.load();
+    if (round30Sound.paused && round30Sound.readyState === 0) round30Sound.load();
 }
 
 function playDing(){
