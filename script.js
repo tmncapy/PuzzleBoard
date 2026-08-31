@@ -358,7 +358,9 @@ function loadQuiz(quizPayload) {
         clearAllTossupTimeouts();
     }
     
-    tossupSound.load();
+    if (index !== 12) {
+        tossupSound.load();
+    }
     initAudioPermission();
 
     clearOldBoardElements();
