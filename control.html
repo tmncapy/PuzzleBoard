@@ -351,10 +351,10 @@
                     </div>
                 </div>
 
-                <!-- Bộ Chọn Ô Con (1 - 10) -->
+                <!-- Bộ Chọn Ô Con (1 - 8) -->
                 <div style="margin-bottom: 10px;">
-                    <div style="font-size: 11px; color: #aaa; margin-bottom: 4px; font-weight: bold;">CHỌN Ô CHỮ CON (1 - 10):</div>
-                    <div id="round30SubButtonsContainer" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;"></div>
+                    <div style="font-size: 11px; color: #aaa; margin-bottom: 4px; font-weight: bold;">CHỌN Ô CHỮ CON (1 - 8):</div>
+                    <div id="round30SubButtonsContainer" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;"></div>
                 </div>
 
                 <!-- Đáp Án Ô Chữ Con Hiện Tại -->
@@ -820,13 +820,10 @@
                 r30Banner.style.display = "block";
             }
             
-            // Stop letter reveal and timer immediately
-            isTossupRunning = false;
-            clearTimeout(tossupTimeout);
-            if (round30TimerInterval) {
-                clearInterval(round30TimerInterval);
-                round30TimerInterval = null;
-                isRound30Running = false;
+            // In regular toss-up, stop letter reveal. In Round 30, timer continues running!
+            if (!isRound30Running) {
+                isTossupRunning = false;
+                clearTimeout(tossupTimeout);
             }
             
             // Send command to display to show the winner highlight and play ding
@@ -844,7 +841,7 @@
         }
 
         // ==========================================
-        // VÒNG THI 30S - ĐỀ 13 (TỔ HỢP LIÊN HOÀN)
+        // VÒNG THI 30S - ĐỀ 13 (TỔ HỢP 8 Ô CHỮ LIÊN HOÀN)
         // ==========================================
         let round30SubPuzzles = [];
         let currentRound30SubIndex = 0;
@@ -855,14 +852,18 @@
 
         function initRound30Engine() {
             if (importedQuizzes[12] && Array.isArray(importedQuizzes[12]) && importedQuizzes[12].length > 0 && Array.isArray(importedQuizzes[12][0])) {
-                round30SubPuzzles = importedQuizzes[12];
+                round30SubPuzzles = importedQuizzes[12].slice(0, 8);
             } else if (window.quizData && window.quizData[12] && window.quizData[12].subPuzzles) {
-                round30SubPuzzles = window.quizData[12].subPuzzles.map(p => window.quizItemTo52Array ? window.quizItemTo52Array(p) : p);
+                round30SubPuzzles = window.quizData[12].subPuzzles.slice(0, 8).map(p => window.quizItemTo52Array ? window.quizItemTo52Array(p) : p);
             } else {
                 round30SubPuzzles = [];
             }
             
-            round30SolvedStatus = new Array(Math.max(10, round30SubPuzzles.length)).fill(false);
+            while (round30SubPuzzles.length < 8) {
+                round30SubPuzzles.push(new Array(52).fill(""));
+            }
+            
+            round30SolvedStatus = new Array(8).fill(false);
             currentRound30SubIndex = 0;
             round30Seconds = 30.0;
             renderRound30SubButtons();
@@ -873,7 +874,7 @@
             const container = document.getElementById("round30SubButtonsContainer");
             if (!container) return;
             container.innerHTML = "";
-            const total = Math.max(10, round30SubPuzzles.length);
+            const total = 8;
             for (let i = 0; i < total; i++) {
                 const btn = document.createElement("button");
                 btn.style.cssText = "padding: 6px 2px; font-size: 11px; font-weight: bold; border-radius: 4px; transition: all 0.2s;";
@@ -932,26 +933,26 @@
             
             // Update UI
             const badge = document.getElementById("round30SubBadgeCtrl");
-            if (badge) badge.textContent = `Ô ${subIndex + 1} / ${Math.max(10, round30SubPuzzles.length)}`;
+            if (badge) badge.textContent = `Ô ${subIndex + 1} / 8`;
             
             const ansText = document.getElementById("round30AnswerText");
             if (ansText) ansText.textContent = extractAnswerFromLetters(subLetters) || "(Chưa có dữ liệu)";
             
             renderRound30SubButtons();
             
-            // Send to display
+            // Send to display: tải ngay ô chữ (hiển thị obox.png cho các ô có chữ)
             sendCmd('LOAD_QUIZ', { index: 12, letters: subLetters });
             sendCmd('UPDATE_ROUND30_TIMER', {
                 seconds: Math.ceil(round30Seconds),
                 visible: true,
-                subTitle: `Ô CHỮ ${subIndex + 1}/${Math.max(10, round30SubPuzzles.length)}`
+                subTitle: `Ô CHỮ ${subIndex + 1}/8`
             });
 
-            // If Round 30 is active, start revealing letters immediately on the newly selected puzzle
+            // Nếu vòng 30s đang chạy và còn thời gian, ngay lập tức tự động lật mở ngẫu nhiên các chữ cái
             if (isRound30Running && round30Seconds > 0) {
                 isTossupRunning = true;
                 clearTimeout(tossupTimeout);
-                tossupTimeout = setTimeout(controlRevealRandomCell, 300);
+                tossupTimeout = setTimeout(controlRevealRandomCell, 100);
             }
         }
 
@@ -1027,7 +1028,7 @@
             sendCmd('UPDATE_ROUND30_TIMER', {
                 seconds: Math.ceil(round30Seconds),
                 visible: true,
-                subTitle: `Ô CHỮ ${currentRound30SubIndex + 1}/${Math.max(10, round30SubPuzzles.length)}`
+                subTitle: `Ô CHỮ ${currentRound30SubIndex + 1}/8`
             });
         }
 
@@ -1088,7 +1089,7 @@
 
         function nextRound30Puzzle() {
             clearControlBuzzer();
-            currentRound30SubIndex = (currentRound30SubIndex + 1) % Math.max(10, round30SubPuzzles.length);
+            currentRound30SubIndex = (currentRound30SubIndex + 1) % 8;
             selectRound30Sub(currentRound30SubIndex);
         }
 
@@ -1101,7 +1102,7 @@
             isRound30Running = false;
             isTossupRunning = false;
             round30Seconds = 30.0;
-            round30SolvedStatus = new Array(Math.max(10, round30SubPuzzles.length)).fill(false);
+            round30SolvedStatus = new Array(8).fill(false);
             
             updateRound30TimerUI();
             selectRound30Sub(0);
@@ -1110,7 +1111,7 @@
             sendCmd('UPDATE_ROUND30_TIMER', {
                 seconds: 30,
                 visible: true,
-                subTitle: `Ô CHỮ 1/${Math.max(10, round30SubPuzzles.length)}`
+                subTitle: `Ô CHỮ 1/8`
             });
         }
 
@@ -1127,6 +1128,12 @@
                 sendCmd('PLAY_SFX', 'wrong.mp3');
                 sendCmd('PLAY_SFX', 'FlashRed.mp3');
                 clearControlBuzzer();
+                // Nếu đồng hồ 30s vẫn đang chạy, tiếp tục lật chữ cái ngẫu nhiên
+                if (isRound30Running && round30Seconds > 0) {
+                    isTossupRunning = true;
+                    clearTimeout(tossupTimeout);
+                    tossupTimeout = setTimeout(controlRevealRandomCell, 200);
+                }
             }
         }
 
@@ -1165,8 +1172,8 @@
                 }
                 
                 let html = '<div style="background: #111; border-radius: 6px; padding: 10px; max-height: 280px; overflow-y: auto;">';
-                html += '<div style="color: #f1c40f; font-weight: bold; font-size: 12px; margin-bottom: 8px; text-transform: uppercase;">⏱️ TỔ HỢP 10 Ô CHỮ ĐỀ 13 (VÒNG 30S):</div>';
-                subList.forEach((sub, sIdx) => {
+                html += '<div style="color: #f1c40f; font-weight: bold; font-size: 12px; margin-bottom: 8px; text-transform: uppercase;">⏱️ TỔ HỢP 8 Ô CHỮ ĐỀ 13 (VÒNG 30S):</div>';
+                subList.slice(0, 8).forEach((sub, sIdx) => {
                     const ans = extractAnswerFromLetters(sub);
                     html += `<div style="display: flex; justify-content: space-between; align-items: center; background: #222; padding: 6px 10px; border-radius: 4px; margin-bottom: 4px; font-size: 11px;">
                         <span style="color: #5ac8fa; font-weight: bold;">Ô ${sIdx + 1}:</span>
@@ -1489,11 +1496,9 @@
                 if (letter !== "" && letter !== " " && letter && !controlRevealedStates[i]) hiddenIndices.push(i);
             });
             if (hiddenIndices.length === 0) {
-                if (!isRound30Running) {
-                    isTossupRunning = false;
-                    clearTimeout(tossupTimeout);
-                    sendCmd('STOP_TOSSUP_MUSIC');
-                }
+                isTossupRunning = false;
+                clearTimeout(tossupTimeout);
+                // Giữ nhạc nền đoán nhanh phát liên tục cho tới khi phát nhạc mở toàn bộ ô chữ
                 return;
             }
             const randomIndex = hiddenIndices[Math.floor(Math.random() * hiddenIndices.length)];
@@ -1526,7 +1531,7 @@
             container.appendChild(btn);
         });
 
-        function solveTossUp() { isTossupRunning = false; clearTimeout(tossupTimeout); sendCmd('REVEAL_ALL'); sendCmd('STOP_TOSSUP_MUSIC'); clearControlBuzzer(); }
+        function solveTossUp() { isTossupRunning = false; clearTimeout(tossupTimeout); sendCmd('REVEAL_ALL'); clearControlBuzzer(); }
         function showCustomAlert(message) { document.getElementById("popupMessage").textContent = message; document.getElementById("customPopup").style.display = "flex"; }
         function closePopup() { document.getElementById("customPopup").style.display = "none"; }
         let cmdCounter = 0;

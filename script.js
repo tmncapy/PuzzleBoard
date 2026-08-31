@@ -696,12 +696,7 @@ function handleControlCommand(payload) {
     else if (type === "PAUSE_TOSSUP") {
         syncControlUI("UPDATE_CTRL_ACTIVE", "pauseBtn");
         clearAllTossupTimeouts(); 
-        if (currentQuizIndex !== 12) {
-            if (!data || !data.keepMusic) {
-                playDing(); 
-                fadeOutTossupMusic(400, false);
-            }
-        }
+        // Giữ nhạc nền đoán nhanh tiếp tục phát cho tới khi mở toàn bộ ô chữ
     }
     else if (type === "PLAY_TOSSUP") {
         clearBuzzerHighlights();
@@ -859,10 +854,7 @@ function handlePlayerBuzz(playerNum) {
     lastBuzzedPlayer = playerNum;
 
     clearAllTossupTimeouts();
-    // In Đề 13 (Round 30s), 30s.mp3 keeps playing when buzzing!
-    if (currentQuizIndex !== 12) {
-        fadeOutTossupMusic(300, false);
-    }
+    // Ở các vòng đoán nhanh & vòng 30s, nhạc nền tiếp tục phát khi người chơi bấm chuông cho đến khi mở toàn bộ ô chữ
     document.querySelectorAll('.player-box').forEach(box => box.classList.remove('buzzed-active'));
     const pBox = document.querySelector(`.player-box.player-${playerNum}`);
     if (pBox) {
