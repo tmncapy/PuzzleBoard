@@ -360,6 +360,9 @@ function loadQuiz(quizPayload) {
         syncControlUI("UPDATE_CTRL_ACTIVE", null);
     } else {
         clearAllTossupTimeouts();
+        if (round30Sound.currentTime > 0) {
+            playRound30Music();
+        }
     }
     
     if (index !== 12) {

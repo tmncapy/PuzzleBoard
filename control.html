@@ -850,7 +850,7 @@
         let isRound30Running = false;
         let round30SolvedStatus = [];
 
-        function initRound30Engine() {
+        function initRound30Engine(forceReset = false) {
             if (importedQuizzes[12] && Array.isArray(importedQuizzes[12]) && importedQuizzes[12].length > 0 && Array.isArray(importedQuizzes[12][0])) {
                 round30SubPuzzles = importedQuizzes[12].slice(0, 8);
             } else if (window.quizData && window.quizData[12] && window.quizData[12].subPuzzles) {
@@ -863,11 +863,13 @@
                 round30SubPuzzles.push(new Array(52).fill(""));
             }
             
-            round30SolvedStatus = new Array(8).fill(false);
-            currentRound30SubIndex = 0;
-            round30Seconds = 30.0;
+            if (forceReset || round30SolvedStatus.length === 0) {
+                round30SolvedStatus = new Array(8).fill(false);
+                currentRound30SubIndex = 0;
+                round30Seconds = 30.0;
+            }
             renderRound30SubButtons();
-            selectRound30Sub(0);
+            selectRound30Sub(currentRound30SubIndex || 0);
         }
 
         function renderRound30SubButtons() {
@@ -1180,7 +1182,7 @@
                     html += `<div style="display: flex; justify-content: space-between; align-items: center; background: #222; padding: 6px 10px; border-radius: 4px; margin-bottom: 4px; font-size: 11px;">
                         <span style="color: #5ac8fa; font-weight: bold;">Ô ${sIdx + 1}:</span>
                         <span style="color: #fff; font-weight: bold; margin-left: 8px; flex: 1;">${ans || "(Trống)"}</span>
-                        <button onclick="loadQuizFromExcel(12); selectRound30Sub(${sIdx});" style="background: #27ae60; color: #fff; padding: 3px 8px; font-size: 10px; border-radius: 3px;">Chọn</button>
+                        <button onclick="selectRound30Sub(${sIdx});" style="background: #27ae60; color: #fff; padding: 3px 8px; font-size: 10px; border-radius: 3px;">Chọn</button>
                     </div>`;
                 });
                 html += '</div>';
@@ -1464,7 +1466,12 @@
                 document.getElementById("alphabetSection").style.display = "none";
                 document.getElementById("extraLettersSection").style.display = "none";
                 
-                initRound30Engine();
+                if (round30SubPuzzles.length === 0) {
+                    initRound30Engine(false);
+                } else {
+                    renderRound30SubButtons();
+                    selectRound30Sub(currentRound30SubIndex);
+                }
                 sendCmd('UPDATE_QUIZ_ACTIVE', 12);
                 clearControlBuzzer();
                 selectPreviewQuiz(12);
