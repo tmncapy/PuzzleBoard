@@ -6,6 +6,7 @@
     <title>Bảng Điều Khiển Ô Chữ (Kỹ Thuật)</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="quiz.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -265,6 +266,7 @@
                         for (let i = 1; i <= 12; i++) {
                             document.write(`<button class="btn-quiz" id="btnQuiz${i}" onclick="loadQuizFromExcel(${i - 1})">ĐỀ ${i}</button>`);
                         }
+                        document.write(`<button class="btn-quiz" id="btnQuiz13" style="width: 100%; background: linear-gradient(135deg, #d35400, #e67e22); border: 1px solid #f39c12; font-weight: 900; letter-spacing: 0.5px;" onclick="loadQuizFromExcel(12)">⏱️ ĐỀ 13 (VÒNG 30S LIÊN HOÀN)</button>`);
                     </script>
                 </div>
             </div>
@@ -282,6 +284,7 @@
                         for (let i = 1; i <= 12; i++) {
                             document.write(`<button id="btnPreviewQuiz${i}" style="background: #34495e; color: #fff; padding: 6px 0; font-size: 10px; border-radius: 3px;" onclick="selectPreviewQuiz(${i - 1})">ĐỀ ${i}</button>`);
                         }
+                        document.write(`<button id="btnPreviewQuiz13" style="background: #d35400; color: #fff; padding: 6px 0; font-size: 10px; border-radius: 3px; grid-column: span 4; font-weight: bold;" onclick="selectPreviewQuiz(12)">ĐỀ 13 (TỔ HỢP 30S)</button>`);
                     </script>
                 </div>
                 <div id="quizPreviewBox">
@@ -302,7 +305,8 @@
                 </div>
             </div>
 
-            <div class="section-wrapper">
+            <!-- Section 5: Vòng Lật Ô Nhanh (Toss-Up) thông thường cho Đề 1 - 12 -->
+            <div id="standardTossupSection" class="section-wrapper">
                 <h3>5. Vòng Lật Ô Nhanh (Toss-Up)</h3>
                 <div id="buzzerStatusBanner" style="display: none; background: #c0392b; color: #fff; padding: 10px; border-radius: 6px; font-weight: bold; text-align: center; margin-bottom: 10px; border: 1px solid #ff3b30; box-shadow: 0 0 10px rgba(255,59,48,0.5);">
                     🔔 PLAYER <span id="buzzerWinnerNum">1</span> ĐÃ BẤM CHUÔNG KHÓA!
@@ -313,6 +317,79 @@
                     <button class="btn-tossup" id="playBtn" onclick="clickPlayTossup()">PLAY</button>
                 </div>
                 <button class="btn-solve" id="solveBtn" style="width: 100%; padding: 10px 0;" onclick="solveTossUp()">GIẢI ĐÁP TOSS-UP (SOLVE)</button>
+            </div>
+
+            <!-- Section 5B: Vòng 30s Tổ Hợp Đề 13 Liên Hoàn (3 Người Chơi) -->
+            <div id="round30Section" class="section-wrapper" style="display: none; background: linear-gradient(135deg, #1e272c 0%, #15222e 100%); border: 2px solid #f1c40f; box-shadow: 0 0 15px rgba(241, 196, 15, 0.3);">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1c40f; padding-bottom: 6px; margin-bottom: 10px;">
+                    <h3 style="margin: 0; border: none; padding: 0; color: #f1c40f; font-size: 13.5px;">⏱️ VÒNG 30S - TỔ HỢP ĐỀ 13</h3>
+                    <span id="round30SubBadgeCtrl" style="background: #27ae60; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">Ô 1 / 10</span>
+                </div>
+
+                <!-- Đồng Hồ 30s & Thanh Tiến Trình -->
+                <div style="background: #111; border-radius: 8px; padding: 10px; margin-bottom: 10px; text-align: center; border: 1px solid #444;">
+                    <div style="display: flex; justify-content: center; align-items: baseline; gap: 4px;">
+                        <span style="font-size: 13px; color: #aaa;">THỜI GIAN CÒN:</span>
+                        <span id="round30TimerValCtrl" style="font-size: 34px; font-weight: 900; color: #ffcc00; font-family: monospace; min-width: 60px;">30.0</span>
+                        <span style="font-size: 16px; color: #fff; font-weight: bold;">s</span>
+                    </div>
+                    <div style="width: 100%; background: #333; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 6px;">
+                        <div id="round30ProgressBar" style="width: 100%; height: 100%; background: linear-gradient(90deg, #2ecc71, #f1c40f); transition: width 0.1s linear;"></div>
+                    </div>
+                </div>
+
+                <!-- Banner Chuông Bấm Trong Vòng 30s -->
+                <div id="round30BuzzerBanner" style="display: none; background: #c0392b; color: #fff; padding: 10px; border-radius: 6px; font-weight: bold; text-align: center; margin-bottom: 10px; border: 2px solid #ff3b30;">
+                    <div style="font-size: 14px; margin-bottom: 6px;">🔔 <span id="round30BuzzerWinnerName">PLAYER 1</span> ĐÃ BẤM CHUÔNG!</div>
+                    <div style="display: flex; gap: 6px; justify-content: center;">
+                        <button onclick="handleRound30Result(true)" style="background: #2ecc71; color: white; padding: 8px 12px; font-size: 12px; border-radius: 4px; font-weight: bold; flex: 1; cursor: pointer;">
+                            ✅ ĐÚNG: +1000 ĐIỂM
+                        </button>
+                        <button onclick="handleRound30Result(false)" style="background: #e74c3c; color: white; padding: 8px 12px; font-size: 12px; border-radius: 4px; font-weight: bold; flex: 1; cursor: pointer;">
+                            ❌ SAI: KHÔNG ĐIỂM (TIẾP TỤC)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Bộ Chọn Ô Con (1 - 10) -->
+                <div style="margin-bottom: 10px;">
+                    <div style="font-size: 11px; color: #aaa; margin-bottom: 4px; font-weight: bold;">CHỌN Ô CHỮ CON (1 - 10):</div>
+                    <div id="round30SubButtonsContainer" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;"></div>
+                </div>
+
+                <!-- Đáp Án Ô Chữ Con Hiện Tại -->
+                <div id="round30CurrentAnswerBox" style="background: #111; padding: 8px; border-radius: 4px; border-left: 3px solid #f1c40f; margin-bottom: 10px; font-size: 11px; color: #ddd;">
+                    <span style="color: #f1c40f; font-weight: bold;">🔑 ĐÁP ÁN:</span> <span id="round30AnswerText" style="font-weight: bold; color: #fff;">...</span>
+                </div>
+
+                <!-- Các Nút Điều Khiển Chính Cho Vòng 30s -->
+                <div class="group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
+                    <button id="btnRound30Start" style="background: #27ae60; color: white; padding: 10px 0; font-size: 11px; font-weight: bold;" onclick="startRound30()">
+                        ▶️ BẮT ĐẦU 30S
+                    </button>
+                    <button id="btnRound30Pause" style="background: #e67e22; color: white; padding: 10px 0; font-size: 11px; font-weight: bold;" onclick="togglePauseRound30()">
+                        ⏸️ TẠM DỪNG / TIẾP
+                    </button>
+                    <button style="background: #2980b9; color: white; padding: 10px 0; font-size: 11px; font-weight: bold;" onclick="revealRound30Answer()">
+                        💡 HIỆN ĐÁP ÁN
+                    </button>
+                    <button style="background: #8e44ad; color: white; padding: 10px 0; font-size: 11px; font-weight: bold;" onclick="nextRound30Puzzle()">
+                        ⏭️ CHUYỂN Ô TIẾP THEO
+                    </button>
+                    <button style="background: #7f8c8d; color: white; padding: 8px 0; font-size: 11px; grid-column: span 2;" onclick="resetRound30Timer()">
+                        🔄 ĐẶT LẠI 30S (RESET)
+                    </button>
+                </div>
+
+                <!-- Cộng Nhanh Điểm Số -->
+                <div style="border-top: 1px dashed #444; padding-top: 8px;">
+                    <div style="font-size: 11px; color: #aaa; margin-bottom: 4px; font-weight: bold;">CỘNG NHANH +1000 ĐIỂM:</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;">
+                        <button style="background: #ff3b30; color: white; padding: 6px 0; font-size: 11px;" onclick="modifyScore(1, 1000)">+1000 P1</button>
+                        <button style="background: #2ecc71; color: white; padding: 6px 0; font-size: 11px;" onclick="modifyScore(2, 1000)">+1000 P2</button>
+                        <button style="background: #3498db; color: white; padding: 6px 0; font-size: 11px;" onclick="modifyScore(3, 1000)">+1000 P3</button>
+                    </div>
+                </div>
             </div>
 
             <div class="section-wrapper" style="background: #1f1f1f;">
@@ -398,9 +475,10 @@
                             <input type="text" id="pName1" class="ctrl-input" value="Player 1" placeholder="Tên" oninput="updateScoreboard()">
                             <input type="number" id="pScore1" class="ctrl-input" value="0" placeholder="Điểm" oninput="updateScoreboard()">
                         </div>
-                        <div class="score-actions">
+                        <div class="score-actions" style="grid-template-columns: repeat(5, 1fr);">
                             <button style="background-color: #2ecc71; color: white;" onclick="modifyScore(1, 50)">+50</button>
                             <button style="background-color: #27ae60; color: white;" onclick="modifyScore(1, 100)">+100</button>
+                            <button style="background-color: #d35400; color: white; font-weight: bold;" onclick="modifyScore(1, 1000)">+1k</button>
                             <button style="background-color: #f39c12; color: white;" onclick="modifyScore(1, 'x2')">x2</button>
                             <button style="background-color: #c0392b; color: white;" onclick="modifyScore(1, '0')">Mất(0)</button>
                         </div>
@@ -412,9 +490,10 @@
                             <input type="text" id="pName2" class="ctrl-input" value="Player 2" placeholder="Tên" oninput="updateScoreboard()">
                             <input type="number" id="pScore2" class="ctrl-input" value="0" placeholder="Điểm" oninput="updateScoreboard()">
                         </div>
-                        <div class="score-actions">
+                        <div class="score-actions" style="grid-template-columns: repeat(5, 1fr);">
                             <button style="background-color: #2ecc71; color: white;" onclick="modifyScore(2, 50)">+50</button>
                             <button style="background-color: #27ae60; color: white;" onclick="modifyScore(2, 100)">+100</button>
+                            <button style="background-color: #d35400; color: white; font-weight: bold;" onclick="modifyScore(2, 1000)">+1k</button>
                             <button style="background-color: #f39c12; color: white;" onclick="modifyScore(2, 'x2')">x2</button>
                             <button style="background-color: #c0392b; color: white;" onclick="modifyScore(2, '0')">Mất(0)</button>
                         </div>
@@ -426,9 +505,10 @@
                             <input type="text" id="pName3" class="ctrl-input" value="Player 3" placeholder="Tên" oninput="updateScoreboard()">
                             <input type="number" id="pScore3" class="ctrl-input" value="0" placeholder="Điểm" oninput="updateScoreboard()">
                         </div>
-                        <div class="score-actions">
+                        <div class="score-actions" style="grid-template-columns: repeat(5, 1fr);">
                             <button style="background-color: #2ecc71; color: white;" onclick="modifyScore(3, 50)">+50</button>
                             <button style="background-color: #27ae60; color: white;" onclick="modifyScore(3, 100)">+100</button>
+                            <button style="background-color: #d35400; color: white; font-weight: bold;" onclick="modifyScore(3, 1000)">+1k</button>
                             <button style="background-color: #f39c12; color: white;" onclick="modifyScore(3, 'x2')">x2</button>
                             <button style="background-color: #c0392b; color: white;" onclick="modifyScore(3, '0')">Mất(0)</button>
                         </div>
@@ -530,7 +610,7 @@
             if (!payload) return;
             const { type, data } = payload;
             if (type === "UPDATE_QUIZ_ACTIVE") {
-                for (let i = 1; i <= 12; i++) {
+                for (let i = 1; i <= 13; i++) {
                     const btn = document.getElementById(`btnQuiz${i}`);
                     if (btn) btn.classList.remove("active");
                 }
@@ -538,16 +618,26 @@
                     const activeBtn = document.getElementById(`btnQuiz${data + 1}`);
                     if (activeBtn) activeBtn.classList.add("active");
                 }
-                const targetQuizzes = [2, 3, 4, 8, 9, 10, 11];
-                if (targetQuizzes.includes(data)) {
-                    document.getElementById("alphabetSection").style.display = "block";
-                } else {
+
+                if (data === 12) {
+                    document.getElementById("round30Section").style.display = "block";
+                    document.getElementById("standardTossupSection").style.display = "none";
                     document.getElementById("alphabetSection").style.display = "none";
-                }
-                if ([9, 10, 11].includes(data)) {
-                    document.getElementById("extraLettersSection").style.display = "block";
-                } else {
                     document.getElementById("extraLettersSection").style.display = "none";
+                } else {
+                    document.getElementById("round30Section").style.display = "none";
+                    document.getElementById("standardTossupSection").style.display = "block";
+                    const targetQuizzes = [2, 3, 4, 8, 9, 10, 11];
+                    if (targetQuizzes.includes(data)) {
+                        document.getElementById("alphabetSection").style.display = "block";
+                    } else {
+                        document.getElementById("alphabetSection").style.display = "none";
+                    }
+                    if ([9, 10, 11].includes(data)) {
+                        document.getElementById("extraLettersSection").style.display = "block";
+                    } else {
+                        document.getElementById("extraLettersSection").style.display = "none";
+                    }
                 }
                 document.querySelectorAll(".btn-letter").forEach(btn => btn.disabled = false);
                 document.getElementById("numCells").value = "";
@@ -707,9 +797,23 @@
                 numSpan.textContent = playerNum;
                 banner.style.display = "block";
             }
+
+            // Also show on Round 30 banner
+            const r30Banner = document.getElementById("round30BuzzerBanner");
+            const r30Name = document.getElementById("round30BuzzerWinnerName");
+            if (r30Banner && r30Name) {
+                r30Name.textContent = "NGƯỜI CHƠI " + playerNum;
+                r30Banner.style.display = "block";
+            }
             
-            // Pause the Tossup reveal instantly, but keep the music playing
-            clickPauseTossup(true);
+            // Stop letter reveal and timer immediately
+            isTossupRunning = false;
+            clearTimeout(tossupTimeout);
+            if (round30TimerInterval) {
+                clearInterval(round30TimerInterval);
+                round30TimerInterval = null;
+                isRound30Running = false;
+            }
             
             // Send command to display to show the winner highlight and play ding
             sendCmd('PLAYER_BUZZ_WIN', { playerNum: playerNum });
@@ -717,10 +821,296 @@
         
         function clearControlBuzzer() {
             activeBuzzerWinner = null;
-            localStorage.removeItem('tossup-buzzer-winner');
+            try { localStorage.removeItem('tossup-buzzer-winner'); } catch(e){}
             const banner = document.getElementById("buzzerStatusBanner");
-            if (banner) {
-                banner.style.display = "none";
+            if (banner) banner.style.display = "none";
+            const r30Banner = document.getElementById("round30BuzzerBanner");
+            if (r30Banner) r30Banner.style.display = "none";
+            sendCmd("UPDATE_CTRL_ACTIVE", null);
+        }
+
+        // ==========================================
+        // VÒNG THI 30S - ĐỀ 13 (TỔ HỢP LIÊN HOÀN)
+        // ==========================================
+        let round30SubPuzzles = [];
+        let currentRound30SubIndex = 0;
+        let round30Seconds = 30.0;
+        let round30TimerInterval = null;
+        let isRound30Running = false;
+        let round30SolvedStatus = [];
+
+        function initRound30Engine() {
+            if (importedQuizzes[12] && Array.isArray(importedQuizzes[12]) && importedQuizzes[12].length > 0 && Array.isArray(importedQuizzes[12][0])) {
+                round30SubPuzzles = importedQuizzes[12];
+            } else if (window.quizData && window.quizData[12] && window.quizData[12].subPuzzles) {
+                round30SubPuzzles = window.quizData[12].subPuzzles.map(p => window.quizItemTo52Array ? window.quizItemTo52Array(p) : p);
+            } else {
+                round30SubPuzzles = [];
+            }
+            
+            round30SolvedStatus = new Array(Math.max(10, round30SubPuzzles.length)).fill(false);
+            currentRound30SubIndex = 0;
+            round30Seconds = 30.0;
+            renderRound30SubButtons();
+            selectRound30Sub(0);
+        }
+
+        function renderRound30SubButtons() {
+            const container = document.getElementById("round30SubButtonsContainer");
+            if (!container) return;
+            container.innerHTML = "";
+            const total = Math.max(10, round30SubPuzzles.length);
+            for (let i = 0; i < total; i++) {
+                const btn = document.createElement("button");
+                btn.style.cssText = "padding: 6px 2px; font-size: 11px; font-weight: bold; border-radius: 4px; transition: all 0.2s;";
+                const isCurrent = (i === currentRound30SubIndex);
+                const isSolved = round30SolvedStatus[i];
+                
+                btn.textContent = `Ô ${i + 1}${isSolved ? ' ✓' : ''}`;
+                if (isCurrent) {
+                    btn.style.background = "#f1c40f";
+                    btn.style.color = "#000";
+                    btn.style.boxShadow = "0 0 8px #f1c40f";
+                } else if (isSolved) {
+                    btn.style.background = "#27ae60";
+                    btn.style.color = "#fff";
+                } else {
+                    btn.style.background = "#34495e";
+                    btn.style.color = "#fff";
+                }
+                
+                btn.onclick = () => {
+                    selectRound30Sub(i);
+                };
+                container.appendChild(btn);
+            }
+        }
+
+        function extractAnswerFromLetters(letters) {
+            if (!letters || letters.length === 0) return "";
+            const lines = [
+                { start: 0, end: 12 },
+                { start: 12, end: 26 },
+                { start: 26, end: 40 },
+                { start: 40, end: 52 }
+            ];
+            let words = [];
+            let currentWord = "";
+            lines.forEach(line => {
+                for (let i = line.start; i < line.end; i++) {
+                    const ch = (letters[i] || "").trim();
+                    if (ch) {
+                        currentWord += ch;
+                    } else {
+                        if (currentWord) { words.push(currentWord); currentWord = ""; }
+                    }
+                }
+                if (currentWord) { words.push(currentWord); currentWord = ""; }
+            });
+            return words.join(" ");
+        }
+
+        function selectRound30Sub(subIndex) {
+            currentRound30SubIndex = subIndex;
+            const subLetters = round30SubPuzzles[subIndex] || new Array(52).fill("");
+            controlActiveQuizLetters = subLetters;
+            controlRevealedStates = new Array(52).fill(false);
+            
+            // Update UI
+            const badge = document.getElementById("round30SubBadgeCtrl");
+            if (badge) badge.textContent = `Ô ${subIndex + 1} / ${Math.max(10, round30SubPuzzles.length)}`;
+            
+            const ansText = document.getElementById("round30AnswerText");
+            if (ansText) ansText.textContent = extractAnswerFromLetters(subLetters) || "(Chưa có dữ liệu)";
+            
+            renderRound30SubButtons();
+            
+            // Send to display
+            sendCmd('LOAD_QUIZ', { index: 12, letters: subLetters });
+            sendCmd('UPDATE_ROUND30_TIMER', {
+                seconds: Math.ceil(round30Seconds),
+                visible: true,
+                subTitle: `Ô CHỮ ${subIndex + 1}/${Math.max(10, round30SubPuzzles.length)}`
+            });
+        }
+
+        function startRound30() {
+            if (round30SubPuzzles.length === 0) {
+                initRound30Engine();
+            }
+            if (round30Seconds <= 0) {
+                round30Seconds = 30.0;
+            }
+            
+            clearControlBuzzer();
+            clearTimeout(tossupTimeout);
+            if (round30TimerInterval) clearInterval(round30TimerInterval);
+            
+            // Load current sub letters
+            const subLetters = round30SubPuzzles[currentRound30SubIndex] || new Array(52).fill("");
+            controlActiveQuizLetters = subLetters;
+            controlRevealedStates = new Array(52).fill(false);
+            
+            isRound30Running = true;
+            isTossupRunning = true;
+            
+            sendCmd('START_TOSSUP');
+            sendCmd('PLAY_SFX', '30s.mp3');
+            
+            // Start 30s Countdown
+            round30TimerInterval = setInterval(() => {
+                round30Seconds -= 0.1;
+                if (round30Seconds <= 0.05) {
+                    round30Seconds = 0;
+                    clearInterval(round30TimerInterval);
+                    round30TimerInterval = null;
+                    isRound30Running = false;
+                    isTossupRunning = false;
+                    clearTimeout(tossupTimeout);
+                    
+                    sendCmd('PLAY_SFX', 'horn.mp3');
+                    sendCmd('UPDATE_ROUND30_TIMER', {
+                        seconds: 0,
+                        visible: true,
+                        subTitle: 'HẾT GIỜ 30S!'
+                    });
+                    
+                    updateRound30TimerUI();
+                    showCustomAlert("HẾT GIỜ 30 GIÂY!");
+                    return;
+                }
+                
+                updateRound30TimerUI();
+            }, 100);
+            
+            // Start random letter reveal
+            controlRevealRandomCell();
+        }
+
+        function updateRound30TimerUI() {
+            const timerSpan = document.getElementById("round30TimerValCtrl");
+            if (timerSpan) timerSpan.textContent = round30Seconds.toFixed(1);
+            
+            const progressBar = document.getElementById("round30ProgressBar");
+            if (progressBar) {
+                const percent = Math.max(0, Math.min(100, (round30Seconds / 30.0) * 100));
+                progressBar.style.width = percent + "%";
+                if (round30Seconds <= 5) {
+                    progressBar.style.background = "#e74c3c";
+                } else {
+                    progressBar.style.background = "linear-gradient(90deg, #2ecc71, #f1c40f)";
+                }
+            }
+            
+            // Periodic sync to display (every full second)
+            sendCmd('UPDATE_ROUND30_TIMER', {
+                seconds: Math.ceil(round30Seconds),
+                visible: true,
+                subTitle: `Ô CHỮ ${currentRound30SubIndex + 1}/${Math.max(10, round30SubPuzzles.length)}`
+            });
+        }
+
+        function togglePauseRound30() {
+            if (isRound30Running) {
+                // Pause
+                isRound30Running = false;
+                isTossupRunning = false;
+                if (round30TimerInterval) {
+                    clearInterval(round30TimerInterval);
+                    round30TimerInterval = null;
+                }
+                clearTimeout(tossupTimeout);
+                sendCmd('PAUSE_TOSSUP', { keepMusic: false });
+                sendCmd('UPDATE_ROUND30_TIMER', {
+                    seconds: Math.ceil(round30Seconds),
+                    visible: true,
+                    subTitle: 'TẠM DỪNG'
+                });
+            } else {
+                // Resume
+                if (round30Seconds > 0) {
+                    isRound30Running = true;
+                    isTossupRunning = true;
+                    clearControlBuzzer();
+                    
+                    sendCmd('PLAY_TOSSUP');
+                    round30TimerInterval = setInterval(() => {
+                        round30Seconds -= 0.1;
+                        if (round30Seconds <= 0.05) {
+                            round30Seconds = 0;
+                            clearInterval(round30TimerInterval);
+                            round30TimerInterval = null;
+                            isRound30Running = false;
+                            isTossupRunning = false;
+                            clearTimeout(tossupTimeout);
+                            sendCmd('PLAY_SFX', 'horn.mp3');
+                            updateRound30TimerUI();
+                            return;
+                        }
+                        updateRound30TimerUI();
+                    }, 100);
+                    
+                    controlRevealRandomCell();
+                }
+            }
+        }
+
+        function revealRound30Answer() {
+            isTossupRunning = false;
+            clearTimeout(tossupTimeout);
+            round30SolvedStatus[currentRound30SubIndex] = true;
+            renderRound30SubButtons();
+            sendCmd('REVEAL_ALL');
+            clearControlBuzzer();
+        }
+
+        function nextRound30Puzzle() {
+            currentRound30SubIndex = (currentRound30SubIndex + 1) % Math.max(10, round30SubPuzzles.length);
+            selectRound30Sub(currentRound30SubIndex);
+            clearControlBuzzer();
+            
+            if (isRound30Running && round30Seconds > 0) {
+                sendCmd('START_TOSSUP');
+                controlRevealedStates = new Array(52).fill(false);
+                clearTimeout(tossupTimeout);
+                controlRevealRandomCell();
+            }
+        }
+
+        function resetRound30Timer() {
+            if (round30TimerInterval) {
+                clearInterval(round30TimerInterval);
+                round30TimerInterval = null;
+            }
+            clearTimeout(tossupTimeout);
+            isRound30Running = false;
+            isTossupRunning = false;
+            round30Seconds = 30.0;
+            round30SolvedStatus = new Array(Math.max(10, round30SubPuzzles.length)).fill(false);
+            
+            updateRound30TimerUI();
+            selectRound30Sub(0);
+            clearControlBuzzer();
+            sendCmd('UPDATE_ROUND30_TIMER', {
+                seconds: 30,
+                visible: true,
+                subTitle: `Ô CHỮ 1/${Math.max(10, round30SubPuzzles.length)}`
+            });
+        }
+
+        function handleRound30Result(isCorrect) {
+            if (isCorrect) {
+                if (activeBuzzerWinner) {
+                    modifyScore(activeBuzzerWinner, 1000);
+                }
+                sendCmd('PLAY_SFX', 'ClearTossUp.mp3');
+                sendCmd('PLAY_SFX', 'FlashGreen.mp3');
+                revealRound30Answer();
+                clearControlBuzzer();
+            } else {
+                sendCmd('PLAY_SFX', 'wrong.mp3');
+                sendCmd('PLAY_SFX', 'FlashRed.mp3');
+                clearControlBuzzer();
             }
         }
 
@@ -728,12 +1118,15 @@
         function selectPreviewQuiz(index) {
             activePreviewIndex = index;
             // Update active state of the preview buttons
-            for (let i = 1; i <= 12; i++) {
+            for (let i = 1; i <= 13; i++) {
                 const btn = document.getElementById(`btnPreviewQuiz${i}`);
                 if (btn) {
                     if (i === (index + 1)) {
                         btn.style.background = "#2ecc71";
                         btn.style.color = "#000";
+                    } else if (i === 13) {
+                        btn.style.background = "#d35400";
+                        btn.style.color = "#fff";
                     } else {
                         btn.style.background = "#34495e";
                         btn.style.color = "#fff";
@@ -741,9 +1134,34 @@
                 }
             }
             
-            // Reconstruct and display preview
             const container = document.getElementById("quizPreviewBox");
             if (!container) return;
+
+            // Handle preview for De 13 (Multi-puzzle)
+            if (index === 12) {
+                let subList = (importedQuizzes[12] && Array.isArray(importedQuizzes[12]) && importedQuizzes[12].length > 0 && Array.isArray(importedQuizzes[12][0]))
+                    ? importedQuizzes[12]
+                    : (window.quizData && window.quizData[12] && window.quizData[12].subPuzzles ? window.quizData[12].subPuzzles.map(p => window.quizItemTo52Array(p)) : []);
+                
+                if (!subList || subList.length === 0) {
+                    container.innerHTML = "<div style='color: #aaa; font-style: italic; text-align: center; padding: 15px; font-size: 11px;'>Chưa có dữ liệu Đề 13.</div>";
+                    return;
+                }
+                
+                let html = '<div style="background: #111; border-radius: 6px; padding: 10px; max-height: 280px; overflow-y: auto;">';
+                html += '<div style="color: #f1c40f; font-weight: bold; font-size: 12px; margin-bottom: 8px; text-transform: uppercase;">⏱️ TỔ HỢP 10 Ô CHỮ ĐỀ 13 (VÒNG 30S):</div>';
+                subList.forEach((sub, sIdx) => {
+                    const ans = extractAnswerFromLetters(sub);
+                    html += `<div style="display: flex; justify-content: space-between; align-items: center; background: #222; padding: 6px 10px; border-radius: 4px; margin-bottom: 4px; font-size: 11px;">
+                        <span style="color: #5ac8fa; font-weight: bold;">Ô ${sIdx + 1}:</span>
+                        <span style="color: #fff; font-weight: bold; margin-left: 8px; flex: 1;">${ans || "(Trống)"}</span>
+                        <button onclick="loadQuizFromExcel(12); selectRound30Sub(${sIdx});" style="background: #27ae60; color: #fff; padding: 3px 8px; font-size: 10px; border-radius: 3px;">Chọn</button>
+                    </div>`;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+                return;
+            }
             
             const letters = importedQuizzes[index];
             if (!letters || letters.length === 0) {
@@ -789,7 +1207,6 @@
             });
             html += '</div>';
             
-            // Filter empty items
             reconstructedWords = reconstructedWords.filter(w => w.trim() !== "");
             const fullAnswer = reconstructedWords.join(" ");
             
@@ -815,6 +1232,67 @@
 
         let importedQuizzes = [];
 
+        function parseSheet13SubGrids(sheet) {
+            if (!sheet) return [];
+            let subPuzzles = [];
+            const colStarts = [0, 17];
+            const rowStarts = [1, 7, 13, 19, 25];
+            
+            for (let rIdx = 0; rIdx < rowStarts.length; rIdx++) {
+                for (let cIdx = 0; cIdx < colStarts.length; cIdx++) {
+                    const rBase = rowStarts[rIdx];
+                    const cBase = colStarts[cIdx];
+                    let letters = [];
+                    // Line 1: 12 cells
+                    for (let c = 1; c <= 12; c++) {
+                        let ref = XLSX.utils.encode_cell({ r: rBase, c: cBase + c });
+                        letters.push(sheet[ref] ? String(sheet[ref].v) : "");
+                    }
+                    // Line 2: 14 cells
+                    for (let c = 0; c <= 13; c++) {
+                        let ref = XLSX.utils.encode_cell({ r: rBase + 1, c: cBase + c });
+                        letters.push(sheet[ref] ? String(sheet[ref].v) : "");
+                    }
+                    // Line 3: 14 cells
+                    for (let c = 0; c <= 13; c++) {
+                        let ref = XLSX.utils.encode_cell({ r: rBase + 2, c: cBase + c });
+                        letters.push(sheet[ref] ? String(sheet[ref].v) : "");
+                    }
+                    // Line 4: 12 cells
+                    for (let c = 1; c <= 12; c++) {
+                        let ref = XLSX.utils.encode_cell({ r: rBase + 3, c: cBase + c });
+                        letters.push(sheet[ref] ? String(sheet[ref].v) : "");
+                    }
+                    const hasLetters = letters.some(ch => ch && ch.trim() !== "");
+                    if (hasLetters) {
+                        subPuzzles.push(letters);
+                    }
+                }
+            }
+            return subPuzzles;
+        }
+
+        function populateQuizzesFromWorkbook(workbook) {
+            importedQuizzes = [];
+            for (let i = 0; i < 12; i++) {
+                if (i < workbook.SheetNames.length) {
+                    importedQuizzes.push(parseExcelGrid(workbook.Sheets[workbook.SheetNames[i]]));
+                } else if (window.quizData && window.quizData[i]) {
+                    importedQuizzes.push(window.quizItemTo52Array(window.quizData[i]));
+                } else {
+                    importedQuizzes.push(new Array(52).fill(""));
+                }
+            }
+            
+            // Sheet 13 / De 13
+            let sheet13 = workbook.SheetNames.length >= 13 ? workbook.Sheets[workbook.SheetNames[12]] : null;
+            let subPuzzles = parseSheet13SubGrids(sheet13);
+            if (subPuzzles.length === 0 && window.quizData && window.quizData[12] && window.quizData[12].subPuzzles) {
+                subPuzzles = window.quizData[12].subPuzzles.map(p => window.quizItemTo52Array(p));
+            }
+            importedQuizzes[12] = subPuzzles;
+        }
+
         // Auto-load default excel data on start if available
         window.addEventListener('DOMContentLoaded', () => {
             const loadDefaultFile = (filename) => {
@@ -826,14 +1304,25 @@
                     .then(buffer => {
                         const data = new Uint8Array(buffer);
                         const workbook = XLSX.read(data, { type: 'array' });
-                        importedQuizzes = [];
-                        for (let i = 0; i < Math.min(workbook.SheetNames.length, 12); i++) {
-                            importedQuizzes.push(parseExcelGrid(workbook.Sheets[workbook.SheetNames[i]]));
-                        }
+                        populateQuizzesFromWorkbook(workbook);
                         setTimeout(() => { selectPreviewQuiz(0); }, 500);
                     })
                     .catch(() => {
-                        if (filename === 'data.xlsx') loadDefaultFile('2B.xlsx');
+                        if (filename === 'data.xlsx') {
+                            loadDefaultFile('2B.xlsx');
+                        } else {
+                            // Fallback to embedded quiz.js data
+                            if (window.quizData) {
+                                importedQuizzes = [];
+                                for (let i = 0; i < 12; i++) {
+                                    importedQuizzes.push(window.quizItemTo52Array(window.quizData[i]));
+                                }
+                                if (window.quizData[12] && window.quizData[12].subPuzzles) {
+                                    importedQuizzes[12] = window.quizData[12].subPuzzles.map(p => window.quizItemTo52Array(p));
+                                }
+                                setTimeout(() => { selectPreviewQuiz(0); }, 500);
+                            }
+                        }
                     });
             };
             loadDefaultFile('data.xlsx');
@@ -847,17 +1336,15 @@
             reader.onload = function (e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
-                importedQuizzes = [];
-                for (let i = 0; i < Math.min(workbook.SheetNames.length, 12); i++) {
-                    importedQuizzes.push(parseExcelGrid(workbook.Sheets[workbook.SheetNames[i]]));
-                }
-                showCustomAlert(`Thành công! Đã nạp ${importedQuizzes.length} đề.`);
+                populateQuizzesFromWorkbook(workbook);
+                showCustomAlert(`Thành công! Đã nạp ${importedQuizzes.length} đề thi.`);
                 selectPreviewQuiz(0);
             };
             reader.readAsArrayBuffer(file);
         }
 
         function parseExcelGrid(sheet) {
+            if (!sheet) return new Array(52).fill("");
             let letters = [];
             for (let c = 1; c <= 12; c++) { let cellRef = XLSX.utils.encode_cell({ r: 1, c: c }); letters.push(sheet[cellRef] ? String(sheet[cellRef].v) : ""); }
             for (let c = 0; c <= 13; c++) { let cellRef = XLSX.utils.encode_cell({ r: 2, c: c }); letters.push(sheet[cellRef] ? String(sheet[cellRef].v) : ""); }
@@ -867,6 +1354,38 @@
         }
 
         function loadQuizFromExcel(quizIndex) {
+            // Update active state of De buttons
+            for (let i = 1; i <= 13; i++) {
+                const btn = document.getElementById(`btnQuiz${i}`);
+                if (btn) {
+                    if (i === (quizIndex + 1)) {
+                        btn.classList.add("active");
+                    } else {
+                        btn.classList.remove("active");
+                    }
+                }
+            }
+
+            if (quizIndex === 12) {
+                // Đề 13 - Vòng 30s Liên Hoàn
+                document.getElementById("standardTossupSection").style.display = "none";
+                document.getElementById("round30Section").style.display = "block";
+                document.getElementById("alphabetSection").style.display = "none";
+                document.getElementById("extraLettersSection").style.display = "none";
+                
+                initRound30Engine();
+                sendCmd('UPDATE_QUIZ_ACTIVE', 12);
+                clearControlBuzzer();
+                selectPreviewQuiz(12);
+                setTimeout(updateScoreboard, 300);
+                return;
+            }
+
+            // Normal quizzes 1 to 12
+            document.getElementById("standardTossupSection").style.display = "block";
+            document.getElementById("round30Section").style.display = "none";
+            sendCmd('UPDATE_ROUND30_TIMER', { visible: false });
+
             if (importedQuizzes.length === 0) { showCustomAlert("Vui lòng nạp file Excel trước!"); return; }
             const quizLetters = importedQuizzes[quizIndex];
             if (!quizLetters) { showCustomAlert("Không tìm thấy dữ liệu đề!"); return; }

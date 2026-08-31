@@ -191,3 +191,82 @@ body {
     from { transform: scale(1); }
     to { transform: scale(1.08); }
 }
+
+/* === ĐỒNG HỒ 30S VÒNG THI TỔ HỢP ĐỀ 13 === */
+.round30-timer-badge {
+    position: absolute;
+    top: 40px;
+    right: 50px;
+    z-index: 120;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, rgba(20, 30, 48, 0.95), rgba(36, 59, 85, 0.95));
+    border: 3px solid #f1c40f;
+    border-radius: 50px;
+    padding: 8px 24px;
+    box-shadow: 0 0 25px rgba(241, 196, 15, 0.6), inset 0 0 15px rgba(241, 196, 15, 0.3);
+    font-family: "SVN-Gilroy Bold", Arial, sans-serif;
+    color: #ffffff;
+    user-select: none;
+    pointer-events: none;
+    transition: all 0.3s ease;
+}
+
+.round30-timer-badge.warning {
+    border-color: #e74c3c;
+    box-shadow: 0 0 30px rgba(231, 76, 60, 0.9), inset 0 0 15px rgba(231, 76, 60, 0.5);
+    animation: timer-warning-pulse 0.5s infinite alternate;
+}
+
+.round30-timer-badge .timer-icon {
+    font-size: 28px;
+}
+
+.round30-timer-badge .timer-val {
+    font-size: 42px;
+    font-weight: 900;
+    color: #ffcc00;
+    min-width: 54px;
+    text-align: center;
+    letter-spacing: -1px;
+    text-shadow: 0 0 10px rgba(255, 204, 0, 0.8);
+}
+
+.round30-timer-badge.warning .timer-val {
+    color: #ff4d4d;
+    text-shadow: 0 0 12px rgba(255, 77, 77, 0.9);
+}
+
+.round30-timer-badge .timer-unit {
+    font-size: 22px;
+    color: #ffffff;
+    opacity: 0.9;
+    font-weight: bold;
+}
+
+.round30-sub-badge {
+    position: absolute;
+    top: 40px;
+    left: 50px;
+    z-index: 120;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, rgba(20, 30, 48, 0.95), rgba(36, 59, 85, 0.95));
+    border: 3px solid #2ecc71;
+    border-radius: 50px;
+    padding: 8px 20px;
+    box-shadow: 0 0 20px rgba(46, 204, 113, 0.5);
+    font-family: "SVN-Gilroy Bold", Arial, sans-serif;
+    color: #2ecc71;
+    font-size: 24px;
+    font-weight: bold;
+    user-select: none;
+    pointer-events: none;
+}
+
+@keyframes timer-warning-pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.05); }
+}

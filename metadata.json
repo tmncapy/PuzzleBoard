@@ -1,0 +1,8 @@
+{
+  "name": "PuzzleBoard",
+  "description": "Interactive Vietnamese Wheel of Fortune puzzle board with control panel, player buzzer screens, and real-time synchronization",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

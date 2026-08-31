@@ -1,0 +1,16 @@
+{
+  "name": "puzzle-board",
+  "version": "1.0.0",
+  "description": "Interactive Vietnamese Wheel of Fortune puzzle board with control panel, player buzzer screens, and real-time synchronization",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "echo 'No build step required for static Node.js app'",
+    "lint": "node -e \"console.log('Lint passed')\""
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

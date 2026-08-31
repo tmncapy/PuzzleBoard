@@ -671,6 +671,39 @@ function handleControlCommand(payload) {
         initAudioPermission();
         playTimerSound(data);
     }
+    else if (type === "UPDATE_ROUND30_TIMER") {
+        const timerBadge = document.getElementById("round30TimerBadge");
+        const timerVal = document.getElementById("round30Val");
+        if (timerBadge && timerVal) {
+            if (data && data.visible) {
+                timerBadge.style.display = "flex";
+                timerVal.textContent = data.seconds;
+                if (data.seconds <= 5 && data.seconds > 0) {
+                    timerBadge.classList.add("warning");
+                } else {
+                    timerBadge.classList.remove("warning");
+                }
+            } else {
+                timerBadge.style.display = "none";
+                timerBadge.classList.remove("warning");
+            }
+        }
+        const subBadge = document.getElementById("round30SubBadge");
+        const subText = document.getElementById("round30SubIndexText");
+        if (subBadge && subText) {
+            if (data && data.visible && data.subTitle) {
+                subBadge.style.display = "flex";
+                subText.textContent = data.subTitle;
+            } else {
+                subBadge.style.display = "none";
+            }
+        }
+    }
+    else if (type === "PLAYER_BUZZ_WIN") {
+        if (data && data.playerNum) {
+            handlePlayerBuzz(data.playerNum);
+        }
+    }
 }
 
 let lastProcessedControlTs = 0;
@@ -691,6 +724,8 @@ function clearBuzzerHighlights() {
 
 function handlePlayerBuzz(playerNum) {
     if (!playerNum) return;
+    clearAllTossupTimeouts();
+    fadeOutTossupMusic(300, false);
     document.querySelectorAll('.player-box').forEach(box => box.classList.remove('buzzed-active'));
     const pBox = document.querySelector(`.player-box.player-${playerNum}`);
     if (pBox) {
