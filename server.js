@@ -13,8 +13,12 @@ app.use(express.json());
 // Set of connected SSE clients
 const sseClients = new Set();
 
-// Real-time Server-Sent Events endpoint for multi-device sync
+// Real-time Server-Sent Events endpoint for multi-device sync with room isolation
 app.get('/api/events', (req, res) => {
+  const url = new URL(req.url, 'http://localhost' + req.originalUrl);
+  const roomid = url.searchParams.get('roomid') || 'default';
+  res.roomid = roomid;
+
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -42,20 +46,24 @@ setInterval(() => {
   }
 }, 20000);
 
-// Broadcast API endpoint for any device to broadcast to all other devices
+// Broadcast API endpoint for any device to broadcast to all other devices in the same room
 app.post('/api/broadcast', (req, res) => {
-  const { event, payload, ts, id } = req.body;
-  const msgStr = JSON.stringify({ event, payload, ts: ts || Date.now(), id });
+  const { event, payload, ts, id, roomid } = req.body;
+  const targetRoom = roomid || 'default';
+  const msgStr = JSON.stringify({ event, payload, ts: ts || Date.now(), id, roomid: targetRoom });
   
   for (const client of sseClients) {
-    try {
-      client.write(`data: ${msgStr}\n\n`);
-    } catch (err) {
-      sseClients.delete(client);
+    if (client.roomid === targetRoom) {
+      try {
+        client.write(`data: ${msgStr}\n\n`);
+      } catch (err) {
+        sseClients.delete(client);
+      }
     }
   }
 
-  res.json({ ok: true, receivers: sseClients.size });
+  const receivers = Array.from(sseClients).filter(c => c.roomid === targetRoom).length;
+  res.json({ ok: true, receivers: receivers });
 });
 
 // Serve all static assets from the current directory
@@ -66,16 +74,20 @@ app.get('/control', (req, res) => {
   res.sendFile(path.join(__dirname, 'control.html'));
 });
 
+app.get('/player', (req, res) => {
+  res.sendFile(path.join(__dirname, 'player.html'));
+});
+
 app.get('/player1', (req, res) => {
-  res.sendFile(path.join(__dirname, 'player1.html'));
+  res.redirect('/player' + (req.query.roomid ? '?roomid=' + req.query.roomid : ''));
 });
 
 app.get('/player2', (req, res) => {
-  res.sendFile(path.join(__dirname, 'player2.html'));
+  res.redirect('/player' + (req.query.roomid ? '?roomid=' + req.query.roomid : ''));
 });
 
 app.get('/player3', (req, res) => {
-  res.sendFile(path.join(__dirname, 'player3.html'));
+  res.redirect('/player' + (req.query.roomid ? '?roomid=' + req.query.roomid : ''));
 });
 
 app.get('/', (req, res) => {

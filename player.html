@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chuông Bấm Người Chơi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Quicksand:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #111;
+            font-family: 'Nunito', 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            color: #ffffff;
+        }
+
+        /* --- SCREEN 1: ROOM ERROR & CHOOSE COLOR SCREEN --- */
+        .centered-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            text-align: center;
+            background: radial-gradient(circle at 50% 50%, #1c1c1e 0%, #0c0c0e 100%);
+        }
+
+        .screen-title {
+            font-size: 24px;
+            font-weight: 900;
+            color: #ffcc00;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 10px rgba(255, 204, 0, 0.2);
+        }
+
+        .screen-subtitle {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 30px;
+            max-width: 400px;
+            line-height: 1.4;
+        }
+
+        .color-selector-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        @media (min-width: 480px) {
+            .color-selector-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .color-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: relative;
+            overflow: hidden;
+            text-align: left;
+        }
+
+        .color-card:active {
+            transform: scale(0.97);
+        }
+
+        .color-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
+        }
+
+        /* Red Card */
+        .color-card.red-card::before { background: #ff3b30; }
+        .color-card.red-card:hover {
+            background: rgba(255, 59, 48, 0.1);
+            border-color: rgba(255, 59, 48, 0.4);
+        }
+
+        /* Yellow Card */
+        .color-card.yellow-card::before { background: #ffcc00; }
+        .color-card.yellow-card:hover {
+            background: rgba(255, 204, 0, 0.1);
+            border-color: rgba(255, 204, 0, 0.4);
+        }
+
+        /* Blue Card */
+        .color-card.blue-card::before { background: #007aff; }
+        .color-card.blue-card:hover {
+            background: rgba(0, 122, 255, 0.1);
+            border-color: rgba(0, 122, 255, 0.4);
+        }
+
+        .color-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            flex-shrink: 0;
+        }
+
+        .red-card .color-badge { background: #ff3b30; color: white; }
+        .yellow-card .color-badge { background: #ffcc00; color: black; }
+        .blue-card .color-badge { background: #007aff; color: white; }
+
+        .color-info h3 {
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 2px;
+        }
+
+        .red-card .color-info h3 { color: #ff453a; }
+        .yellow-card .color-info h3 { color: #ffd60a; }
+        .blue-card .color-info h3 { color: #0a84ff; }
+
+        .color-info p {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Room Error Styles */
+        .error-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* --- SCREEN 2: ACTIVE BUZZER SCREEN --- */
+        #buzzerScreen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        /* Fullscreen Buzzer Canvas */
+        #buzzerBtn {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            color: #ffffff;
+            transition: background 0.3s ease, transform 0.08s ease, filter 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            z-index: 10;
+        }
+
+        /* Dynamic background styles based on selected color */
+        body.theme-1 #buzzerBtn {
+            background: radial-gradient(circle at 50% 48%, #ff453a 0%, #ff3b30 70%, #8b100a 100%);
+        }
+        body.theme-2 #buzzerBtn {
+            background: radial-gradient(circle at 50% 48%, #ffdb4a 0%, #ffcc00 70%, #826600 100%);
+        }
+        body.theme-3 #buzzerBtn {
+            background: radial-gradient(circle at 50% 48%, #0a84ff 0%, #007aff 70%, #003b82 100%);
+        }
+
+        #buzzerBtn:active:not(.disabled):not(.success) {
+            transform: scale(0.985);
+            filter: brightness(1.1);
+        }
+
+        body.theme-1 #buzzerBtn:active:not(.disabled):not(.success) {
+            background: radial-gradient(circle at 50% 48%, #ff5b52 0%, #d6241b 100%);
+        }
+        body.theme-2 #buzzerBtn:active:not(.disabled):not(.success) {
+            background: radial-gradient(circle at 50% 48%, #ffe169 0%, #cf9c00 100%);
+        }
+        body.theme-3 #buzzerBtn:active:not(.disabled):not(.success) {
+            background: radial-gradient(circle at 50% 48%, #3298ff 0%, #005ec4 100%);
+        }
+
+        /* Main Rounded Display Text: "trả lời" */
+        .answer-text {
+            font-size: min(23vw, 28vh, 210px);
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            line-height: 1;
+            text-align: center;
+            text-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+            font-family: 'Nunito', 'Quicksand', sans-serif;
+            pointer-events: none;
+            transition: all 0.2s ease;
+        }
+
+        /* Subtle floating top header overlay */
+        .top-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 22px;
+            z-index: 30;
+            pointer-events: none;
+        }
+
+        .player-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .player-tag .dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        body.theme-1 .player-tag .dot { background: #ff453a; box-shadow: 0 0 8px #ff453a; }
+        body.theme-2 .player-tag .dot { background: #ffcc00; box-shadow: 0 0 8px #ffcc00; }
+        body.theme-3 .player-tag .dot { background: #007aff; box-shadow: 0 0 8px #007aff; }
+
+        @keyframes pulse-dot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.7; }
+        }
+
+        .action-btns {
+            pointer-events: auto;
+            display: flex;
+            gap: 8px;
+        }
+
+        .header-btn {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 800;
+            padding: 6px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+        }
+
+        .header-btn:hover {
+            background: rgba(0, 0, 0, 0.6);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Subtle Bottom Instruction Hint */
+        .bottom-hint {
+            position: fixed;
+            bottom: 18px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            z-index: 30;
+            pointer-events: none;
+            text-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+
+        /* SUCCESS / WON BUZZ STATE */
+        #buzzerBtn.success {
+            background: radial-gradient(circle at 50% 48%, #22c55e 0%, #15803d 80%, #14532d 100%);
+            animation: pulse-success 1.2s infinite alternate;
+        }
+
+        #buzzerBtn.success .answer-text {
+            color: #ffffff;
+            transform: scale(1.04);
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.8), 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes pulse-success {
+            0% { box-shadow: inset 0 0 60px rgba(255, 255, 255, 0.3); }
+            100% { box-shadow: inset 0 0 120px rgba(255, 255, 255, 0.6); }
+        }
+
+        /* LOCKED / ANOTHER PLAYER BUZZED STATE */
+        #buzzerBtn.disabled {
+            background: radial-gradient(circle at 50% 48%, #221a1b 0%, #140d0e 80%, #0c0708 100%);
+            cursor: not-allowed;
+        }
+
+        #buzzerBtn.disabled .answer-text {
+            color: rgba(255, 255, 255, 0.15);
+            text-shadow: none;
+            filter: grayscale(1);
+        }
+
+        /* Success/Lock Banner overlay on the button */
+        .status-pill {
+            margin-top: 15px;
+            font-size: min(4.2vw, 22px);
+            font-weight: 900;
+            padding: 10px 28px;
+            border-radius: 30px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        #buzzerBtn.success .status-pill {
+            background: #ffffff;
+            color: #15803d;
+            border-color: #ffffff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        #buzzerBtn.disabled .status-pill {
+            background: #c0392b;
+            color: #ffffff;
+            border-color: #ff5252;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SCREEN 1A: ERROR SCREEN (IF NO ROOM ID) -->
+    <div id="errorScreen" class="centered-container" style="display: none;">
+        <div class="error-icon">⚠️</div>
+        <h2 class="screen-title" style="color: #ff453a;">THIẾU MÃ PHÒNG</h2>
+        <p class="screen-subtitle">
+            Vui lòng sử dụng liên kết đầy đủ kèm theo mã phòng được cấp từ Trọng Tài để tham gia trò chơi.<br>
+            Ví dụ: <code>player.html?roomid=123456</code>
+        </p>
+    </div>
+
+    <!-- SCREEN 1B: CHOOSE COLOR SCREEN -->
+    <div id="chooseColorScreen" class="centered-container" style="display: none;">
+        <h2 class="screen-title">CHỌN MÀU CHƠI</h2>
+        <p class="screen-subtitle">Chọn đúng màu hiển thị trên màn hình chính của bạn để bắt đầu bấm chuông trả lời.</p>
+        
+        <div class="color-selector-grid">
+            <div class="color-card red-card" onclick="selectRole(1)">
+                <div class="color-badge">🔴</div>
+                <div class="color-info">
+                    <h3>MÀU ĐỎ</h3>
+                    <p>Người chơi 1 (Phím điều khiển)</p>
+                </div>
+            </div>
+            
+            <div class="color-card yellow-card" onclick="selectRole(2)">
+                <div class="color-badge">🟡</div>
+                <div class="color-info">
+                    <h3>MÀU VÀNG</h3>
+                    <p>Người chơi 2 (Phím điều khiển)</p>
+                </div>
+            </div>
+            
+            <div class="color-card blue-card" onclick="selectRole(3)">
+                <div class="color-badge">🔵</div>
+                <div class="color-info">
+                    <h3>MÀU XANH</h3>
+                    <p>Người chơi 3 (Phím điều khiển)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN 2: ACTIVE BUZZER SCREEN -->
+    <div id="buzzerScreen">
+        <!-- Header Overlay -->
+        <div class="top-overlay">
+            <div class="player-tag">
+                <span class="dot"></span>
+                <span id="playerRoleText">NGƯỜI CHƠI</span>
+            </div>
+            <div class="action-btns">
+                <button class="header-btn" onclick="changeRole()" title="Đổi màu chơi">
+                    🔄 Đổi màu
+                </button>
+                <button class="header-btn" onclick="toggleFullScreen()" title="Toàn màn hình">
+                    ⛶ Toàn màn hình
+                </button>
+            </div>
+        </div>
+
+        <!-- Full Screen Interactive Buzzer Area -->
+        <button id="buzzerBtn" onclick="buzz()" aria-label="Bấm chuông trả lời">
+            <div class="answer-text">trả lời</div>
+            <div id="statusPill" class="status-pill" style="display: none;">SẴN SÀNG</div>
+        </button>
+
+        <!-- Bottom Hint -->
+        <div id="bottomHint" class="bottom-hint">
+            Chạm màn hình hoặc phím Cách [Space] để chuông
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://tukabyhjmcyptuwmwedp.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OX0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
+
+        // Retrieve Room ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get('roomid');
+
+        let PLAYER_NUM = null;
+        let supabaseClient = null;
+        let channel = null;
+        let localBC = null;
+
+        // Verify Room ID existence
+        if (!roomId) {
+            document.getElementById("errorScreen").style.display = "flex";
+            document.getElementById("chooseColorScreen").style.display = "none";
+            document.getElementById("buzzerScreen").style.display = "none";
+        } else {
+            // Check if user has already chosen a color for this room in sessionStorage
+            const savedRole = sessionStorage.getItem('player_role_' + roomId);
+            if (savedRole) {
+                initBuzzer(parseInt(savedRole));
+            } else {
+                document.getElementById("chooseColorScreen").style.display = "flex";
+                document.getElementById("buzzerScreen").style.display = "none";
+            }
+        }
+
+        function selectRole(roleNum) {
+            sessionStorage.setItem('player_role_' + roomId, roleNum);
+            initBuzzer(roleNum);
+        }
+
+        function changeRole() {
+            sessionStorage.removeItem('player_role_' + roomId);
+            
+            // Clean up network connections before recreating
+            if (channel) {
+                try { channel.unsubscribe(); } catch(e){}
+            }
+            if (localBC) {
+                try { localBC.close(); } catch(e){}
+            }
+            
+            document.body.className = "";
+            document.getElementById("chooseColorScreen").style.display = "flex";
+            document.getElementById("buzzerScreen").style.display = "none";
+        }
+
+        function initBuzzer(roleNum) {
+            PLAYER_NUM = roleNum;
+            
+            // Set styling based on color
+            document.body.className = "theme-" + PLAYER_NUM;
+            document.getElementById("chooseColorScreen").style.display = "none";
+            document.getElementById("buzzerScreen").style.display = "block";
+
+            const roleText = PLAYER_NUM === 1 ? "Màu Đỏ (P1)" : PLAYER_NUM === 2 ? "Màu Vàng (P2)" : "Màu Xanh (P3)";
+            document.getElementById("playerRoleText").textContent = roleText;
+
+            // Define Isolated Room Channels
+            const channelName = 'crossword_broadcast_room_' + roomId;
+
+            // 1. Initialize Supabase Realtime
+            try {
+                if (typeof window.supabase !== "undefined" && window.supabase.createClient) {
+                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    channel = supabaseClient.channel(channelName, {
+                        config: { broadcast: { ack: false, self: true } }
+                    });
+                    
+                    channel.on('broadcast', { event: 'player-buzz' }, ({ payload }) => {
+                        if (payload && payload.playerNum) {
+                            handleIncomingBuzz(payload.playerNum);
+                        }
+                    });
+                    channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
+                        if (payload) {
+                            handleIncomingControl(payload);
+                        }
+                    });
+                    
+                    channel.subscribe((status) => {
+                        console.log(`Supabase [${channelName}] connection status:`, status);
+                    });
+                }
+            } catch (e) {
+                console.error("Supabase failed to initialize:", e);
+            }
+
+            // 2. Initialize Server-Sent Events (SSE) with room filtering
+            try {
+                if (typeof EventSource !== "undefined") {
+                    const sse = new EventSource('/api/events?roomid=' + roomId);
+                    sse.onmessage = (e) => {
+                        try {
+                            const msg = JSON.parse(e.data);
+                            if (!msg) return;
+                            // Check roomid inside message if present
+                            if (msg.roomid && msg.roomid !== roomId) return;
+
+                            if (msg.event === 'player-buzz' && msg.payload && msg.payload.playerNum) {
+                                handleIncomingBuzz(msg.payload.playerNum);
+                            } else if (msg.event === 'control-to-display' && msg.payload) {
+                                handleIncomingControl(msg.payload);
+                            }
+                        } catch(err){}
+                    };
+                }
+            } catch(e) {}
+
+            // 3. Local BroadcastChannel
+            try {
+                localBC = new BroadcastChannel(channelName);
+                localBC.onmessage = (event) => {
+                    if (event.data) {
+                        if (event.data.event === 'player-buzz' && event.data.payload) {
+                            handleIncomingBuzz(event.data.payload.playerNum);
+                        }
+                        if (event.data.event === 'control-to-display' && event.data.payload) {
+                            handleIncomingControl(event.data.payload);
+                        }
+                    }
+                };
+            } catch (e) {}
+
+            syncBuzzerState();
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
+        }
+
+        function handleIncomingBuzz(pNum) {
+            localStorage.setItem('tossup-buzzer-winner_' + roomId, pNum);
+            syncBuzzerState();
+        }
+
+        function handleIncomingControl(payload) {
+            const type = payload.type;
+            if (type === 'START_TOSSUP' || type === 'PLAY_TOSSUP' || type === 'LOAD_QUIZ' || type === 'RESET_BOARD' || type === 'SHOW_MANUAL_TEXT') {
+                localStorage.removeItem('tossup-buzzer-winner_' + roomId);
+                syncBuzzerState();
+            }
+        }
+
+        function playLocalDing() {
+            try {
+                const snd = new Audio("ding.mp3");
+                snd.play().catch(err => console.log(err));
+            } catch(e) {}
+        }
+
+        function buzz() {
+            if (!PLAYER_NUM) return;
+
+            const btn = document.getElementById("buzzerBtn");
+            if (btn.classList.contains("disabled") || btn.classList.contains("success")) {
+                return;
+            }
+
+            // Check if someone else already won
+            const winner = localStorage.getItem('tossup-buzzer-winner_' + roomId);
+            if (winner) {
+                syncBuzzerState();
+                return;
+            }
+
+            // Write to localStorage with room prefix
+            localStorage.setItem('tossup-buzzer-winner_' + roomId, PLAYER_NUM);
+
+            if (navigator.vibrate) {
+                navigator.vibrate([180]);
+            }
+
+            playLocalDing();
+            setBuzzerSuccess();
+
+            const payload = { playerNum: PLAYER_NUM, ts: Date.now() };
+            const msgObj = { event: 'player-buzz', payload: payload, ts: Date.now(), roomid: roomId };
+
+            // 1. Post to Server API
+            try {
+                fetch('/api/broadcast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(msgObj)
+                }).catch(() => {});
+            } catch(e) {}
+
+            // 2. Send via Supabase Realtime
+            if (channel) {
+                try {
+                    channel.send({ type: 'broadcast', event: 'player-buzz', payload: payload });
+                } catch(e){}
+            }
+
+            // 3. Local BroadcastChannel
+            if (localBC) {
+                try {
+                    localBC.postMessage(msgObj);
+                } catch(e){}
+            }
+
+            // 4. LocalStorage
+            try {
+                localStorage.setItem('player-buzz-msg_' + roomId, JSON.stringify(msgObj));
+                localStorage.removeItem('player-buzz-msg_' + roomId);
+            } catch(e){}
+
+            // 5. Post message
+            try {
+                window.postMessage(msgObj, "*");
+                if (window.opener) window.opener.postMessage(msgObj, "*");
+                if (window.parent && window.parent !== window) window.parent.postMessage(msgObj, "*");
+            } catch(e){}
+        }
+
+        function setBuzzerSuccess() {
+            const btn = document.getElementById("buzzerBtn");
+            const pill = document.getElementById("statusPill");
+            const hint = document.getElementById("bottomHint");
+
+            btn.className = "success";
+            pill.style.display = "inline-flex";
+            pill.textContent = "🔔 BẠN ĐÃ DÀNH QUYỀN TRẢ LỜI!";
+            hint.textContent = "Đang trong lượt trả lời của bạn";
+        }
+
+        function setBuzzerLocked(winnerNum) {
+            const btn = document.getElementById("buzzerBtn");
+            const pill = document.getElementById("statusPill");
+            const hint = document.getElementById("bottomHint");
+
+            let winnerColorName = "Đỏ (P1)";
+            if (parseInt(winnerNum) === 2) winnerColorName = "Vàng (P2)";
+            else if (parseInt(winnerNum) === 3) winnerColorName = "Xanh (P3)";
+
+            btn.className = "disabled";
+            pill.style.display = "inline-flex";
+            pill.textContent = `🔒 Người chơi màu ${winnerColorName} đã bấm trước!`;
+            hint.textContent = "Chuông đã khóa cho lượt này";
+        }
+
+        function resetBuzzer() {
+            const btn = document.getElementById("buzzerBtn");
+            const pill = document.getElementById("statusPill");
+            const hint = document.getElementById("bottomHint");
+
+            btn.className = "";
+            pill.style.display = "none";
+            hint.textContent = "Chạm màn hình hoặc phím Cách [Space] để chuông";
+        }
+
+        function syncBuzzerState() {
+            if (!PLAYER_NUM) return;
+            const winner = localStorage.getItem('tossup-buzzer-winner_' + roomId);
+            if (winner) {
+                if (parseInt(winner) === PLAYER_NUM) {
+                    setBuzzerSuccess();
+                } else {
+                    setBuzzerLocked(winner);
+                }
+            } else {
+                resetBuzzer();
+            }
+        }
+
+        // Keyboard Shortcut: Space or Enter to Buzz
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                buzz();
+            }
+            if (e.key === 'f' || e.key === 'F') {
+                toggleFullScreen();
+            }
+        });
+
+        window.addEventListener('storage', (e) => {
+            if (!PLAYER_NUM) return;
+            if (e.key === 'tossup-buzzer-winner_' + roomId) {
+                syncBuzzerState();
+            }
+            if (e.key === 'player-buzz-msg_' + roomId && e.newValue) {
+                try {
+                    const data = JSON.parse(e.newValue);
+                    if (data && data.payload) {
+                        handleIncomingBuzz(data.payload.playerNum);
+                    }
+                } catch(err){}
+            }
+            if (e.key === 'control-to-display-msg_' + roomId && e.newValue) {
+                try {
+                    const data = JSON.parse(e.newValue);
+                    if (data && data.payload) {
+                        handleIncomingControl(data.payload);
+                    }
+                } catch(err){}
+            }
+        });
+
+        window.addEventListener('message', (event) => {
+            if (!PLAYER_NUM) return;
+            if (event.data) {
+                if (event.data.roomid && event.data.roomid !== roomId) return;
+                
+                if (event.data.event === 'player-buzz' && event.data.payload) {
+                    handleIncomingBuzz(event.data.payload.playerNum);
+                }
+                if (event.data.event === 'control-to-display' && event.data.payload) {
+                    handleIncomingControl(event.data.payload);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
