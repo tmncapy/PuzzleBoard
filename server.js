@@ -65,7 +65,7 @@ app.get('/api/events', (req, res) => {
   const clientId = url.searchParams.get('clientId') || 'unknown';
   const role = parseInt(url.searchParams.get('role')) || 0;
 
-  if (activeRoomId && roomid !== activeRoomId) {
+  if (activeRoomId && roomid !== 'default' && roomid !== activeRoomId) {
     res.writeHead(403, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: "Phòng chơi này không hoạt động hoặc đã cũ.", inactive: true }));
     return;
@@ -133,14 +133,14 @@ app.post('/api/broadcast', (req, res) => {
   const { event, payload, ts, id, roomid } = req.body;
   const targetRoom = roomid || 'default';
 
-  if (activeRoomId && targetRoom !== activeRoomId) {
+  if (activeRoomId && targetRoom !== 'default' && targetRoom !== activeRoomId) {
     return res.status(403).json({ error: "Phòng chơi này không hoạt động hoặc đã cũ.", inactive: true });
   }
 
   const msgStr = JSON.stringify({ event, payload, ts: ts || Date.now(), id, roomid: targetRoom });
   
   for (const client of sseClients) {
-    if (client.roomid === targetRoom) {
+    if (client.roomid === targetRoom || client.roomid === 'default') {
       try {
         client.write(`data: ${msgStr}\n\n`);
       } catch (err) {
@@ -149,7 +149,7 @@ app.post('/api/broadcast', (req, res) => {
     }
   }
 
-  const receivers = Array.from(sseClients).filter(c => c.roomid === targetRoom).length;
+  const receivers = Array.from(sseClients).filter(c => c.roomid === targetRoom || c.roomid === 'default').length;
   res.json({ ok: true, receivers: receivers });
 });
 
