@@ -14,6 +14,10 @@ app.use(express.json());
 const sseClients = new Set();
 let activeRoomId = null;
 
+app.get('/api/get-active-room', (req, res) => {
+  res.json({ activeRoomId });
+});
+
 app.post('/api/set-active-room', (req, res) => {
   const { roomid } = req.body;
   if (roomid) {
@@ -28,6 +32,10 @@ app.post('/api/set-active-room', (req, res) => {
           client.end();
         } catch (e) {}
         sseClients.delete(client);
+      } else if (client.roomid === 'default') {
+        try {
+          client.write(`data: ${JSON.stringify({ event: 'active-room-changed', activeRoomId })}\n\n`);
+        } catch (e) {}
       }
     }
   }
@@ -60,10 +68,9 @@ function broadcastOccupiedRoles(roomid) {
 }
 
 app.get('/api/events', (req, res) => {
-  const url = new URL(req.url, 'http://localhost' + req.originalUrl);
-  const roomid = url.searchParams.get('roomid') || 'default';
-  const clientId = url.searchParams.get('clientId') || 'unknown';
-  const role = parseInt(url.searchParams.get('role')) || 0;
+  const roomid = req.query.roomid || 'default';
+  const clientId = req.query.clientId || 'unknown';
+  const role = parseInt(req.query.role) || 0;
 
   if (activeRoomId && roomid !== 'default' && roomid !== activeRoomId) {
     res.writeHead(403, { 'Content-Type': 'application/json' });
@@ -83,6 +90,9 @@ app.get('/api/events', (req, res) => {
   });
 
   res.write('data: {"event":"connected"}\n\n');
+  if (roomid === 'default' && activeRoomId) {
+    res.write(`data: ${JSON.stringify({ event: 'active-room-changed', activeRoomId })}\n\n`);
+  }
 
   sseClients.add(res);
   broadcastOccupiedRoles(roomid);

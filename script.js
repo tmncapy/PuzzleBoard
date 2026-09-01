@@ -893,7 +893,89 @@ function handlePlayerBuzz(playerNum) {
     }
 }
 
-// 1. Supabase Realtime Listener
+let currentActiveRoomId = null;
+let activeRoomSupabaseChannel = null;
+let activeRoomLocalBC = null;
+let activeRoomInterval = null;
+
+function setupActiveRoomSync(roomId) {
+    if (currentActiveRoomId === roomId) return;
+    console.log("Setting up active room sync for Room ID:", roomId);
+    currentActiveRoomId = roomId;
+
+    // Clean up old channels/intervals if any
+    if (activeRoomSupabaseChannel) {
+        try { activeRoomSupabaseChannel.unsubscribe(); } catch(e){}
+        activeRoomSupabaseChannel = null;
+    }
+    if (activeRoomLocalBC) {
+        try { activeRoomLocalBC.close(); } catch(e){}
+        activeRoomLocalBC = null;
+    }
+    if (activeRoomInterval) {
+        clearInterval(activeRoomInterval);
+        activeRoomInterval = null;
+    }
+
+    // 1. Supabase Realtime for specific active room
+    if (supabaseClient && roomId) {
+        try {
+            const channelName = 'crossword_broadcast_room_' + roomId;
+            activeRoomSupabaseChannel = supabaseClient.channel(channelName, {
+                config: { broadcast: { ack: false, self: true } }
+            });
+            activeRoomSupabaseChannel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
+                handleControlCommandWrapper(payload, payload ? payload.ts : null, payload ? payload.msgId : null);
+            });
+            activeRoomSupabaseChannel.on('broadcast', { event: 'player-buzz' }, ({ payload }) => {
+                if (payload && payload.playerNum) {
+                    handlePlayerBuzz(payload.playerNum);
+                }
+            });
+            activeRoomSupabaseChannel.subscribe();
+            console.log("Subscribed to Supabase active room channel:", channelName);
+        } catch(e) {
+            console.warn("Error subscribing to Supabase active room:", e);
+        }
+    }
+
+    // 2. Local BroadcastChannel for specific active room
+    if (typeof BroadcastChannel !== "undefined" && roomId) {
+        try {
+            const channelName = 'crossword_broadcast_room_' + roomId;
+            activeRoomLocalBC = new BroadcastChannel(channelName);
+            activeRoomLocalBC.onmessage = (event) => {
+                if (event.data) {
+                    if (event.data.event === 'control-to-display') {
+                        handleControlCommandWrapper(event.data.payload, event.data.ts || (event.data.payload ? event.data.payload.ts : null), event.data.msgId || (event.data.payload ? event.data.payload.msgId : null));
+                    } else if (event.data.event === 'player-buzz' && event.data.payload) {
+                        handlePlayerBuzz(event.data.payload.playerNum);
+                    }
+                }
+            };
+            console.log("Connected to local BroadcastChannel for active room:", channelName);
+        } catch(e) {
+            console.warn("Error creating local BroadcastChannel for active room:", e);
+        }
+    }
+
+    // 3. LocalStorage Interval check for specific active room
+    if (roomId) {
+        activeRoomInterval = setInterval(() => {
+            try {
+                const raw = localStorage.getItem('control-to-display-msg_' + roomId);
+                if (raw) {
+                    const data = JSON.parse(raw);
+                    if (data && data.payload && data.ts && data.ts > lastProcessedControlTs) {
+                        handleControlCommandWrapper(data.payload, data.ts, data.msgId);
+                    }
+                }
+            } catch (err) {}
+        }, 100);
+    }
+}
+
+// 1. Supabase Realtime Listener (Global fallback)
 if (channel) {
     try {
         channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
@@ -920,13 +1002,15 @@ try {
                     handleControlCommandWrapper(msg.payload, msg.ts || (msg.payload ? msg.payload.ts : null), msg.msgId || (msg.payload ? msg.payload.msgId : null));
                 } else if (msg.event === 'player-buzz' && msg.payload && msg.payload.playerNum) {
                     handlePlayerBuzz(msg.payload.playerNum);
+                } else if (msg.event === 'active-room-changed' && msg.activeRoomId) {
+                    setupActiveRoomSync(msg.activeRoomId);
                 }
             } catch(err){}
         };
     }
 } catch(e) {}
 
-// 3. Local BroadcastChannel
+// 3. Local BroadcastChannel (Global fallback)
 if (localBC) {
     localBC.onmessage = (event) => {
         if (event.data) {
@@ -966,6 +1050,24 @@ window.addEventListener('storage', (e) => {
             }
         } catch (err) {}
     }
+    if (currentActiveRoomId) {
+        if (e.key === 'control-to-display-msg_' + currentActiveRoomId && e.newValue) {
+            try {
+                const data = JSON.parse(e.newValue);
+                if (data && data.payload) {
+                    handleControlCommandWrapper(data.payload, data.ts, data.msgId);
+                }
+            } catch (err) {}
+        }
+        if (e.key === 'player-buzz-msg_' + currentActiveRoomId && e.newValue) {
+            try {
+                const data = JSON.parse(e.newValue);
+                if (data && data.payload && data.payload.playerNum) {
+                    handlePlayerBuzz(data.payload.playerNum);
+                }
+            } catch (err) {}
+        }
+    }
 });
 
 setInterval(() => {
@@ -979,3 +1081,15 @@ setInterval(() => {
         }
     } catch (err) {}
 }, 100);
+
+// Startup check to load active room ID instantly
+try {
+    fetch('/api/get-active-room')
+        .then(res => res.json())
+        .then(data => {
+            if (data && data.activeRoomId) {
+                setupActiveRoomSync(data.activeRoomId);
+            }
+        })
+        .catch(err => console.error("Error fetching active room ID on startup:", err));
+} catch(e) {}
