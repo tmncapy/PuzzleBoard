@@ -20,9 +20,9 @@ app.post('/api/set-active-room', (req, res) => {
     activeRoomId = roomid;
     console.log(`Active room set to: ${activeRoomId}`);
     
-    // Disconnect and invalidate all clients from old/inactive rooms
+    // Disconnect and invalidate all clients from old/inactive rooms (excluding public 'default' spectators)
     for (const client of sseClients) {
-      if (client.roomid !== activeRoomId) {
+      if (client.roomid !== activeRoomId && client.roomid !== 'default') {
         try {
           client.write('data: {"event":"room-invalidated"}\n\n');
           client.end();
