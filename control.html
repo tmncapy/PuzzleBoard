@@ -573,6 +573,15 @@
             roomId = Math.floor(100000 + Math.random() * 900000).toString();
             urlParams.set('roomid', roomId);
             window.location.search = urlParams.toString();
+        } else {
+            // Register active room with the server
+            fetch('/api/set-active-room', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomid: roomId })
+            }).then(res => res.json())
+              .then(data => console.log("Active room registered:", data))
+              .catch(err => console.error("Error registering active room:", err));
         }
 
         const channelName = 'crossword_broadcast_room_' + roomId;

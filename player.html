@@ -154,6 +154,40 @@
             color: rgba(255, 255, 255, 0.5);
         }
 
+        .color-card.occupied {
+            opacity: 0.55;
+            cursor: not-allowed !important;
+            border-color: rgba(255, 255, 255, 0.05) !important;
+            background: rgba(255, 255, 255, 0.02) !important;
+            pointer-events: none;
+        }
+
+        .color-card.occupied::after {
+            content: 'ĐÃ CÓ NGƯỜI';
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #ff3b30;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 900;
+            padding: 5px 10px;
+            border-radius: 6px;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+
+        .color-card.yellow-card.occupied::after {
+            background: #ffcc00;
+            color: #000;
+        }
+
+        .color-card.blue-card.occupied::after {
+            background: #007aff;
+            color: #fff;
+        }
+
         /* Room Error Styles */
         .error-icon {
             font-size: 64px;
@@ -440,9 +474,6 @@
                 <span id="playerRoleText">NGƯỜI CHƠI</span>
             </div>
             <div class="action-btns">
-                <button class="header-btn" onclick="changeRole()" title="Đổi màu chơi">
-                    🔄 Đổi màu
-                </button>
                 <button class="header-btn" onclick="toggleFullScreen()" title="Toàn màn hình">
                     ⛶ Toàn màn hình
                 </button>
@@ -473,6 +504,90 @@
         let supabaseClient = null;
         let channel = null;
         let localBC = null;
+        let sse = null;
+        let clientId = "";
+
+        // Function to establish a real-time SSE connection with specific room and selected role
+        function connectSSE(roleNum = 0) {
+            if (sse) {
+                try { sse.close(); } catch(e){}
+            }
+            try {
+                if (typeof EventSource !== "undefined") {
+                    sse = new EventSource(`/api/events?roomid=${roomId}&clientId=${clientId}&role=${roleNum}`);
+                    sse.onmessage = (e) => {
+                        try {
+                            const msg = JSON.parse(e.data);
+                            if (!msg) return;
+                            if (msg.roomid && msg.roomid !== roomId) return;
+
+                            if (msg.event === 'room-invalidated') {
+                                showRoomExpiredScreen();
+                            } else if (msg.event === 'roles-update' && msg.occupiedRoles) {
+                                updateOccupiedColorsUI(msg.occupiedRoles);
+                            } else if (msg.event === 'player-buzz' && msg.payload && msg.payload.playerNum) {
+                                handleIncomingBuzz(msg.payload.playerNum);
+                            } else if (msg.event === 'control-to-display' && msg.payload) {
+                                handleIncomingControl(msg.payload);
+                            }
+                        } catch(err){}
+                    };
+                }
+            } catch(e) {}
+        }
+
+        // Real-time UI indicator of occupied colors
+        function updateOccupiedColorsUI(occupiedRoles) {
+            const redCard = document.querySelector('.red-card');
+            const yellowCard = document.querySelector('.yellow-card');
+            const blueCard = document.querySelector('.blue-card');
+
+            if (!redCard || !yellowCard || !blueCard) return;
+
+            // Player 1 (Red)
+            if (occupiedRoles.includes(1)) {
+                redCard.classList.add('occupied');
+                const p = redCard.querySelector('.color-info p');
+                if (p) p.innerHTML = '<strong>🔴 Đã có người vào vị trí này</strong>';
+            } else {
+                redCard.classList.remove('occupied');
+                const p = redCard.querySelector('.color-info p');
+                if (p) p.textContent = 'Người chơi 1 (Phím điều khiển)';
+            }
+
+            // Player 2 (Yellow)
+            if (occupiedRoles.includes(2)) {
+                yellowCard.classList.add('occupied');
+                const p = yellowCard.querySelector('.color-info p');
+                if (p) p.innerHTML = '<strong>🟡 Đã có người vào vị trí này</strong>';
+            } else {
+                yellowCard.classList.remove('occupied');
+                const p = yellowCard.querySelector('.color-info p');
+                if (p) p.textContent = 'Người chơi 2 (Phím điều khiển)';
+            }
+
+            // Player 3 (Blue)
+            if (occupiedRoles.includes(3)) {
+                blueCard.classList.add('occupied');
+                const p = blueCard.querySelector('.color-info p');
+                if (p) p.innerHTML = '<strong>🔵 Đã có người vào vị trí này</strong>';
+            } else {
+                blueCard.classList.remove('occupied');
+                const p = blueCard.querySelector('.color-info p');
+                if (p) p.textContent = 'Người chơi 3 (Phím điều khiển)';
+            }
+        }
+
+        function showRoomExpiredScreen() {
+            document.getElementById("errorTitle").textContent = "PHÒNG KHÔNG HOẠT ĐỘNG";
+            document.getElementById("errorSubtitle").innerHTML = "Phòng chơi này đã hết hạn hoặc không tồn tại (Trọng tài có thể đã tạo phòng mới).<br>Vui lòng liên hệ Trọng tài để nhận liên kết phòng mới.";
+            document.getElementById("errorScreen").style.display = "flex";
+            document.getElementById("chooseColorScreen").style.display = "none";
+            document.getElementById("buzzerScreen").style.display = "none";
+            if (sse) {
+                try { sse.close(); } catch(e){}
+            }
+        }
 
         // Verify Room ID existence
         if (!roomId) {
@@ -480,35 +595,40 @@
             document.getElementById("chooseColorScreen").style.display = "none";
             document.getElementById("buzzerScreen").style.display = "none";
         } else {
-            // Check if user has already chosen a color for this room in sessionStorage
-            const savedRole = sessionStorage.getItem('player_role_' + roomId);
-            if (savedRole) {
-                initBuzzer(parseInt(savedRole));
-            } else {
-                document.getElementById("chooseColorScreen").style.display = "flex";
-                document.getElementById("buzzerScreen").style.display = "none";
-            }
+            // Generate unique clientId per session/tab for presence tracking
+            clientId = sessionStorage.getItem('player_clientId_' + roomId) || Math.random().toString(36).slice(2, 10);
+            sessionStorage.setItem('player_clientId_' + roomId, clientId);
+
+            // Reload link returns to initial screen to choose color again - no sessionStorage persistence
+            document.getElementById("chooseColorScreen").style.display = "flex";
+            document.getElementById("buzzerScreen").style.display = "none";
+            connectSSE(0);
         }
 
         function selectRole(roleNum) {
-            sessionStorage.setItem('player_role_' + roomId, roleNum);
-            initBuzzer(roleNum);
-        }
-
-        function changeRole() {
-            sessionStorage.removeItem('player_role_' + roomId);
-            
-            // Clean up network connections before recreating
-            if (channel) {
-                try { channel.unsubscribe(); } catch(e){}
-            }
-            if (localBC) {
-                try { localBC.close(); } catch(e){}
-            }
-            
-            document.body.className = "";
-            document.getElementById("chooseColorScreen").style.display = "flex";
-            document.getElementById("buzzerScreen").style.display = "none";
+            // Perform live status check with the server before entering
+            fetch(`/api/check-role?roomid=${roomId}&role=${roleNum}&clientId=${clientId}`)
+                .then(res => {
+                    if (res.status === 403) {
+                        showRoomExpiredScreen();
+                        throw new Error("Room is inactive");
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.occupied) {
+                        alert("⚠️ Vị trí này đã có người chọn rồi! Vui lòng chọn màu khác.");
+                    } else {
+                        initBuzzer(roleNum);
+                    }
+                })
+                .catch((err) => {
+                    console.error("Fetch check-role failed:", err);
+                    if (err.message !== "Room is inactive") {
+                        // Fallback to allow connection if server check endpoint has transient network issues
+                        initBuzzer(roleNum);
+                    }
+                });
         }
 
         function initBuzzer(roleNum) {
@@ -552,26 +672,8 @@
                 console.error("Supabase failed to initialize:", e);
             }
 
-            // 2. Initialize Server-Sent Events (SSE) with room filtering
-            try {
-                if (typeof EventSource !== "undefined") {
-                    const sse = new EventSource('/api/events?roomid=' + roomId);
-                    sse.onmessage = (e) => {
-                        try {
-                            const msg = JSON.parse(e.data);
-                            if (!msg) return;
-                            // Check roomid inside message if present
-                            if (msg.roomid && msg.roomid !== roomId) return;
-
-                            if (msg.event === 'player-buzz' && msg.payload && msg.payload.playerNum) {
-                                handleIncomingBuzz(msg.payload.playerNum);
-                            } else if (msg.event === 'control-to-display' && msg.payload) {
-                                handleIncomingControl(msg.payload);
-                            }
-                        } catch(err){}
-                    };
-                }
-            } catch(e) {}
+            // 2. Initialize Server-Sent Events (SSE) with room filtering & client occupancy payload
+            connectSSE(PLAYER_NUM);
 
             // 3. Local BroadcastChannel
             try {
