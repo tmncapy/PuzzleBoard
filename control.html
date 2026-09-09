@@ -180,6 +180,39 @@
             resize: vertical;
         }
 
+        .btn-preset-speed {
+            background: #34495e;
+            color: #ecf0f1;
+            border: 1px solid #7f8c8d;
+            border-radius: 4px;
+            padding: 3px 6px;
+            font-size: 10.5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-preset-speed:hover, .btn-preset-speed.active {
+            background: #f1c40f;
+            color: #000;
+            border-color: #f39c12;
+        }
+        .btn-preset-speed-r30 {
+            background: #2c3e50;
+            color: #ecf0f1;
+            border: 1px solid #f1c40f;
+            border-radius: 4px;
+            padding: 3px 6px;
+            font-size: 10.5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-preset-speed-r30:hover, .btn-preset-speed-r30.active {
+            background: #2ecc71;
+            color: #000;
+            border-color: #27ae60;
+        }
+
         /* Trạng thái đệm popup alert */
         .custom-popup-overlay {
             display: none;
@@ -300,7 +333,28 @@
                     <button class="btn-tossup" id="pauseBtn" onclick="clickPauseTossup()">PAUSE</button>
                     <button class="btn-tossup" id="playBtn" onclick="clickPlayTossup()">PLAY</button>
                 </div>
-                <button class="btn-solve" id="solveBtn" style="width: 100%; padding: 10px 0;" onclick="solveTossUp()">GIẢI ĐÁP TOSS-UP (SOLVE)</button>
+                <button class="btn-solve" id="solveBtn" style="width: 100%; padding: 10px 0; margin-bottom: 8px;" onclick="solveTossUp()">GIẢI ĐÁP TOSS-UP (SOLVE)</button>
+
+                <!-- Cài đặt tốc độ lật chữ Toss-Up -->
+                <div style="background: rgba(0,0,0,0.3); padding: 8px 10px; border-radius: 6px; border: 1px solid #34495e;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-size: 11px; color: #bdc3c7; font-weight: bold;">⚡ TỐC ĐỘ LẬT CHỮ (TOSS-UP):</span>
+                        <span id="tossupSpeedDisplay" style="font-size: 12px; color: #f1c40f; font-weight: bold; font-family: monospace;">Ngẫu nhiên (0.8s - 1.3s)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <input type="range" id="tossupSpeedRange" min="0.1" max="2.0" step="0.05" value="0.8" oninput="updateTossupSpeed(this.value)" style="flex: 1; cursor: pointer;">
+                        <input type="number" id="tossupSpeedInput" min="0.05" max="5.0" step="0.05" value="0.80" onchange="updateTossupSpeed(this.value)" style="width: 55px; background: #1a1a1a; color: #fff; border: 1px solid #7f8c8d; border-radius: 4px; padding: 2px 4px; font-size: 11px; text-align: center;">
+                        <span style="font-size: 11px; color: #bdc3c7;">giây</span>
+                    </div>
+                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                        <button type="button" data-val="0.2" onclick="updateTossupSpeed(0.2)" class="btn-preset-speed">0.2s</button>
+                        <button type="button" data-val="0.4" onclick="updateTossupSpeed(0.4)" class="btn-preset-speed">0.4s</button>
+                        <button type="button" data-val="0.6" onclick="updateTossupSpeed(0.6)" class="btn-preset-speed">0.6s</button>
+                        <button type="button" data-val="0.8" onclick="updateTossupSpeed(0.8)" class="btn-preset-speed">0.8s</button>
+                        <button type="button" data-val="1.0" onclick="updateTossupSpeed(1.0)" class="btn-preset-speed">1.0s</button>
+                        <button type="button" data-val="random" onclick="updateTossupSpeed('random')" class="btn-preset-speed active">Ngẫu nhiên</button>
+                    </div>
+                </div>
             </div>
 
             <!-- Section 5B: Vòng 30s Tổ Hợp Đề 13 Liên Hoàn (3 Người Chơi) -->
@@ -319,6 +373,27 @@
                     </div>
                     <div style="width: 100%; background: #333; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 6px;">
                         <div id="round30ProgressBar" style="width: 100%; height: 100%; background: linear-gradient(90deg, #2ecc71, #f1c40f); transition: width 0.1s linear;"></div>
+                    </div>
+                </div>
+
+                <!-- Cài đặt tốc độ lật chữ Đề 13 / Vòng 30s -->
+                <div style="background: rgba(0,0,0,0.4); padding: 8px 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid rgba(241, 196, 15, 0.4);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-size: 11px; color: #f1c40f; font-weight: bold;">⚡ TỐC ĐỘ LẬT CHỮ ĐỀ 13 (VÒNG 30S):</span>
+                        <span id="round30SpeedDisplay" style="font-size: 12px; color: #2ecc71; font-weight: bold; font-family: monospace;">0.40s / chữ</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <input type="range" id="round30SpeedRange" min="0.1" max="1.5" step="0.05" value="0.4" oninput="updateRound30Speed(this.value)" style="flex: 1; cursor: pointer;">
+                        <input type="number" id="round30SpeedInput" min="0.05" max="3.0" step="0.05" value="0.40" onchange="updateRound30Speed(this.value)" style="width: 55px; background: #1a1a1a; color: #fff; border: 1px solid #f1c40f; border-radius: 4px; padding: 2px 4px; font-size: 11px; text-align: center;">
+                        <span style="font-size: 11px; color: #ddd;">giây</span>
+                    </div>
+                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                        <button type="button" data-val="0.2" onclick="updateRound30Speed(0.2)" class="btn-preset-speed-r30">0.2s</button>
+                        <button type="button" data-val="0.3" onclick="updateRound30Speed(0.3)" class="btn-preset-speed-r30">0.3s</button>
+                        <button type="button" data-val="0.4" onclick="updateRound30Speed(0.4)" class="btn-preset-speed-r30 active">0.4s (Chuẩn)</button>
+                        <button type="button" data-val="0.5" onclick="updateRound30Speed(0.5)" class="btn-preset-speed-r30">0.5s</button>
+                        <button type="button" data-val="0.6" onclick="updateRound30Speed(0.6)" class="btn-preset-speed-r30">0.6s</button>
+                        <button type="button" data-val="0.8" onclick="updateRound30Speed(0.8)" class="btn-preset-speed-r30">0.8s</button>
                     </div>
                 </div>
 
@@ -590,6 +665,90 @@
         let currentControlQuizIndex = -1;
         let controlActiveQuizLetters = []; 
         let controlRevealedStates = new Array(52).fill(false); 
+
+        // --- CÀI ĐẶT TỐC ĐỘ LẬT CHỮ TÙY CHỈNH ---
+        let tossupSpeedSetting = localStorage.getItem('tossup_speed_setting_' + roomId) || 'random';
+        let round30SpeedSetting = parseFloat(localStorage.getItem('round30_speed_setting_' + roomId)) || 0.4;
+
+        function updateTossupSpeed(val) {
+            if (val === 'random') {
+                tossupSpeedSetting = 'random';
+                localStorage.setItem('tossup_speed_setting_' + roomId, 'random');
+            } else {
+                const num = Math.max(0.05, Math.min(5.0, parseFloat(val) || 0.8));
+                tossupSpeedSetting = num;
+                localStorage.setItem('tossup_speed_setting_' + roomId, num.toString());
+            }
+            renderTossupSpeedUI();
+        }
+
+        function updateRound30Speed(val) {
+            const num = Math.max(0.05, Math.min(3.0, parseFloat(val) || 0.4));
+            round30SpeedSetting = num;
+            localStorage.setItem('round30_speed_setting_' + roomId, num.toString());
+            renderRound30SpeedUI();
+        }
+
+        function renderTossupSpeedUI() {
+            const display = document.getElementById("tossupSpeedDisplay");
+            const range = document.getElementById("tossupSpeedRange");
+            const input = document.getElementById("tossupSpeedInput");
+            if (!display) return;
+
+            if (tossupSpeedSetting === 'random') {
+                display.textContent = "Ngẫu nhiên (0.8s - 1.3s)";
+                if (input) input.value = "0.80";
+                if (range) range.value = 0.8;
+            } else {
+                const num = parseFloat(tossupSpeedSetting);
+                display.textContent = num.toFixed(2) + "s / chữ";
+                if (input) input.value = num.toFixed(2);
+                if (range) range.value = num;
+            }
+
+            document.querySelectorAll('.btn-preset-speed').forEach(btn => {
+                const btnVal = btn.getAttribute('data-val');
+                if (btnVal === String(tossupSpeedSetting) || (btnVal !== 'random' && parseFloat(btnVal) === parseFloat(Number(tossupSpeedSetting).toFixed(2)))) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        function renderRound30SpeedUI() {
+            const display = document.getElementById("round30SpeedDisplay");
+            const range = document.getElementById("round30SpeedRange");
+            const input = document.getElementById("round30SpeedInput");
+            if (!display) return;
+
+            const num = parseFloat(round30SpeedSetting) || 0.4;
+            display.textContent = num.toFixed(2) + "s / chữ";
+            if (input) input.value = num.toFixed(2);
+            if (range) range.value = num;
+
+            document.querySelectorAll('.btn-preset-speed-r30').forEach(btn => {
+                const btnVal = btn.getAttribute('data-val');
+                if (btnVal && parseFloat(btnVal) === parseFloat(num.toFixed(2))) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        function getLetterRevealDelay() {
+            if (currentControlQuizIndex === 12 || isRound30Running) {
+                const parsed = parseFloat(round30SpeedSetting);
+                return (!isNaN(parsed) && parsed > 0) ? Math.round(parsed * 1000) : 400;
+            } else {
+                if (tossupSpeedSetting === 'random') {
+                    return Math.random() * (1300 - 800) + 800;
+                }
+                const parsed = parseFloat(tossupSpeedSetting);
+                return (!isNaN(parsed) && parsed > 0) ? Math.round(parsed * 1000) : Math.random() * (1300 - 800) + 800;
+            }
+        } 
 
         function updateScoreboard() {
             const data = {
@@ -936,7 +1095,7 @@
             if (isRound30Running && round30Seconds > 0) {
                 isTossupRunning = true;
                 clearTimeout(tossupTimeout);
-                tossupTimeout = setTimeout(controlRevealRandomCell, 400);
+                tossupTimeout = setTimeout(controlRevealRandomCell, getLetterRevealDelay());
             }
         }
 
@@ -988,7 +1147,7 @@
             }, 100);
             
             // Start random letter reveal after a brief moment to show all white boxes first
-            tossupTimeout = setTimeout(controlRevealRandomCell, 400);
+            tossupTimeout = setTimeout(controlRevealRandomCell, getLetterRevealDelay());
         }
 
         function updateRound30TimerUI() {
@@ -1364,6 +1523,10 @@
             document.getElementById("audienceLinkBtn").href = `index.html`;
             document.getElementById("playerBtnLink").href = `player.html?roomid=${roomId}`;
 
+            // Initialize custom speed settings UI
+            renderTossupSpeedUI();
+            renderRound30SpeedUI();
+
             const loadDefaultFile = (filename) => {
                 fetch(filename)
                     .then(res => {
@@ -1492,10 +1655,8 @@
             controlRevealedStates[randomIndex] = true;
             sendCmd('TOSSUP_REVEAL_CELL', { absoluteIndex: randomIndex + 1 });
 
-            // Tốc độ ra chữ cái:
-            // Đề 13 (Vòng 30s liên hoàn): mỗi chữ cái hiện lên cách nhau đúng 0.4s (400ms)
-            // Các đề còn lại: mỗi chữ cái hiện lên cách nhau từ 0.8s - 1.3s
-            const delay = (currentControlQuizIndex === 12 || isRound30Running) ? 400 : (Math.random() * (1300 - 800) + 800);
+            // Tốc độ ra chữ cái được tùy chỉnh theo cài đặt của người điều khiển
+            const delay = getLetterRevealDelay();
             tossupTimeout = setTimeout(controlRevealRandomCell, delay);
         }
 
