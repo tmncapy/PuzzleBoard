@@ -228,28 +228,9 @@
                 <a id="playerBtnLink" href="#" target="_blank" style="background: #34495e; color: #fff; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; text-decoration: none; display: inline-flex; align-items: center;">🔔 Mở Player</a>
             </div>
 
-            <button onclick="togglePreview()" style="background: #27ae60; color: #fff; padding: 8px 14px; border: none; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-                👁️ Live Preview
-            </button>
             <a id="audienceLinkBtn" href="index.html" target="_blank" style="background: #2980b9; color: #fff; padding: 8px 14px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
                 📺 Màn Hình Khán Giả
             </a>
-        </div>
-    </div>
-
-    <!-- Embedded Audience Screen Preview Container -->
-    <div id="previewSection" style="display: none; margin-bottom: 15px; background: #000; padding: 10px; border-radius: 10px; border: 2px solid #2980b9; box-shadow: 0 4px 15px rgba(0,0,0,0.6);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; color: #5ac8fa; font-weight: bold; font-size: 13px; flex-wrap: wrap; gap: 8px;">
-            <span style="display: flex; align-items: center; gap: 8px;">
-                📺 MÀN HÌNH KHÁN GIẢ (XEM TRỰC TIẾP TRÊN BẢNG ĐIỀU KHIỂN)
-                <button id="muteToggleBtn" onclick="togglePreviewAudio()" style="background: #e74c3c; color: #fff; padding: 4px 10px; border: none; border-radius: 4px; font-weight: bold; font-size: 11px; cursor: pointer;">
-                    🔇 Âm thanh Xem thử: ĐÃ TẮT
-                </button>
-            </span>
-            <span style="font-size: 11px; color: #aaa;">Mọi thao tác bên dưới sẽ tác động trực tiếp lên ô chữ này và tab khán giả riêng biệt!</span>
-        </div>
-        <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden; border-radius: 6px;">
-            <iframe id="audiencePreviewFrame" name="audiencePreviewFrame" src="index.html?muted=1" style="position: absolute; top:0; left:0; width:100%; height:100%; border:none; background: #000;"></iframe>
         </div>
     </div>
 
@@ -349,7 +330,7 @@
                             ✅ ĐÚNG: +1000 ĐIỂM
                         </button>
                         <button onclick="handleRound30Result(false)" style="background: #e74c3c; color: white; padding: 8px 12px; font-size: 12px; border-radius: 4px; font-weight: bold; flex: 1; cursor: pointer;">
-                            ❌ SAI: KHÔNG ĐIỂM (TIẾP TỤC)
+                            ❌ SAI: HIỆN HẾT CHỮ
                         </button>
                     </div>
                 </div>
@@ -606,6 +587,7 @@
 
         let tossupTimeout = null;
         let isTossupRunning = false;
+        let currentControlQuizIndex = -1;
         let controlActiveQuizLetters = []; 
         let controlRevealedStates = new Array(52).fill(false); 
 
@@ -634,6 +616,7 @@
             if (!payload) return;
             const { type, data } = payload;
             if (type === "UPDATE_QUIZ_ACTIVE") {
+                currentControlQuizIndex = data;
                 for (let i = 1; i <= 13; i++) {
                     const btn = document.getElementById(`btnQuiz${i}`);
                     if (btn) btn.classList.remove("active");
@@ -683,34 +666,6 @@
             if (type === "FILL_POSITIONS") {
                 document.getElementById("numCells").value = data.length;
                 generateChildTextBoxes(data);
-            }
-        }
-
-        function togglePreview() {
-            const sec = document.getElementById("previewSection");
-            if (sec.style.display === "none") {
-                sec.style.display = "block";
-            } else {
-                sec.style.display = "none";
-            }
-        }
-
-        let previewMuted = true;
-        function togglePreviewAudio() {
-            previewMuted = !previewMuted;
-            const btn = document.getElementById("muteToggleBtn");
-            if (btn) {
-                if (previewMuted) {
-                    btn.style.background = "#e74c3c";
-                    btn.textContent = "🔇 Âm thanh Xem thử: ĐÃ TẮT";
-                } else {
-                    btn.style.background = "#27ae60";
-                    btn.textContent = "🔊 Âm thanh Xem thử: ĐÃ BẬT";
-                }
-            }
-            const frame = document.getElementById("audiencePreviewFrame");
-            if (frame && frame.contentWindow) {
-                frame.contentWindow.postMessage({ type: 'SET_MUTE_STATE', muted: previewMuted }, "*");
             }
         }
 
@@ -981,7 +936,7 @@
             if (isRound30Running && round30Seconds > 0) {
                 isTossupRunning = true;
                 clearTimeout(tossupTimeout);
-                tossupTimeout = setTimeout(controlRevealRandomCell, 500);
+                tossupTimeout = setTimeout(controlRevealRandomCell, 600);
             }
         }
 
@@ -1033,7 +988,7 @@
             }, 100);
             
             // Start random letter reveal after a brief moment to show all white boxes first
-            tossupTimeout = setTimeout(controlRevealRandomCell, 500);
+            tossupTimeout = setTimeout(controlRevealRandomCell, 600);
         }
 
         function updateRound30TimerUI() {
@@ -1158,12 +1113,8 @@
                 sendCmd('PLAY_SFX', 'wrong.mp3');
                 sendCmd('PLAY_SFX', 'FlashRed.mp3');
                 clearControlBuzzer();
-                // Nếu đồng hồ 30s vẫn đang chạy, tiếp tục lật chữ cái ngẫu nhiên
-                if (isRound30Running && round30Seconds > 0) {
-                    isTossupRunning = true;
-                    clearTimeout(tossupTimeout);
-                    tossupTimeout = setTimeout(controlRevealRandomCell, 200);
-                }
+                // Lập tức lật mở toàn bộ ô chữ hiện tại
+                revealRound30Answer();
             }
         }
 
@@ -1410,12 +1361,8 @@
         window.addEventListener('DOMContentLoaded', () => {
             // Load and display room-specific UI
             document.getElementById("roomDisplayVal").textContent = roomId;
-            document.getElementById("audienceLinkBtn").href = `index.html?roomid=${roomId}`;
+            document.getElementById("audienceLinkBtn").href = `index.html`;
             document.getElementById("playerBtnLink").href = `player.html?roomid=${roomId}`;
-            const previewFrame = document.getElementById("audiencePreviewFrame");
-            if (previewFrame) {
-                previewFrame.src = `index.html?roomid=${roomId}&muted=1`;
-            }
 
             const loadDefaultFile = (filename) => {
                 fetch(filename)
@@ -1477,6 +1424,7 @@
         }
 
         function loadQuizFromExcel(quizIndex) {
+            currentControlQuizIndex = quizIndex;
             // Update active state of De buttons
             for (let i = 1; i <= 13; i++) {
                 const btn = document.getElementById(`btnQuiz${i}`);
@@ -1543,7 +1491,12 @@
             const randomIndex = hiddenIndices[Math.floor(Math.random() * hiddenIndices.length)];
             controlRevealedStates[randomIndex] = true;
             sendCmd('TOSSUP_REVEAL_CELL', { absoluteIndex: randomIndex + 1 });
-            tossupTimeout = setTimeout(controlRevealRandomCell, Math.random() * (1300 - 800) + 800);
+
+            // Tốc độ ra chữ cái:
+            // Đề 13 (Vòng 30s liên hoàn): mỗi chữ cái hiện lên cách nhau đúng 0.6s (600ms)
+            // Các đề còn lại: mỗi chữ cái hiện lên cách nhau từ 0.8s - 1.3s
+            const delay = (currentControlQuizIndex === 12 || isRound30Running) ? 600 : (Math.random() * (1300 - 800) + 800);
+            tossupTimeout = setTimeout(controlRevealRandomCell, delay);
         }
 
         function clickStartTossup() {
@@ -1648,15 +1601,11 @@
                 localStorage.setItem('control-to-display-msg_' + roomId, JSON.stringify(msgObj));
             } catch (e) {}
 
-            // 5. PostMessage for preview iframe and parent windows
+            // 5. PostMessage for parent windows and openers
             try {
                 window.postMessage(msgObj, "*");
                 if (window.opener) window.opener.postMessage(msgObj, "*");
                 if (window.parent && window.parent !== window) window.parent.postMessage(msgObj, "*");
-                const previewFrame = document.getElementById("audiencePreviewFrame");
-                if (previewFrame && previewFrame.contentWindow) {
-                    previewFrame.contentWindow.postMessage(msgObj, "*");
-                }
             } catch (e) {}
         }
 
