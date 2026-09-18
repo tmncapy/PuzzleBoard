@@ -945,11 +945,10 @@
                 r30Banner.style.display = "block";
             }
             
-            // In regular toss-up, stop letter reveal. In Round 30, timer continues running!
-            if (!isRound30Running) {
-                isTossupRunning = false;
-                clearTimeout(tossupTimeout);
-            }
+            // Dù ở vòng Toss-up thường hay Đề 13 (Vòng 30s):
+            // Khi 1 thí sinh bấm chuông thì ô chữ lập tức dừng hiện chữ cái, không dừng bất kỳ nhạc nào!
+            isTossupRunning = false;
+            clearTimeout(tossupTimeout);
             
             // Send command to display to show the winner highlight and play ding
             sendCmd('PLAYER_BUZZ_WIN', { playerNum: playerNum });
@@ -957,7 +956,10 @@
         
         function clearControlBuzzer() {
             activeBuzzerWinner = null;
-            try { localStorage.removeItem('tossup-buzzer-winner_' + roomId); } catch(e){}
+            try {
+                localStorage.removeItem('tossup-buzzer-winner');
+                if (roomId) localStorage.removeItem('tossup-buzzer-winner_' + roomId);
+            } catch(e){}
             const banner = document.getElementById("buzzerStatusBanner");
             if (banner) banner.style.display = "none";
             const r30Banner = document.getElementById("round30BuzzerBanner");
@@ -1257,8 +1259,12 @@
                 sendCmd('PLAY_SFX', 'wrong.mp3');
                 sendCmd('PLAY_SFX', 'FlashRed.mp3');
                 clearControlBuzzer();
-                // Lập tức lật mở toàn bộ ô chữ hiện tại
-                revealRound30Answer();
+                // Nếu đồng hồ 30s vẫn đang chạy và còn thời gian, tiếp tục lật chữ cái ngẫu nhiên
+                if (isRound30Running && round30Seconds > 0) {
+                    isTossupRunning = true;
+                    clearTimeout(tossupTimeout);
+                    tossupTimeout = setTimeout(controlRevealRandomCell, getLetterRevealDelay());
+                }
             }
         }
 

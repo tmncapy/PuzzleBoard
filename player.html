@@ -738,8 +738,9 @@
                 return;
             }
 
-            // Write to localStorage with room prefix
-            localStorage.setItem('tossup-buzzer-winner_' + roomId, PLAYER_NUM);
+            // Write to localStorage
+            localStorage.setItem('tossup-buzzer-winner', PLAYER_NUM);
+            if (roomId) localStorage.setItem('tossup-buzzer-winner_' + roomId, PLAYER_NUM);
 
             if (navigator.vibrate) {
                 navigator.vibrate([180]);
@@ -776,8 +777,12 @@
 
             // 4. LocalStorage
             try {
-                localStorage.setItem('player-buzz-msg_' + roomId, JSON.stringify(msgObj));
-                localStorage.removeItem('player-buzz-msg_' + roomId);
+                localStorage.setItem('player-buzz-msg', JSON.stringify(msgObj));
+                localStorage.removeItem('player-buzz-msg');
+                if (roomId) {
+                    localStorage.setItem('player-buzz-msg_' + roomId, JSON.stringify(msgObj));
+                    localStorage.removeItem('player-buzz-msg_' + roomId);
+                }
             } catch(e){}
 
             // 5. Post message
