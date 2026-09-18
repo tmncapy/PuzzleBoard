@@ -518,7 +518,9 @@
     </div>
 
     <script>
-        // API URL resolver supporting custom subpaths (e.g. /PuzzleBoard-main) and any host
+        // Global API URL resolver with subpath support
+        let isServerApiAvailable = null;
+
         function getApiUrl(endpoint) {
             const clean = endpoint.replace(/^\/+/, '');
             try {
@@ -527,6 +529,22 @@
                 return '/' + clean;
             }
         }
+
+        function probePlayerApi() {
+            if (isServerApiAvailable !== null) return;
+            fetch(getApiUrl('api/get-active-room'))
+                .then(r => {
+                    if (r.ok && r.status === 200) {
+                        isServerApiAvailable = true;
+                    } else {
+                        isServerApiAvailable = false;
+                    }
+                })
+                .catch(() => {
+                    isServerApiAvailable = false;
+                });
+        }
+        probePlayerApi();
 
         const SUPABASE_URL = "https://tukabyhjmcyptuwmwedp.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OX0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
@@ -541,7 +559,9 @@
         let isBuzzerOpen = false;
         let supabaseClient = null;
         let channel = null;
+        let globalChannel = null;
         let localBC = null;
+        let roomBC = null;
         let sse = null;
         let clientId = "";
 
@@ -592,112 +612,105 @@
             const errEl = document.getElementById("credentialsErrorMsg");
             if (errEl) errEl.style.display = "none";
 
-            fetch(getApiUrl(`api/verify-room-pass?roomid=${encodeURIComponent(rId)}&pass=${encodeURIComponent(pass)}`))
-                .then(res => res.json())
-                .then(data => {
-                    if (data.requiresPass && !data.valid) {
-                        showCredentialsModal(rId, "Mật khẩu phòng (Pass) không chính xác!");
-                        return;
-                    }
+            roomId = rId;
+            roomPass = pass;
+            const savedOpen = localStorage.getItem('tossup-buzzer-open_' + roomId);
+            isBuzzerOpen = (savedOpen === '1');
 
-                    // Success! Update variables and proceed
-                    roomId = rId;
-                    roomPass = pass;
-                    
-                    if (data && data.buzzerOpen !== undefined) {
-                        isBuzzerOpen = !!data.buzzerOpen;
-                    } else {
-                        const savedOpen = localStorage.getItem('tossup-buzzer-open_' + roomId);
-                        isBuzzerOpen = (savedOpen === '1');
-                    }
+            clientId = sessionStorage.getItem('player_clientId_' + roomId) || Math.random().toString(36).slice(2, 10);
+            sessionStorage.setItem('player_clientId_' + roomId, clientId);
 
-                    const credScreen = document.getElementById("credentialsScreen");
-                    if (credScreen) credScreen.style.display = "none";
-                    document.getElementById("errorScreen").style.display = "none";
+            const credScreen = document.getElementById("credentialsScreen");
+            if (credScreen) credScreen.style.display = "none";
+            document.getElementById("errorScreen").style.display = "none";
 
-                    // Generate unique clientId per session/tab for presence tracking
-                    clientId = sessionStorage.getItem('player_clientId_' + roomId) || Math.random().toString(36).slice(2, 10);
-                    sessionStorage.setItem('player_clientId_' + roomId, clientId);
+            initPlayerSupabase();
 
-                    if (roleParam >= 1 && roleParam <= 3) {
-                        connectSSE(roleParam);
-                        selectRole(roleParam);
-                    } else {
-                        document.getElementById("chooseColorScreen").style.display = "flex";
-                        document.getElementById("buzzerScreen").style.display = "none";
-                        connectSSE(0);
-                    }
-                })
-                .catch(err => {
-                    console.warn("Could not verify room pass via API, entering directly:", err);
-                    roomId = rId;
-                    roomPass = pass;
-                    const credScreen = document.getElementById("credentialsScreen");
-                    if (credScreen) credScreen.style.display = "none";
-                    document.getElementById("errorScreen").style.display = "none";
-                    if (roleParam >= 1 && roleParam <= 3) {
-                        connectSSE(roleParam);
-                        selectRole(roleParam);
-                    } else {
-                        document.getElementById("chooseColorScreen").style.display = "flex";
-                        document.getElementById("buzzerScreen").style.display = "none";
-                        connectSSE(0);
-                    }
-                });
+            if (roleParam >= 1 && roleParam <= 3) {
+                selectRole(roleParam);
+            } else {
+                document.getElementById("chooseColorScreen").style.display = "flex";
+                document.getElementById("buzzerScreen").style.display = "none";
+            }
+
+            if (isServerApiAvailable === true) {
+                fetch(getApiUrl(`api/verify-room-pass?roomid=${encodeURIComponent(rId)}&pass=${encodeURIComponent(pass)}`))
+                    .then(res => {
+                        if (!res.ok) { isServerApiAvailable = false; return null; }
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (data && data.requiresPass && !data.valid) {
+                            showCredentialsModal(rId, "Mật khẩu phòng (Pass) không chính xác!");
+                            return;
+                        }
+                        if (data && typeof data.buzzerOpen === 'boolean') {
+                            isBuzzerOpen = data.buzzerOpen;
+                            syncBuzzerState();
+                        }
+                    })
+                    .catch(() => {
+                        isServerApiAvailable = false;
+                    });
+            }
         }
 
         let playerSSEReconnectTimer = null;
+        let playerSSEFailCount = 0;
         function updateConnectionStatusUI(connected) {
             const el = document.getElementById("roomLiveStatusBadge");
             if (el) {
                 el.style.display = "inline-flex";
-                el.style.background = connected ? "#15803d" : "#b91c1c";
-                el.innerHTML = connected ? `🟢 ĐÃ KẾT NỐI (Phòng: ${roomId})` : `🟡 ĐANG KẾT NỐI LẠI (Phòng: ${roomId})...`;
+                el.style.background = connected ? "#15803d" : "#0284c7";
+                el.innerHTML = connected ? `🟢 ĐÃ KẾT NỐI (Phòng: ${roomId})` : `⚡ SUPABASE CLOUD (Phòng: ${roomId})`;
             }
         }
 
         // Function to establish a real-time SSE connection with specific room and selected role
         function connectSSE(roleNum = 0) {
+            if (typeof EventSource === "undefined" || isServerApiAvailable !== true) {
+                updateConnectionStatusUI(false);
+                return;
+            }
             if (sse) {
                 try { sse.close(); } catch(e){}
                 sse = null;
             }
+            if (playerSSEFailCount > 2) return;
             try {
-                if (typeof EventSource !== "undefined") {
-                    sse = new EventSource(getApiUrl(`api/events?roomid=${encodeURIComponent(roomId)}&clientId=${encodeURIComponent(clientId)}&role=${roleNum}`));
-                    sse.onmessage = (e) => {
-                        try {
-                            const msg = JSON.parse(e.data);
-                            if (!msg) return;
-                            updateConnectionStatusUI(true);
+                sse = new EventSource(getApiUrl(`api/events?roomid=${encodeURIComponent(roomId)}&clientId=${encodeURIComponent(clientId)}&role=${roleNum}`));
+                sse.onopen = () => {
+                    playerSSEFailCount = 0;
+                    updateConnectionStatusUI(true);
+                };
+                sse.onmessage = (e) => {
+                    try {
+                        const msg = JSON.parse(e.data);
+                        if (!msg) return;
+                        updateConnectionStatusUI(true);
 
-                            if (msg.event === 'buzzer-state-update') {
-                                isBuzzerOpen = !!msg.isOpen;
-                                try {
-                                    localStorage.setItem('tossup-buzzer-open_' + roomId, isBuzzerOpen ? '1' : '0');
-                                } catch(e){}
-                                syncBuzzerState();
-                            } else if (msg.event === 'roles-update' && msg.occupiedRoles) {
-                                updateOccupiedColorsUI(msg.occupiedRoles);
-                            } else if (msg.event === 'player-buzz' && msg.payload && msg.payload.playerNum) {
-                                handleIncomingBuzz(msg.payload.playerNum);
-                            } else if (msg.event === 'control-to-display' && msg.payload) {
-                                handleIncomingControl(msg.payload);
-                            }
-                        } catch(err){}
-                    };
-                    sse.onerror = () => {
-                        try { sse.close(); } catch(e){}
-                        sse = null;
-                        updateConnectionStatusUI(false);
-                        if (!playerSSEReconnectTimer) {
-                            playerSSEReconnectTimer = setTimeout(() => {
-                                playerSSEReconnectTimer = null;
-                                connectSSE(PLAYER_NUM || roleNum);
-                            }, 2500);
+                        if (msg.event === 'buzzer-state-update') {
+                            isBuzzerOpen = !!msg.isOpen;
+                            try {
+                                localStorage.setItem('tossup-buzzer-open_' + roomId, isBuzzerOpen ? '1' : '0');
+                            } catch(e){}
+                            syncBuzzerState();
+                        } else if (msg.event === 'roles-update' && msg.occupiedRoles) {
+                            updateOccupiedColorsUI(msg.occupiedRoles);
+                        } else if (msg.event === 'player-buzz' && msg.payload && msg.payload.playerNum) {
+                            handleIncomingBuzz(msg.payload.playerNum);
+                        } else if (msg.event === 'control-to-display' && msg.payload) {
+                            handleIncomingControl(msg.payload);
                         }
-                    };
-                }
+                    } catch(err){}
+                };
+                sse.onerror = () => {
+                    try { sse.close(); } catch(e){}
+                    sse = null;
+                    playerSSEFailCount++;
+                    isServerApiAvailable = false;
+                    updateConnectionStatusUI(false);
+                };
             } catch(e) {}
         }
 
@@ -710,51 +723,143 @@
             if (!redCard || !yellowCard || !blueCard) return;
 
             // Player 1 (Red)
-            if (occupiedRoles.includes(1)) {
+            if (occupiedRoles.includes(1) || occupiedRoles.includes('1') || occupiedRoles.includes('P1')) {
                 redCard.classList.add('occupied');
             } else {
                 redCard.classList.remove('occupied');
             }
 
             // Player 2 (Yellow)
-            if (occupiedRoles.includes(2)) {
+            if (occupiedRoles.includes(2) || occupiedRoles.includes('2') || occupiedRoles.includes('P2')) {
                 yellowCard.classList.add('occupied');
             } else {
                 yellowCard.classList.remove('occupied');
             }
 
             // Player 3 (Blue)
-            if (occupiedRoles.includes(3)) {
+            if (occupiedRoles.includes(3) || occupiedRoles.includes('3') || occupiedRoles.includes('P3')) {
                 blueCard.classList.add('occupied');
             } else {
                 blueCard.classList.remove('occupied');
             }
         }
 
-        function showRoomExpiredScreen() {
-            // Auto re-fetch active room instead of hard deadlock
-            fetch(getApiUrl('api/get-active-room'))
-                .then(r => r.json())
-                .then(d => {
-                    if (d && d.activeRoomId) {
-                        verifyAndConnect(d.activeRoomId, d.pass || roomPass || '');
+        function initPlayerSupabase() {
+            const roomChannelName = 'crossword_broadcast_room_' + (roomId || '123456');
+
+            // 1. Initialize Supabase Realtime (both room channel & global channel)
+            try {
+                if (typeof window.supabase !== "undefined" && window.supabase.createClient) {
+                    if (!supabaseClient) {
+                        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                     }
-                })
-                .catch(() => {});
+                    if (channel) {
+                        try { supabaseClient.removeChannel(channel); } catch(e){}
+                    }
+                    channel = supabaseClient.channel(roomChannelName, {
+                        config: { 
+                            broadcast: { ack: false, self: true },
+                            presence: { key: 'client_' + (clientId || Math.random().toString(36).slice(2,8)) }
+                        }
+                    });
+                    
+                    channel.on('broadcast', { event: 'player-buzz' }, ({ payload }) => {
+                        if (payload && payload.playerNum) {
+                            handleIncomingBuzz(payload.playerNum);
+                        }
+                    });
+                    channel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
+                        if (payload) {
+                            handleIncomingControl(payload);
+                        }
+                    });
+                    channel.on('presence', { event: 'sync' }, () => {
+                        try {
+                            const state = channel.presenceState();
+                            const occupied = [];
+                            for (const k in state) {
+                                (state[k] || []).forEach(p => {
+                                    if (p && p.playerNum) occupied.push(p.playerNum);
+                                    if (p && p.role) occupied.push(p.role);
+                                });
+                            }
+                            updateOccupiedColorsUI(occupied);
+                        } catch(e){}
+                    });
+                    
+                    channel.subscribe(async (status) => {
+                        if (status === 'SUBSCRIBED') {
+                            updateConnectionStatusUI(true);
+                            if (PLAYER_NUM) {
+                                try {
+                                    await channel.track({
+                                        role: 'P' + PLAYER_NUM,
+                                        playerNum: PLAYER_NUM,
+                                        clientId: clientId,
+                                        ts: Date.now()
+                                    });
+                                } catch(e){}
+                            }
+                        }
+                    });
+
+                    if (!globalChannel) {
+                        globalChannel = supabaseClient.channel('crossword_broadcast_room', {
+                            config: { broadcast: { ack: false, self: true } }
+                        });
+                        globalChannel.on('broadcast', { event: 'player-buzz' }, ({ payload }) => {
+                            if (payload && payload.playerNum) {
+                                handleIncomingBuzz(payload.playerNum);
+                            }
+                        });
+                        globalChannel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
+                            if (payload) {
+                                handleIncomingControl(payload);
+                            }
+                        });
+                        globalChannel.subscribe();
+                    }
+                }
+            } catch (e) {
+                console.error("Supabase failed to initialize:", e);
+            }
+
+            // 3. Local BroadcastChannel
+            try {
+                if (roomBC) {
+                    try { roomBC.close(); } catch(e){}
+                }
+                roomBC = new BroadcastChannel(roomChannelName);
+                roomBC.onmessage = (event) => {
+                    if (event.data) {
+                        if (event.data.event === 'player-buzz' && event.data.payload) {
+                            handleIncomingBuzz(event.data.payload.playerNum);
+                        }
+                        if (event.data.event === 'control-to-display' && event.data.payload) {
+                            handleIncomingControl(event.data.payload);
+                        }
+                    }
+                };
+
+                if (!localBC) {
+                    localBC = new BroadcastChannel('crossword_broadcast_room');
+                    localBC.onmessage = (event) => {
+                        if (event.data) {
+                            if (event.data.event === 'player-buzz' && event.data.payload) {
+                                handleIncomingBuzz(event.data.payload.playerNum);
+                            }
+                            if (event.data.event === 'control-to-display' && event.data.payload) {
+                                handleIncomingControl(event.data.payload);
+                            }
+                        }
+                    };
+                }
+            } catch (e) {}
         }
 
-        // Verify Room ID existence on startup - auto-detect from server if not in URL
+        // Initialize connection
         if (!roomId) {
-            fetch(getApiUrl('api/get-active-room'))
-                .then(r => r.json())
-                .then(data => {
-                    const detectedRoom = (data && data.activeRoomId) ? data.activeRoomId : '123456';
-                    const detectedPass = (data && data.pass) ? data.pass : (roomPass || '8888');
-                    verifyAndConnect(detectedRoom, detectedPass);
-                })
-                .catch(() => {
-                    verifyAndConnect('123456', roomPass || '8888');
-                });
+            verifyAndConnect('123456', roomPass || '8888');
         } else {
             verifyAndConnect(roomId, roomPass);
         }
@@ -775,13 +880,18 @@
             document.getElementById("playerRoleText").textContent = roleText;
 
             // Define Isolated Room Channels
-            const channelName = 'crossword_broadcast_room_' + roomId;
+            const roomChannelName = 'crossword_broadcast_room_' + (roomId || '123456');
 
-            // 1. Initialize Supabase Realtime
+            // 1. Initialize Supabase Realtime (both room channel & global channel)
             try {
                 if (typeof window.supabase !== "undefined" && window.supabase.createClient) {
-                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                    channel = supabaseClient.channel(channelName, {
+                    if (!supabaseClient) {
+                        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    }
+                    if (channel) {
+                        try { supabaseClient.removeChannel(channel); } catch(e){}
+                    }
+                    channel = supabaseClient.channel(roomChannelName, {
                         config: { broadcast: { ack: false, self: true } }
                     });
                     
@@ -797,8 +907,25 @@
                     });
                     
                     channel.subscribe((status) => {
-                        console.log(`Supabase [${channelName}] connection status:`, status);
+                        console.log(`Supabase [${roomChannelName}] connection status:`, status);
                     });
+
+                    if (!globalChannel) {
+                        globalChannel = supabaseClient.channel('crossword_broadcast_room', {
+                            config: { broadcast: { ack: false, self: true } }
+                        });
+                        globalChannel.on('broadcast', { event: 'player-buzz' }, ({ payload }) => {
+                            if (payload && payload.playerNum) {
+                                handleIncomingBuzz(payload.playerNum);
+                            }
+                        });
+                        globalChannel.on('broadcast', { event: 'control-to-display' }, ({ payload }) => {
+                            if (payload) {
+                                handleIncomingControl(payload);
+                            }
+                        });
+                        globalChannel.subscribe();
+                    }
                 }
             } catch (e) {
                 console.error("Supabase failed to initialize:", e);
@@ -809,8 +936,11 @@
 
             // 3. Local BroadcastChannel
             try {
-                localBC = new BroadcastChannel(channelName);
-                localBC.onmessage = (event) => {
+                if (roomBC) {
+                    try { roomBC.close(); } catch(e){}
+                }
+                roomBC = new BroadcastChannel(roomChannelName);
+                roomBC.onmessage = (event) => {
                     if (event.data) {
                         if (event.data.event === 'player-buzz' && event.data.payload) {
                             handleIncomingBuzz(event.data.payload.playerNum);
@@ -820,6 +950,20 @@
                         }
                     }
                 };
+
+                if (!localBC) {
+                    localBC = new BroadcastChannel('crossword_broadcast_room');
+                    localBC.onmessage = (event) => {
+                        if (event.data) {
+                            if (event.data.event === 'player-buzz' && event.data.payload) {
+                                handleIncomingBuzz(event.data.payload.playerNum);
+                            }
+                            if (event.data.event === 'control-to-display' && event.data.payload) {
+                                handleIncomingControl(event.data.payload);
+                            }
+                        }
+                    };
+                }
             } catch (e) {}
 
             syncBuzzerState();
@@ -863,13 +1007,21 @@
             }
         }
 
-        // Continuous background state polling to guarantee sync across mobile devices / networks
+        // Polling from server only if API is verified available
+        let playerPollFails = 0;
         setInterval(() => {
-            if (!roomId) return;
+            if (!roomId || isServerApiAvailable !== true) return;
             fetch(getApiUrl('api/get-room-state?roomid=' + encodeURIComponent(roomId)))
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) {
+                        isServerApiAvailable = false;
+                        return null;
+                    }
+                    return r.json();
+                })
                 .then(data => {
-                    if (data && typeof data.buzzerOpen === 'boolean') {
+                    if (!data) return;
+                    if (typeof data.buzzerOpen === 'boolean') {
                         if (isBuzzerOpen !== data.buzzerOpen) {
                             isBuzzerOpen = data.buzzerOpen;
                             try {
@@ -888,8 +1040,10 @@
                         }
                     }
                 })
-                .catch(() => {});
-        }, 400);
+                .catch(() => {
+                    isServerApiAvailable = false;
+                });
+        }, 1500);
 
         function playLocalDing() {
             try {
@@ -955,14 +1109,24 @@
                 }).catch(() => {});
             } catch(e) {}
 
-            // 2. Send via Supabase Realtime
+            // 2. Send via Supabase Realtime (both room channel & global channel)
             if (channel) {
                 try {
                     channel.send({ type: 'broadcast', event: 'player-buzz', payload: payload });
                 } catch(e){}
             }
+            if (globalChannel) {
+                try {
+                    globalChannel.send({ type: 'broadcast', event: 'player-buzz', payload: payload });
+                } catch(e){}
+            }
 
             // 3. Local BroadcastChannel
+            if (roomBC) {
+                try {
+                    roomBC.postMessage(msgObj);
+                } catch(e){}
+            }
             if (localBC) {
                 try {
                     localBC.postMessage(msgObj);

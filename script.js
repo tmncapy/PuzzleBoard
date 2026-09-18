@@ -1,5 +1,7 @@
 // script.js
-// API URL resolver supporting custom subpaths (e.g. /PuzzleBoard-main) and any host
+// Global API URL resolver with subpath support
+let isServerApiAvailable = null;
+
 function getApiUrl(endpoint) {
     const clean = endpoint.replace(/^\/+/, '');
     try {
@@ -8,6 +10,22 @@ function getApiUrl(endpoint) {
         return '/' + clean;
     }
 }
+
+function probeScriptApi() {
+    if (isServerApiAvailable !== null) return;
+    fetch(getApiUrl('api/get-active-room'))
+        .then(r => {
+            if (r.ok && r.status === 200) {
+                isServerApiAvailable = true;
+            } else {
+                isServerApiAvailable = false;
+            }
+        })
+        .catch(() => {
+            isServerApiAvailable = false;
+        });
+}
+probeScriptApi();
 
 const globalFavicon = document.createElement('link');
 globalFavicon.rel = 'icon';
@@ -916,10 +934,14 @@ function handlePlayerBuzz(playerNum) {
     }
 }
 
-let currentActiveRoomId = urlParams.get('roomid') || null;
+let currentActiveRoomId = (typeof urlParams !== "undefined" && urlParams.get('roomid')) || localStorage.getItem('crossword_control_roomid') || '';
 let activeRoomSupabaseChannel = null;
 let activeRoomLocalBC = null;
 let activeRoomInterval = null;
+
+if (currentActiveRoomId) {
+    setupActiveRoomSync(currentActiveRoomId);
+}
 
 function setupActiveRoomSync(roomId) {
     if (!roomId) return;
@@ -1022,15 +1044,20 @@ if (channel) {
 // 2. Server-Sent Events (SSE) Listener for cross-device sync
 let displaySSE = null;
 let displaySSEReconnectTimer = null;
+let displaySSEFailCount = 0;
 function setupDisplaySSE() {
-    if (typeof EventSource === "undefined") return;
+    if (typeof EventSource === "undefined" || isServerApiAvailable !== true) return;
     if (displaySSE) {
         try { displaySSE.close(); } catch(e) {}
         displaySSE = null;
     }
+    if (displaySSEFailCount > 2) return;
     const sseUrl = getApiUrl(currentActiveRoomId ? ('api/events?roomid=' + encodeURIComponent(currentActiveRoomId)) : 'api/events');
     try {
         displaySSE = new EventSource(sseUrl);
+        displaySSE.onopen = () => {
+            displaySSEFailCount = 0;
+        };
         displaySSE.onmessage = (e) => {
             try {
                 const msg = JSON.parse(e.data);
@@ -1047,23 +1074,26 @@ function setupDisplaySSE() {
         displaySSE.onerror = () => {
             try { displaySSE.close(); } catch(e) {}
             displaySSE = null;
-            if (!displaySSEReconnectTimer) {
-                displaySSEReconnectTimer = setTimeout(() => {
-                    displaySSEReconnectTimer = null;
-                    setupDisplaySSE();
-                }, 3000);
-            }
+            displaySSEFailCount++;
+            isServerApiAvailable = false;
         };
     } catch(e) {}
 }
-setupDisplaySSE();
 
-// Fallback HTTP polling for buzzer events on display
+// Fallback HTTP polling for buzzer events on display only if API is verified available
 let lastProcessedServerBuzzTs = 0;
+let displayPollFails = 0;
 setInterval(() => {
     const rid = currentActiveRoomId || 'default';
+    if (isServerApiAvailable !== true) return;
     fetch(getApiUrl('api/get-room-state?roomid=' + encodeURIComponent(rid)))
-        .then(r => r.json())
+        .then(r => {
+            if (!r.ok) {
+                isServerApiAvailable = false;
+                return null;
+            }
+            return r.json();
+        })
         .then(data => {
             if (data && data.latestWinner && data.latestBuzzTs) {
                 if (data.latestBuzzTs > lastProcessedServerBuzzTs) {
@@ -1072,8 +1102,10 @@ setInterval(() => {
                 }
             }
         })
-        .catch(() => {});
-}, 300);
+        .catch(() => {
+            isServerApiAvailable = false;
+        });
+}, 1500);
 
 // 3. Local BroadcastChannel (Global fallback)
 if (localBC) {
@@ -1147,10 +1179,17 @@ setInterval(() => {
     } catch (err) {}
 }, 100);
 
-// Startup check to load active room ID instantly
+// Startup check to load active room ID if API server is available
 function checkActiveRoomDisplay() {
+    if (isServerApiAvailable !== true) return;
     fetch(getApiUrl('api/get-active-room'))
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) {
+                isServerApiAvailable = false;
+                return null;
+            }
+            return res.json();
+        })
         .then(data => {
             if (data && data.activeRoomId) {
                 if (currentActiveRoomId !== data.activeRoomId) {
@@ -1158,7 +1197,11 @@ function checkActiveRoomDisplay() {
                 }
             }
         })
-        .catch(() => {});
+        .catch(() => {
+            isServerApiAvailable = false;
+        });
 }
-checkActiveRoomDisplay();
-setInterval(checkActiveRoomDisplay, 3000);
+if (isServerApiAvailable === true) {
+    checkActiveRoomDisplay();
+}
+setInterval(checkActiveRoomDisplay, 5000);

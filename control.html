@@ -709,7 +709,9 @@
     </div>
 
     <script>
-        // API URL resolver supporting custom subpaths (e.g. /PuzzleBoard-main) and any host
+        // API availability check - prevents 404 errors on static hosts like acestudio.mooo.com (Apache / cPanel / DirectAdmin)
+        let isServerApiAvailable = null;
+
         function getApiUrl(endpoint) {
             const clean = endpoint.replace(/^\/+/, '');
             try {
@@ -719,17 +721,37 @@
             }
         }
 
+        function probeServerApi() {
+            if (isServerApiAvailable !== null) return;
+            fetch(getApiUrl('api/get-active-room'), { method: 'GET' })
+                .then(r => {
+                    if (r.ok && r.status === 200) {
+                        isServerApiAvailable = true;
+                        console.log("[System] Node.js API backend detected and active.");
+                    } else {
+                        isServerApiAvailable = false;
+                        console.log("[System] Static web host detected (no Node.js /api backend). Running 100% via Supabase Cloud Realtime & WebSockets.");
+                    }
+                })
+                .catch(() => {
+                    isServerApiAvailable = false;
+                    console.log("[System] Static web host detected (no Node.js /api backend). Running 100% via Supabase Cloud Realtime & WebSockets.");
+                });
+        }
+        probeServerApi();
+
         // --- QUẢN LÝ MÃ PHÒNG (ROOM ID) VÀ MẬT KHẨU (PASS) CHO NGƯỜI CHƠI ---
         const urlParams = new URLSearchParams(window.location.search);
         let roomId = urlParams.get('roomid') || localStorage.getItem('crossword_control_roomid') || '123456';
         let roomPass = urlParams.get('pass') || localStorage.getItem('crossword_control_pass') || '8888';
 
         function syncRoomCredentialsToServer() {
+            if (isServerApiAvailable !== true) return;
             fetch(getApiUrl('api/set-room-config'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ roomid: roomId, pass: roomPass, buzzerOpen: !!isBuzzerCurrentlyOpen })
-            }).catch(err => console.error("Error syncing room credentials:", err));
+            }).catch(() => {});
         }
 
         function getDefaultBaseUrl() {
@@ -829,11 +851,47 @@
             if (roomText) roomText.textContent = roomId;
         }
 
+        function updatePresenceCountDisplay(presenceState) {
+            const clText = document.getElementById("headerClientsText");
+            if (!clText) return;
+            let total = 0;
+            let roles = [];
+            if (presenceState) {
+                for (const key in presenceState) {
+                    const list = presenceState[key];
+                    if (Array.isArray(list)) {
+                        list.forEach(p => {
+                            if (p && p.role && p.role !== 'HOST') {
+                                total++;
+                                if (!roles.includes(p.role)) {
+                                    roles.push(p.role);
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+            if (total > 0) {
+                clText.style.color = '#4ade80';
+                clText.textContent = `${total} thiết bị online (${roles.join(', ')})`;
+            } else {
+                clText.style.color = '#fbbf24';
+                clText.textContent = `Chờ người chơi kết nối...`;
+            }
+        }
+
         function checkControlConnectedClients() {
-            if (!roomId) return;
+            if (!roomId || isServerApiAvailable !== true) return;
             fetch(getApiUrl('api/connected-clients?roomid=' + encodeURIComponent(roomId)))
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) {
+                        isServerApiAvailable = false;
+                        return null;
+                    }
+                    return r.json();
+                })
                 .then(data => {
+                    if (!data) return;
                     const clText = document.getElementById("headerClientsText");
                     if (clText) {
                         const total = data.total || 0;
@@ -847,9 +905,11 @@
                         }
                     }
                 })
-                .catch(() => {});
+                .catch(() => {
+                    isServerApiAvailable = false;
+                });
         }
-        setInterval(checkControlConnectedClients, 2000);
+        setInterval(checkControlConnectedClients, 3000);
 
         function generateNewRoomCredentials() {
             roomId = Math.floor(100000 + Math.random() * 900000).toString();
@@ -876,6 +936,12 @@
 
             syncRoomCredentialsToServer();
             updatePlayerUrlDisplay();
+            if (typeof initControlSupabase === "function") {
+                initControlSupabase(roomId);
+            }
+            if (typeof initControlBC === "function") {
+                initControlBC(roomId);
+            }
             if (typeof setupControlSSE === "function") {
                 setupControlSSE(roomId);
             }
@@ -989,18 +1055,93 @@ ${fullUrl}
 
         var supabaseClient = null;
         var channel = null;
-        try {
-            if (typeof supabase !== "undefined" && supabase.createClient) {
-                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                channel = supabaseClient.channel('crossword_broadcast_room', {
-                    config: { broadcast: { ack: false, self: true } }
-                });
-            }
-        } catch (err) {
-            console.warn("Supabase initialization error, falling back to Server/BroadcastChannel/localStorage:", err);
-        }
+        var globalChannel = null;
 
-        const localBC = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel('crossword_broadcast_room') : null;
+        function initControlSupabase(targetRoomId) {
+            const rId = targetRoomId || roomId || '123456';
+            try {
+                if (typeof window.supabase !== "undefined" && window.supabase.createClient) {
+                    if (!supabaseClient) {
+                        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    }
+                    if (channel) {
+                        try { supabaseClient.removeChannel(channel); } catch(e){}
+                    }
+                    const roomChannelName = 'crossword_broadcast_room_' + rId;
+                    channel = supabaseClient.channel(roomChannelName, {
+                        config: { 
+                            broadcast: { ack: false, self: true },
+                            presence: { key: 'control_' + Date.now() }
+                        }
+                    });
+                    channel.on('broadcast', { event: 'display-to-control' }, ({ payload }) => {
+                        handleDisplayMessageWrapper(payload, payload ? payload.ts : null, payload ? payload.msgId : null);
+                    });
+                    channel.on('broadcast', { event: 'player-buzz' }, ({ payload }) => {
+                        if (payload && payload.playerNum) {
+                            console.log("[Supabase] Buzz received from player:", payload.playerNum);
+                            handlePlayerBuzz(payload.playerNum);
+                        }
+                    });
+                    // Realtime presence sync for connected devices without needing backend server
+                    channel.on('presence', { event: 'sync' }, () => {
+                        try {
+                            const state = channel.presenceState();
+                            updatePresenceCountDisplay(state);
+                        } catch(e){}
+                    });
+                    channel.subscribe(async (status) => {
+                        console.log(`[Supabase Control] Subscribed to ${roomChannelName}:`, status);
+                        if (status === 'SUBSCRIBED') {
+                            try {
+                                await channel.track({ role: 'HOST', ts: Date.now() });
+                            } catch(e){}
+                        }
+                    });
+
+                    if (!globalChannel) {
+                        globalChannel = supabaseClient.channel('crossword_broadcast_room', {
+                            config: { broadcast: { ack: false, self: true } }
+                        });
+                        globalChannel.on('broadcast', { event: 'display-to-control' }, ({ payload }) => {
+                            handleDisplayMessageWrapper(payload, payload ? payload.ts : null, payload ? payload.msgId : null);
+                        });
+                        globalChannel.on('broadcast', { event: 'player-buzz' }, ({ payload }) => {
+                            if (payload && payload.playerNum) {
+                                handlePlayerBuzz(payload.playerNum);
+                            }
+                        });
+                        globalChannel.subscribe();
+                    }
+                }
+            } catch (err) {
+                console.warn("Supabase init error:", err);
+            }
+        }
+        initControlSupabase(roomId);
+
+        let localBC = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel('crossword_broadcast_room') : null;
+        let roomBC = null;
+        function initControlBC(targetRoomId) {
+            const rId = targetRoomId || roomId || '123456';
+            if (typeof BroadcastChannel === "undefined") return;
+            if (roomBC) {
+                try { roomBC.close(); } catch(e){}
+            }
+            try {
+                roomBC = new BroadcastChannel('crossword_broadcast_room_' + rId);
+                roomBC.onmessage = (event) => {
+                    if (event.data) {
+                        if (event.data.event === 'display-to-control') {
+                            handleDisplayMessageWrapper(event.data.payload, event.data.ts, event.data.msgId);
+                        } else if (event.data.event === 'player-buzz' && event.data.payload) {
+                            handlePlayerBuzz(event.data.payload.playerNum);
+                        }
+                    }
+                };
+            } catch(e){}
+        }
+        initControlBC(roomId);
 
         let tossupTimeout = null;
         let isTossupRunning = false;
@@ -1189,26 +1330,12 @@ ${fullUrl}
             handleDisplayMessage(payload);
         }
 
-        // 1. Supabase Realtime Listener
-        if (channel) {
-            try {
-                channel.on('broadcast', { event: 'display-to-control' }, ({ payload }) => {
-                    handleDisplayMessageWrapper(payload, payload ? payload.ts : null, payload ? payload.msgId : null);
-                });
-                channel.on('broadcast', { event: 'player-buzz' }, ({ payload }) => {
-                    if (payload && payload.playerNum) {
-                        handlePlayerBuzz(payload.playerNum);
-                    }
-                });
-                channel.subscribe();
-            } catch (e) {}
-        }
-
         // 2. Server-Sent Events (SSE) Listener for multi-device with automatic reconnect
         let controlSSE = null;
         let sseReconnectTimer = null;
+        let controlSSEFailCount = 0;
         function setupControlSSE(targetRid) {
-            if (typeof EventSource === "undefined") return;
+            if (typeof EventSource === "undefined" || isServerApiAvailable !== true) return;
             if (controlSSE) {
                 try { controlSSE.close(); } catch(e) {}
                 controlSSE = null;
@@ -1217,11 +1344,15 @@ ${fullUrl}
                 clearTimeout(sseReconnectTimer);
                 sseReconnectTimer = null;
             }
+            if (controlSSEFailCount > 2) return; // Do not spam if server is static / offline
 
             const currentRid = targetRid || roomId || 'default';
             const sseUrl = getApiUrl('api/events?roomid=' + encodeURIComponent(currentRid) + '&role=0&clientId=ctrl_' + Date.now());
             try {
                 controlSSE = new EventSource(sseUrl);
+                controlSSE.onopen = () => {
+                    controlSSEFailCount = 0;
+                };
                 controlSSE.onmessage = (e) => {
                     try {
                         const msg = JSON.parse(e.data);
@@ -1239,15 +1370,11 @@ ${fullUrl}
                 controlSSE.onerror = () => {
                     try { controlSSE.close(); } catch(e) {}
                     controlSSE = null;
-                    if (!sseReconnectTimer) {
-                        sseReconnectTimer = setTimeout(() => {
-                            setupControlSSE(roomId);
-                        }, 2500);
-                    }
+                    controlSSEFailCount++;
+                    isServerApiAvailable = false;
                 };
             } catch(e) {}
         }
-        setupControlSSE(roomId);
 
         // 3. Local BroadcastChannel
         if (localBC) {
@@ -1291,14 +1418,22 @@ ${fullUrl}
             }
         });
 
-        // Fast fallback HTTP polling from server to guarantee buzz detection across different devices
+        // Fast fallback HTTP polling from server only if API is verified available
         let lastHandledServerBuzzTs = 0;
+        let controlPollFails = 0;
         setInterval(() => {
-            if (!roomId) return;
+            if (!roomId || isServerApiAvailable !== true) return;
             fetch(getApiUrl('api/get-room-state?roomid=' + encodeURIComponent(roomId)))
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) {
+                        isServerApiAvailable = false;
+                        return null;
+                    }
+                    return r.json();
+                })
                 .then(data => {
-                    if (data && data.latestWinner && data.latestBuzzTs) {
+                    if (!data) return;
+                    if (data.latestWinner && data.latestBuzzTs) {
                         if (data.latestBuzzTs > lastHandledServerBuzzTs && activeBuzzerWinner === null) {
                             lastHandledServerBuzzTs = data.latestBuzzTs;
                             console.log("[POLL] Detected buzz from server state:", data.latestWinner);
@@ -1306,8 +1441,10 @@ ${fullUrl}
                         }
                     }
                 })
-                .catch(() => {});
-        }, 200);
+                .catch(() => {
+                    isServerApiAvailable = false;
+                });
+        }, 1500);
 
         setInterval(() => {
             try {
