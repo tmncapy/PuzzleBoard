@@ -287,12 +287,13 @@
             <div style="background: #09090b; border: 1px solid #27272a; padding: 7px 10px; border-radius: 6px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; flex-wrap: wrap; gap: 4px;">
                     <span style="color: #a1a1aa; font-size: 10px; text-transform: uppercase; font-weight: bold;">🌐 1. Domain / Host</span>
-                    <div style="display: flex; gap: 4px;">
-                        <button type="button" onclick="setDomainPreset('https://acestudio.mooo.com/PuzzleBoard-main')" style="background: #0284c7; color: #fff; border: none; font-size: 10px; cursor: pointer; padding: 1px 6px; border-radius: 3px; font-weight: bold;" title="Đặt domain mooo.com">🐮 mooo.com</button>
+                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                        <button type="button" onclick="setDomainPreset('https://ttccoy22.github.io/PuzzleBoard-main')" style="background: #24292f; color: #fff; border: 1px solid #57606a; font-size: 10px; cursor: pointer; padding: 1px 6px; border-radius: 3px; font-weight: bold;" title="Đặt domain GitHub Pages (ttccoy22.github.io)">🐙 GitHub Pages</button>
+                        <button type="button" onclick="promptCustomGithubPages()" style="background: #334155; color: #94a3b8; border: 1px solid #475569; font-size: 10px; cursor: pointer; padding: 1px 5px; border-radius: 3px;" title="Tùy chỉnh user/repo GitHub">✏️ GitHub khác</button>
                         <button type="button" onclick="resetDomainToDefault()" style="background: none; border: none; color: #38bdf8; font-size: 10px; cursor: pointer; padding: 0; text-decoration: underline;" title="Đặt lại theo địa chỉ web hiện tại">🔄 Mặc định</button>
                     </div>
                 </div>
-                <input id="inputDomain" type="text" style="width: 100%; box-sizing: border-box; background: #18181b; border: 1px solid #3f3f46; color: #38bdf8; font-family: monospace; font-size: 12px; font-weight: bold; padding: 3px 6px; border-radius: 4px;" placeholder="https://acestudio.mooo.com/PuzzleBoard-main" oninput="updatePlayerUrlDisplay()">
+                <input id="inputDomain" type="text" style="width: 100%; box-sizing: border-box; background: #18181b; border: 1px solid #3f3f46; color: #38bdf8; font-family: monospace; font-size: 12px; font-weight: bold; padding: 3px 6px; border-radius: 4px;" placeholder="https://ttccoy22.github.io/PuzzleBoard-main" oninput="updatePlayerUrlDisplay()">
             </div>
 
             <div style="background: #09090b; border: 1px solid #27272a; padding: 7px 10px; border-radius: 6px;">
@@ -786,6 +787,21 @@
             localStorage.setItem('crossword_control_domain', preset);
             updatePlayerUrlDisplay();
             showCustomAlert(`✅ Đã đặt domain:\n${preset}`);
+        }
+
+        function promptCustomGithubPages() {
+            const current = document.getElementById("inputDomain") ? document.getElementById("inputDomain").value : '';
+            const userOrUrl = prompt("Nhập địa chỉ GitHub Pages hoặc username GitHub của bạn:\n(Ví dụ: https://username.github.io/PuzzleBoard-main hoặc username)", current || "ttccoy22");
+            if (!userOrUrl) return;
+            let finalUrl = userOrUrl.trim();
+            if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+                const parts = finalUrl.split('/');
+                const user = parts[0];
+                const repo = parts[1] || 'PuzzleBoard-main';
+                finalUrl = `https://${user}.github.io/${repo}`;
+            }
+            finalUrl = finalUrl.replace(/\/+$/, '');
+            setDomainPreset(finalUrl);
         }
 
         function resetDomainToDefault() {
