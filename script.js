@@ -1,4 +1,14 @@
 // script.js
+// API URL resolver supporting custom subpaths (e.g. /PuzzleBoard-main) and any host
+function getApiUrl(endpoint) {
+    const clean = endpoint.replace(/^\/+/, '');
+    try {
+        return new URL(clean, window.location.href).href;
+    } catch(e) {
+        return '/' + clean;
+    }
+}
+
 const globalFavicon = document.createElement('link');
 globalFavicon.rel = 'icon';
 globalFavicon.type = 'image/x-icon';
@@ -316,7 +326,7 @@ function syncControlUI(type, data) {
 
     // 1. Post to Server API for cross-device sync
     try {
-        fetch('/api/broadcast', {
+        fetch(getApiUrl('api/broadcast'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(msgObj)
@@ -906,13 +916,14 @@ function handlePlayerBuzz(playerNum) {
     }
 }
 
-let currentActiveRoomId = null;
+let currentActiveRoomId = urlParams.get('roomid') || null;
 let activeRoomSupabaseChannel = null;
 let activeRoomLocalBC = null;
 let activeRoomInterval = null;
 
 function setupActiveRoomSync(roomId) {
-    if (currentActiveRoomId === roomId) return;
+    if (!roomId) return;
+    if (currentActiveRoomId === roomId && activeRoomLocalBC) return;
     console.log("Setting up active room sync for Room ID:", roomId);
     currentActiveRoomId = roomId;
 
@@ -928,6 +939,11 @@ function setupActiveRoomSync(roomId) {
     if (activeRoomInterval) {
         clearInterval(activeRoomInterval);
         activeRoomInterval = null;
+    }
+
+    // Re-bind SSE to active room
+    if (typeof setupDisplaySSE === "function") {
+        setupDisplaySSE();
     }
 
     // 1. Supabase Realtime for specific active room
@@ -1004,10 +1020,18 @@ if (channel) {
 }
 
 // 2. Server-Sent Events (SSE) Listener for cross-device sync
-try {
-    if (typeof EventSource !== "undefined") {
-        const sse = new EventSource('/api/events');
-        sse.onmessage = (e) => {
+let displaySSE = null;
+let displaySSEReconnectTimer = null;
+function setupDisplaySSE() {
+    if (typeof EventSource === "undefined") return;
+    if (displaySSE) {
+        try { displaySSE.close(); } catch(e) {}
+        displaySSE = null;
+    }
+    const sseUrl = getApiUrl(currentActiveRoomId ? ('api/events?roomid=' + encodeURIComponent(currentActiveRoomId)) : 'api/events');
+    try {
+        displaySSE = new EventSource(sseUrl);
+        displaySSE.onmessage = (e) => {
             try {
                 const msg = JSON.parse(e.data);
                 if (!msg) return;
@@ -1020,8 +1044,36 @@ try {
                 }
             } catch(err){}
         };
-    }
-} catch(e) {}
+        displaySSE.onerror = () => {
+            try { displaySSE.close(); } catch(e) {}
+            displaySSE = null;
+            if (!displaySSEReconnectTimer) {
+                displaySSEReconnectTimer = setTimeout(() => {
+                    displaySSEReconnectTimer = null;
+                    setupDisplaySSE();
+                }, 3000);
+            }
+        };
+    } catch(e) {}
+}
+setupDisplaySSE();
+
+// Fallback HTTP polling for buzzer events on display
+let lastProcessedServerBuzzTs = 0;
+setInterval(() => {
+    const rid = currentActiveRoomId || 'default';
+    fetch(getApiUrl('api/get-room-state?roomid=' + encodeURIComponent(rid)))
+        .then(r => r.json())
+        .then(data => {
+            if (data && data.latestWinner && data.latestBuzzTs) {
+                if (data.latestBuzzTs > lastProcessedServerBuzzTs) {
+                    lastProcessedServerBuzzTs = data.latestBuzzTs;
+                    handlePlayerBuzz(data.latestWinner);
+                }
+            }
+        })
+        .catch(() => {});
+}, 300);
 
 // 3. Local BroadcastChannel (Global fallback)
 if (localBC) {
@@ -1096,13 +1148,17 @@ setInterval(() => {
 }, 100);
 
 // Startup check to load active room ID instantly
-try {
-    fetch('/api/get-active-room')
+function checkActiveRoomDisplay() {
+    fetch(getApiUrl('api/get-active-room'))
         .then(res => res.json())
         .then(data => {
             if (data && data.activeRoomId) {
-                setupActiveRoomSync(data.activeRoomId);
+                if (currentActiveRoomId !== data.activeRoomId) {
+                    setupActiveRoomSync(data.activeRoomId);
+                }
             }
         })
-        .catch(err => console.error("Error fetching active room ID on startup:", err));
-} catch(e) {}
+        .catch(() => {});
+}
+checkActiveRoomDisplay();
+setInterval(checkActiveRoomDisplay, 3000);

@@ -10,36 +10,177 @@ const PORT = 3000;
 
 app.use(express.json());
 
-// Set of connected SSE clients
+// Enable CORS for cross-device access (e.g. acestudio.mooo.com, local IP, mobile devices)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// Middleware to support hosting under subpaths like /PuzzleBoard-main (e.g. https://acestudio.mooo.com/PuzzleBoard-main/...)
+app.use((req, res, next) => {
+  const lower = req.url.toLowerCase();
+  if (lower.startsWith('/puzzleboard-main/')) {
+    req.url = req.url.slice('/puzzleboard-main'.length);
+    if (!req.url.startsWith('/')) req.url = '/' + req.url;
+  } else if (lower === '/puzzleboard-main') {
+    req.url = '/';
+  }
+  next();
+});
+
+// Room configurations and real-time state tracking
 const sseClients = new Set();
-let activeRoomId = null;
+let activeRoomId = '123456';
+const roomConfigs = new Map([
+  ['123456', { pass: '8888', buzzerOpen: false, latestWinner: null, latestBuzzTs: 0 }],
+  ['default', { pass: '8888', buzzerOpen: false, latestWinner: null, latestBuzzTs: 0 }]
+]);
+
+function getRoomConfig(roomid) {
+  const rid = roomid || activeRoomId || 'default';
+  if (!roomConfigs.has(rid)) {
+    roomConfigs.set(rid, { pass: '8888', buzzerOpen: false, latestWinner: null, latestBuzzTs: 0 });
+  }
+  return roomConfigs.get(rid);
+}
 
 app.get('/api/get-active-room', (req, res) => {
-  res.json({ activeRoomId });
+  const currentRid = activeRoomId || '123456';
+  const config = getRoomConfig(currentRid);
+  res.json({ activeRoomId: currentRid, pass: config.pass, buzzerOpen: !!config.buzzerOpen, latestWinner: config.latestWinner });
+});
+
+app.get('/api/get-room-config', (req, res) => {
+  const roomid = req.query.roomid || activeRoomId || '123456';
+  const config = getRoomConfig(roomid);
+  res.json({ activeRoomId: activeRoomId || '123456', roomid, pass: config.pass, buzzerOpen: !!config.buzzerOpen });
+});
+
+app.get('/api/get-buzzer-state', (req, res) => {
+  const roomid = req.query.roomid || activeRoomId || 'default';
+  const config = getRoomConfig(roomid);
+  res.json({ roomid, buzzerOpen: !!config.buzzerOpen, latestWinner: config.latestWinner, latestBuzzTs: config.latestBuzzTs });
+});
+
+app.get('/api/get-room-state', (req, res) => {
+  const roomid = req.query.roomid || activeRoomId || 'default';
+  const config = getRoomConfig(roomid);
+  res.json({
+    roomid,
+    buzzerOpen: !!config.buzzerOpen,
+    latestWinner: config.latestWinner || null,
+    latestBuzzTs: config.latestBuzzTs || 0,
+    pass: config.pass || ''
+  });
+});
+
+app.post('/api/set-room-config', (req, res) => {
+  const { roomid, pass, buzzerOpen } = req.body;
+  const targetRoom = roomid || 'default';
+  activeRoomId = targetRoom;
+  const config = getRoomConfig(targetRoom);
+  if (pass !== undefined && pass !== null) config.pass = pass.toString();
+  if (buzzerOpen !== undefined) config.buzzerOpen = !!buzzerOpen;
+  
+  // Notify connected clients of buzzer state update and active room changes
+  const stateMsg = JSON.stringify({ event: 'buzzer-state-update', isOpen: !!config.buzzerOpen, roomid: targetRoom });
+  const roomMsg = JSON.stringify({ event: 'active-room-changed', activeRoomId: targetRoom });
+  for (const client of sseClients) {
+    try {
+      client.write(`data: ${stateMsg}\n\n`);
+      client.write(`data: ${roomMsg}\n\n`);
+    } catch(e) {
+      sseClients.delete(client);
+    }
+  }
+
+  res.json({ ok: true, activeRoomId, pass: config.pass, buzzerOpen: config.buzzerOpen });
+});
+
+app.get('/api/verify-room-pass', (req, res) => {
+  const roomid = req.query.roomid || activeRoomId || '123456';
+  const playerPass = (req.query.pass || '').toString().trim();
+  const config = getRoomConfig(roomid);
+  // If player did not specify a pass, allow them in with active room's pass
+  if (!playerPass || !config.pass || config.pass.trim() === playerPass) {
+    return res.json({ valid: true, requiresPass: false, buzzerOpen: !!config.buzzerOpen, roomid, pass: config.pass });
+  }
+  // If player explicitly typed an incorrect password
+  res.json({ valid: false, requiresPass: true, buzzerOpen: !!config.buzzerOpen, roomid });
 });
 
 app.post('/api/set-active-room', (req, res) => {
-  const { roomid } = req.body;
+  const { roomid, pass } = req.body;
   if (roomid) {
     activeRoomId = roomid;
-    console.log(`Active room set to: ${activeRoomId}`);
-    
-    // Disconnect and invalidate all clients from old/inactive rooms (excluding public 'default' spectators)
-    for (const client of sseClients) {
-      if (client.roomid !== activeRoomId && client.roomid !== 'default') {
-        try {
-          client.write('data: {"event":"room-invalidated"}\n\n');
-          client.end();
-        } catch (e) {}
+    const config = getRoomConfig(roomid);
+    if (pass !== undefined) config.pass = pass.toString();
+  }
+  res.json({ ok: true, activeRoomId });
+});
+
+// Dedicated fast endpoint for contestant buzz
+app.post('/api/buzz', (req, res) => {
+  const { roomid, playerNum, ts } = req.body;
+  const targetRoom = roomid || activeRoomId || 'default';
+  const config = getRoomConfig(targetRoom);
+  const pNum = parseInt(playerNum) || 1;
+  const now = Date.now();
+
+  let won = false;
+  // If buzzer is open or no winner yet within last 8 seconds
+  if (!config.latestWinner || (now - config.latestBuzzTs > 8000)) {
+    config.latestWinner = pNum;
+    config.latestBuzzTs = now;
+    config.buzzerOpen = false;
+    won = true;
+  }
+
+  // Broadcast to all SSE clients in this room (controller, display, other players)
+  const msgObj = {
+    event: 'player-buzz',
+    payload: { playerNum: config.latestWinner, ts: config.latestBuzzTs },
+    ts: config.latestBuzzTs,
+    roomid: targetRoom
+  };
+  const msgStr = JSON.stringify(msgObj);
+
+  for (const client of sseClients) {
+    if (client.roomid === targetRoom || client.roomid === 'default' || targetRoom === 'default') {
+      try {
+        client.write(`data: ${msgStr}\n\n`);
+      } catch (err) {
         sseClients.delete(client);
-      } else if (client.roomid === 'default') {
-        try {
-          client.write(`data: ${JSON.stringify({ event: 'active-room-changed', activeRoomId })}\n\n`);
-        } catch (e) {}
       }
     }
   }
-  res.json({ ok: true, activeRoomId });
+
+  // Also broadcast buzzer lock state to all players
+  const lockMsg = JSON.stringify({ event: 'buzzer-state-update', isOpen: false, roomid: targetRoom });
+  for (const client of sseClients) {
+    if (client.roomid === targetRoom || client.roomid === 'default' || targetRoom === 'default') {
+      try {
+        client.write(`data: ${lockMsg}\n\n`);
+      } catch (err) {}
+    }
+  }
+
+  console.log(`[BUZZ] Room ${targetRoom}: Player ${pNum} buzzed! Winner: ${config.latestWinner}`);
+  res.json({ ok: true, won, winner: config.latestWinner, latestBuzzTs: config.latestBuzzTs });
+});
+
+// Reset buzzer winner state
+app.post('/api/reset-buzz', (req, res) => {
+  const targetRoom = req.body.roomid || activeRoomId || 'default';
+  const config = getRoomConfig(targetRoom);
+  config.latestWinner = null;
+  config.latestBuzzTs = 0;
+  res.json({ ok: true });
 });
 
 // Real-time Server-Sent Events endpoint for multi-device sync with room isolation
@@ -72,12 +213,6 @@ app.get('/api/events', (req, res) => {
   const clientId = req.query.clientId || 'unknown';
   const role = parseInt(req.query.role) || 0;
 
-  if (activeRoomId && roomid !== 'default' && roomid !== activeRoomId) {
-    res.writeHead(403, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: "Phòng chơi này không hoạt động hoặc đã cũ.", inactive: true }));
-    return;
-  }
-
   res.roomid = roomid;
   res.clientId = clientId;
   res.role = role;
@@ -90,6 +225,9 @@ app.get('/api/events', (req, res) => {
   });
 
   res.write('data: {"event":"connected"}\n\n');
+  const currentRoomConfig = getRoomConfig(roomid);
+  res.write(`data: ${JSON.stringify({ event: 'buzzer-state-update', isOpen: !!currentRoomConfig.buzzerOpen, roomid })}\n\n`);
+
   if (roomid === 'default' && activeRoomId) {
     res.write(`data: ${JSON.stringify({ event: 'active-room-changed', activeRoomId })}\n\n`);
   }
@@ -104,27 +242,23 @@ app.get('/api/events', (req, res) => {
 });
 
 app.get('/api/check-role', (req, res) => {
-  const roomid = req.query.roomid || 'default';
-  const role = parseInt(req.query.role) || 0;
-  const clientId = req.query.clientId || 'unknown';
+  // Always permit role selection so contestants are never locked out by stale connections
+  res.json({ occupied: false });
+});
 
-  if (activeRoomId && roomid !== activeRoomId) {
-    return res.status(403).json({ error: "Phòng chơi này không hoạt động hoặc đã cũ.", inactive: true });
-  }
-
-  if (role < 1 || role > 3) {
-    return res.json({ occupied: false });
-  }
-
-  let isOccupied = false;
+app.get('/api/connected-clients', (req, res) => {
+  const roomid = req.query.roomid || activeRoomId || '123456';
+  let total = 0;
+  const roles = [];
   for (const client of sseClients) {
-    if (client.roomid === roomid && client.role === role && client.clientId !== clientId) {
-      isOccupied = true;
-      break;
+    if (client.roomid === roomid || client.roomid === 'default') {
+      total++;
+      if (client.role >= 1 && client.role <= 3 && !roles.includes(client.role)) {
+        roles.push(client.role);
+      }
     }
   }
-
-  res.json({ occupied: isOccupied });
+  res.json({ activeRoomId: activeRoomId || '123456', total, roles, roomid });
 });
 
 // Periodic heartbeat to keep SSE connections open through proxies/firewalls
@@ -136,21 +270,34 @@ setInterval(() => {
       sseClients.delete(client);
     }
   }
-}, 20000);
+}, 15000);
 
 // Broadcast API endpoint for any device to broadcast to all other devices in the same room
 app.post('/api/broadcast', (req, res) => {
   const { event, payload, ts, id, roomid } = req.body;
   const targetRoom = roomid || 'default';
 
-  if (activeRoomId && targetRoom !== 'default' && targetRoom !== activeRoomId) {
-    return res.status(403).json({ error: "Phòng chơi này không hoạt động hoặc đã cũ.", inactive: true });
+  // Update room buzzer state based on command type
+  const currentConfig = getRoomConfig(targetRoom);
+  if (event === 'player-buzz') {
+    currentConfig.buzzerOpen = false;
+    currentConfig.latestWinner = payload?.playerNum ? parseInt(payload.playerNum) : 1;
+    currentConfig.latestBuzzTs = Date.now();
+  } else if (payload && payload.type) {
+    const t = payload.type;
+    if (t === 'START_TOSSUP' || t === 'PLAY_TOSSUP' || t === 'START_ROUND30' || t === 'RESUME_ROUND30_MUSIC' || (t === 'SET_BUZZER_STATE' && payload.data && payload.data.state === 'OPEN')) {
+      currentConfig.buzzerOpen = true;
+      currentConfig.latestWinner = null;
+      currentConfig.latestBuzzTs = 0;
+    } else if (t === 'PAUSE_TOSSUP' || t === 'PAUSE_ROUND30_MUSIC' || t === 'REVEAL_ALL' || t === 'LOAD_QUIZ' || t === 'RESET_BOARD' || t === 'PLAYER_BUZZ_WIN' || (t === 'SET_BUZZER_STATE' && payload.data && payload.data.state === 'LOCKED') || (t === 'UPDATE_ROUND30_TIMER' && (payload.data?.subTitle === 'TẠM DỪNG' || payload.data?.seconds === 0))) {
+      currentConfig.buzzerOpen = false;
+    }
   }
 
   const msgStr = JSON.stringify({ event, payload, ts: ts || Date.now(), id, roomid: targetRoom });
   
   for (const client of sseClients) {
-    if (client.roomid === targetRoom || client.roomid === 'default') {
+    if (client.roomid === targetRoom || client.roomid === 'default' || targetRoom === 'default') {
       try {
         client.write(`data: ${msgStr}\n\n`);
       } catch (err) {
@@ -159,7 +306,7 @@ app.post('/api/broadcast', (req, res) => {
     }
   }
 
-  const receivers = Array.from(sseClients).filter(c => c.roomid === targetRoom || c.roomid === 'default').length;
+  const receivers = Array.from(sseClients).filter(c => c.roomid === targetRoom || c.roomid === 'default' || targetRoom === 'default').length;
   res.json({ ok: true, receivers: receivers });
 });
 

@@ -423,14 +423,38 @@
 </head>
 <body>
 
-    <!-- SCREEN 1A: ERROR SCREEN (IF NO ROOM ID) -->
+    <!-- SCREEN 1A: ERROR SCREEN (IF ROOM INACTIVE) -->
     <div id="errorScreen" class="centered-container" style="display: none;">
         <div class="error-icon">⚠️</div>
-        <h2 class="screen-title" style="color: #ff453a;">THIẾU MÃ PHÒNG</h2>
-        <p class="screen-subtitle">
+        <h2 id="errorTitle" class="screen-title" style="color: #ff453a;">THIẾU MÃ PHÒNG</h2>
+        <p id="errorSubtitle" class="screen-subtitle">
             Vui lòng sử dụng liên kết đầy đủ kèm theo mã phòng được cấp từ Trọng Tài để tham gia trò chơi.<br>
-            Ví dụ: <code>player.html?roomid=123456</code>
+            Ví dụ: <code>player.html?roomid=123456&pass=8888</code>
         </p>
+        <button onclick="showCredentialsModal()" style="margin-top: 15px; background: #eab308; color: #000; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer;">🔑 NHẬP MÃ PHÒNG & PASS</button>
+    </div>
+
+    <!-- SCREEN 1C: ROOM CREDENTIALS / PASS SCREEN -->
+    <div id="credentialsScreen" class="centered-container" style="display: none;">
+        <div style="background: #18181b; border: 1px solid #3f3f46; border-radius: 16px; padding: 28px 24px; max-width: 380px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.6); text-align: center;">
+            <div style="font-size: 38px; margin-bottom: 8px;">🔒</div>
+            <h2 style="color: #f4f4f5; font-size: 19px; font-weight: 800; margin: 0 0 6px 0;">THAM GIA PHÒNG CHƠI</h2>
+            <p style="color: #a1a1aa; font-size: 12px; margin: 0 0 18px 0; line-height: 1.4;">Nhập mã phòng và mật khẩu do Trọng tài cung cấp để vào bấm chuông</p>
+
+            <div style="text-align: left; margin-bottom: 12px;">
+                <label style="display: block; font-size: 11px; font-weight: 700; color: #fbbf24; text-transform: uppercase; margin-bottom: 5px;">🔑 Mã Phòng (Room ID)</label>
+                <input type="text" id="playerRoomIdInput" placeholder="Ví dụ: 123456" style="width: 100%; box-sizing: border-box; background: #27272a; border: 1px solid #52525b; color: #fff; padding: 10px 12px; border-radius: 8px; font-family: monospace; font-size: 15px; font-weight: bold;">
+            </div>
+
+            <div style="text-align: left; margin-bottom: 16px;">
+                <label style="display: block; font-size: 11px; font-weight: 700; color: #f87171; text-transform: uppercase; margin-bottom: 5px;">🔒 Mật Khẩu (Pass)</label>
+                <input type="text" id="playerPassInput" placeholder="Nhập pass phòng..." style="width: 100%; box-sizing: border-box; background: #27272a; border: 1px solid #52525b; color: #fff; padding: 10px 12px; border-radius: 8px; font-family: monospace; font-size: 15px; font-weight: bold;">
+            </div>
+
+            <div id="credentialsErrorMsg" style="color: #ef4444; font-size: 12px; font-weight: bold; margin-bottom: 12px; display: none;"></div>
+
+            <button onclick="submitRoomCredentials()" style="width: 100%; background: linear-gradient(135deg, #eab308, #ca8a04); color: #000; font-weight: 900; border: none; padding: 12px; border-radius: 8px; font-size: 14px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;">VÀO PHÒNG CHƠI</button>
+        </div>
     </div>
 
     <!-- SCREEN 1B: CHOOSE COLOR SCREEN -->
@@ -439,6 +463,7 @@
         <p class="screen-subtitle">Chọn đúng màu hiển thị trên màn hình chính của bạn để bắt đầu bấm chuông trả lời.</p>
         
         <div class="color-selector-grid">
+            <div id="roomLiveStatusBadge" style="grid-column: 1 / -1; display: none; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; color: #fff; text-align: center; margin-bottom: 4px; justify-content: center; align-items: center;"></div>
             <div class="color-card red-card" onclick="selectRole(1)">
                 <div class="color-badge">🔴</div>
                 <div class="color-info">
@@ -493,36 +518,165 @@
     </div>
 
     <script>
+        // API URL resolver supporting custom subpaths (e.g. /PuzzleBoard-main) and any host
+        function getApiUrl(endpoint) {
+            const clean = endpoint.replace(/^\/+/, '');
+            try {
+                return new URL(clean, window.location.href).href;
+            } catch(e) {
+                return '/' + clean;
+            }
+        }
+
         const SUPABASE_URL = "https://tukabyhjmcyptuwmwedp.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OX0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
 
-        // Retrieve Room ID from URL
+        // Retrieve Room ID, Pass, and Role from URL
         const urlParams = new URLSearchParams(window.location.search);
-        const roomId = urlParams.get('roomid');
+        let roomId = urlParams.get('roomid') || '';
+        let roomPass = urlParams.get('pass') || '';
+        const roleParam = parseInt(urlParams.get('p')) || 0;
 
         let PLAYER_NUM = null;
+        let isBuzzerOpen = false;
         let supabaseClient = null;
         let channel = null;
         let localBC = null;
         let sse = null;
         let clientId = "";
 
+        function showCredentialsModal(prefillRoom = "", errorText = "") {
+            document.getElementById("errorScreen").style.display = "none";
+            document.getElementById("chooseColorScreen").style.display = "none";
+            document.getElementById("buzzerScreen").style.display = "none";
+            
+            const credScreen = document.getElementById("credentialsScreen");
+            if (credScreen) credScreen.style.display = "flex";
+
+            const rInput = document.getElementById("playerRoomIdInput");
+            const pInput = document.getElementById("playerPassInput");
+            const errEl = document.getElementById("credentialsErrorMsg");
+
+            if (rInput && prefillRoom) rInput.value = prefillRoom;
+            if (errEl) {
+                if (errorText) {
+                    errEl.textContent = errorText;
+                    errEl.style.display = "block";
+                } else {
+                    errEl.style.display = "none";
+                }
+            }
+            if (pInput) setTimeout(() => pInput.focus(), 100);
+        }
+
+        function submitRoomCredentials() {
+            const rInput = document.getElementById("playerRoomIdInput");
+            const pInput = document.getElementById("playerPassInput");
+            const errEl = document.getElementById("credentialsErrorMsg");
+
+            const enteredRoom = (rInput ? rInput.value : "").trim();
+            const enteredPass = (pInput ? pInput.value : "").trim();
+
+            if (!enteredRoom) {
+                if (errEl) {
+                    errEl.textContent = "Vui lòng nhập mã phòng (Room ID)!";
+                    errEl.style.display = "block";
+                }
+                return;
+            }
+
+            verifyAndConnect(enteredRoom, enteredPass);
+        }
+
+        function verifyAndConnect(rId, pass) {
+            const errEl = document.getElementById("credentialsErrorMsg");
+            if (errEl) errEl.style.display = "none";
+
+            fetch(getApiUrl(`api/verify-room-pass?roomid=${encodeURIComponent(rId)}&pass=${encodeURIComponent(pass)}`))
+                .then(res => res.json())
+                .then(data => {
+                    if (data.requiresPass && !data.valid) {
+                        showCredentialsModal(rId, "Mật khẩu phòng (Pass) không chính xác!");
+                        return;
+                    }
+
+                    // Success! Update variables and proceed
+                    roomId = rId;
+                    roomPass = pass;
+                    
+                    if (data && data.buzzerOpen !== undefined) {
+                        isBuzzerOpen = !!data.buzzerOpen;
+                    } else {
+                        const savedOpen = localStorage.getItem('tossup-buzzer-open_' + roomId);
+                        isBuzzerOpen = (savedOpen === '1');
+                    }
+
+                    const credScreen = document.getElementById("credentialsScreen");
+                    if (credScreen) credScreen.style.display = "none";
+                    document.getElementById("errorScreen").style.display = "none";
+
+                    // Generate unique clientId per session/tab for presence tracking
+                    clientId = sessionStorage.getItem('player_clientId_' + roomId) || Math.random().toString(36).slice(2, 10);
+                    sessionStorage.setItem('player_clientId_' + roomId, clientId);
+
+                    if (roleParam >= 1 && roleParam <= 3) {
+                        connectSSE(roleParam);
+                        selectRole(roleParam);
+                    } else {
+                        document.getElementById("chooseColorScreen").style.display = "flex";
+                        document.getElementById("buzzerScreen").style.display = "none";
+                        connectSSE(0);
+                    }
+                })
+                .catch(err => {
+                    console.warn("Could not verify room pass via API, entering directly:", err);
+                    roomId = rId;
+                    roomPass = pass;
+                    const credScreen = document.getElementById("credentialsScreen");
+                    if (credScreen) credScreen.style.display = "none";
+                    document.getElementById("errorScreen").style.display = "none";
+                    if (roleParam >= 1 && roleParam <= 3) {
+                        connectSSE(roleParam);
+                        selectRole(roleParam);
+                    } else {
+                        document.getElementById("chooseColorScreen").style.display = "flex";
+                        document.getElementById("buzzerScreen").style.display = "none";
+                        connectSSE(0);
+                    }
+                });
+        }
+
+        let playerSSEReconnectTimer = null;
+        function updateConnectionStatusUI(connected) {
+            const el = document.getElementById("roomLiveStatusBadge");
+            if (el) {
+                el.style.display = "inline-flex";
+                el.style.background = connected ? "#15803d" : "#b91c1c";
+                el.innerHTML = connected ? `🟢 ĐÃ KẾT NỐI (Phòng: ${roomId})` : `🟡 ĐANG KẾT NỐI LẠI (Phòng: ${roomId})...`;
+            }
+        }
+
         // Function to establish a real-time SSE connection with specific room and selected role
         function connectSSE(roleNum = 0) {
             if (sse) {
                 try { sse.close(); } catch(e){}
+                sse = null;
             }
             try {
                 if (typeof EventSource !== "undefined") {
-                    sse = new EventSource(`/api/events?roomid=${roomId}&clientId=${clientId}&role=${roleNum}`);
+                    sse = new EventSource(getApiUrl(`api/events?roomid=${encodeURIComponent(roomId)}&clientId=${encodeURIComponent(clientId)}&role=${roleNum}`));
                     sse.onmessage = (e) => {
                         try {
                             const msg = JSON.parse(e.data);
                             if (!msg) return;
-                            if (msg.roomid && msg.roomid !== roomId) return;
+                            updateConnectionStatusUI(true);
 
-                            if (msg.event === 'room-invalidated') {
-                                showRoomExpiredScreen();
+                            if (msg.event === 'buzzer-state-update') {
+                                isBuzzerOpen = !!msg.isOpen;
+                                try {
+                                    localStorage.setItem('tossup-buzzer-open_' + roomId, isBuzzerOpen ? '1' : '0');
+                                } catch(e){}
+                                syncBuzzerState();
                             } else if (msg.event === 'roles-update' && msg.occupiedRoles) {
                                 updateOccupiedColorsUI(msg.occupiedRoles);
                             } else if (msg.event === 'player-buzz' && msg.payload && msg.payload.playerNum) {
@@ -531,6 +685,17 @@
                                 handleIncomingControl(msg.payload);
                             }
                         } catch(err){}
+                    };
+                    sse.onerror = () => {
+                        try { sse.close(); } catch(e){}
+                        sse = null;
+                        updateConnectionStatusUI(false);
+                        if (!playerSSEReconnectTimer) {
+                            playerSSEReconnectTimer = setTimeout(() => {
+                                playerSSEReconnectTimer = null;
+                                connectSSE(PLAYER_NUM || roleNum);
+                            }, 2500);
+                        }
                     };
                 }
             } catch(e) {}
@@ -547,88 +712,55 @@
             // Player 1 (Red)
             if (occupiedRoles.includes(1)) {
                 redCard.classList.add('occupied');
-                const p = redCard.querySelector('.color-info p');
-                if (p) p.innerHTML = '<strong>🔴 Đã có người vào vị trí này</strong>';
             } else {
                 redCard.classList.remove('occupied');
-                const p = redCard.querySelector('.color-info p');
-                if (p) p.textContent = 'Người chơi 1 (Phím điều khiển)';
             }
 
             // Player 2 (Yellow)
             if (occupiedRoles.includes(2)) {
                 yellowCard.classList.add('occupied');
-                const p = yellowCard.querySelector('.color-info p');
-                if (p) p.innerHTML = '<strong>🟡 Đã có người vào vị trí này</strong>';
             } else {
                 yellowCard.classList.remove('occupied');
-                const p = yellowCard.querySelector('.color-info p');
-                if (p) p.textContent = 'Người chơi 2 (Phím điều khiển)';
             }
 
             // Player 3 (Blue)
             if (occupiedRoles.includes(3)) {
                 blueCard.classList.add('occupied');
-                const p = blueCard.querySelector('.color-info p');
-                if (p) p.innerHTML = '<strong>🔵 Đã có người vào vị trí này</strong>';
             } else {
                 blueCard.classList.remove('occupied');
-                const p = blueCard.querySelector('.color-info p');
-                if (p) p.textContent = 'Người chơi 3 (Phím điều khiển)';
             }
         }
 
         function showRoomExpiredScreen() {
-            document.getElementById("errorTitle").textContent = "PHÒNG KHÔNG HOẠT ĐỘNG";
-            document.getElementById("errorSubtitle").innerHTML = "Phòng chơi này đã hết hạn hoặc không tồn tại (Trọng tài có thể đã tạo phòng mới).<br>Vui lòng liên hệ Trọng tài để nhận liên kết phòng mới.";
-            document.getElementById("errorScreen").style.display = "flex";
-            document.getElementById("chooseColorScreen").style.display = "none";
-            document.getElementById("buzzerScreen").style.display = "none";
-            if (sse) {
-                try { sse.close(); } catch(e){}
-            }
+            // Auto re-fetch active room instead of hard deadlock
+            fetch(getApiUrl('api/get-active-room'))
+                .then(r => r.json())
+                .then(d => {
+                    if (d && d.activeRoomId) {
+                        verifyAndConnect(d.activeRoomId, d.pass || roomPass || '');
+                    }
+                })
+                .catch(() => {});
         }
 
-        // Verify Room ID existence
+        // Verify Room ID existence on startup - auto-detect from server if not in URL
         if (!roomId) {
-            document.getElementById("errorScreen").style.display = "flex";
-            document.getElementById("chooseColorScreen").style.display = "none";
-            document.getElementById("buzzerScreen").style.display = "none";
+            fetch(getApiUrl('api/get-active-room'))
+                .then(r => r.json())
+                .then(data => {
+                    const detectedRoom = (data && data.activeRoomId) ? data.activeRoomId : '123456';
+                    const detectedPass = (data && data.pass) ? data.pass : (roomPass || '8888');
+                    verifyAndConnect(detectedRoom, detectedPass);
+                })
+                .catch(() => {
+                    verifyAndConnect('123456', roomPass || '8888');
+                });
         } else {
-            // Generate unique clientId per session/tab for presence tracking
-            clientId = sessionStorage.getItem('player_clientId_' + roomId) || Math.random().toString(36).slice(2, 10);
-            sessionStorage.setItem('player_clientId_' + roomId, clientId);
-
-            // Reload link returns to initial screen to choose color again - no sessionStorage persistence
-            document.getElementById("chooseColorScreen").style.display = "flex";
-            document.getElementById("buzzerScreen").style.display = "none";
-            connectSSE(0);
+            verifyAndConnect(roomId, roomPass);
         }
 
         function selectRole(roleNum) {
-            // Perform live status check with the server before entering
-            fetch(`/api/check-role?roomid=${roomId}&role=${roleNum}&clientId=${clientId}`)
-                .then(res => {
-                    if (res.status === 403) {
-                        showRoomExpiredScreen();
-                        throw new Error("Room is inactive");
-                    }
-                    return res.json();
-                })
-                .then(data => {
-                    if (data.occupied) {
-                        alert("⚠️ Vị trí này đã có người chọn rồi! Vui lòng chọn màu khác.");
-                    } else {
-                        initBuzzer(roleNum);
-                    }
-                })
-                .catch((err) => {
-                    console.error("Fetch check-role failed:", err);
-                    if (err.message !== "Room is inactive") {
-                        // Fallback to allow connection if server check endpoint has transient network issues
-                        initBuzzer(roleNum);
-                    }
-                });
+            initBuzzer(roleNum);
         }
 
         function initBuzzer(roleNum) {
@@ -704,17 +836,60 @@
         }
 
         function handleIncomingBuzz(pNum) {
-            localStorage.setItem('tossup-buzzer-winner_' + roomId, pNum);
+            isBuzzerOpen = false;
+            try {
+                localStorage.setItem('tossup-buzzer-open_' + roomId, '0');
+                localStorage.setItem('tossup-buzzer-winner_' + roomId, pNum);
+            } catch(e){}
             syncBuzzerState();
         }
 
         function handleIncomingControl(payload) {
+            if (!payload) return;
             const type = payload.type;
-            if (type === 'START_TOSSUP' || type === 'PLAY_TOSSUP' || type === 'LOAD_QUIZ' || type === 'RESET_BOARD' || type === 'SHOW_MANUAL_TEXT') {
-                localStorage.removeItem('tossup-buzzer-winner_' + roomId);
+            if (type === 'START_TOSSUP' || type === 'PLAY_TOSSUP' || type === 'START_ROUND30' || type === 'RESUME_ROUND30_MUSIC' || (type === 'SET_BUZZER_STATE' && payload.data && payload.data.state === 'OPEN')) {
+                isBuzzerOpen = true;
+                try {
+                    localStorage.setItem('tossup-buzzer-open_' + roomId, '1');
+                    localStorage.removeItem('tossup-buzzer-winner_' + roomId);
+                } catch(e){}
+                syncBuzzerState();
+            } else if (type === 'PAUSE_TOSSUP' || type === 'PAUSE_ROUND30_MUSIC' || type === 'REVEAL_ALL' || type === 'LOAD_QUIZ' || type === 'RESET_BOARD' || type === 'SHOW_MANUAL_TEXT' || type === 'PLAYER_BUZZ_WIN' || (type === 'SET_BUZZER_STATE' && payload.data && payload.data.state === 'LOCKED') || (type === 'UPDATE_ROUND30_TIMER' && (payload.data?.subTitle === 'TẠM DỪNG' || payload.data?.seconds === 0))) {
+                isBuzzerOpen = false;
+                try {
+                    localStorage.setItem('tossup-buzzer-open_' + roomId, '0');
+                } catch(e){}
                 syncBuzzerState();
             }
         }
+
+        // Continuous background state polling to guarantee sync across mobile devices / networks
+        setInterval(() => {
+            if (!roomId) return;
+            fetch(getApiUrl('api/get-room-state?roomid=' + encodeURIComponent(roomId)))
+                .then(r => r.json())
+                .then(data => {
+                    if (data && typeof data.buzzerOpen === 'boolean') {
+                        if (isBuzzerOpen !== data.buzzerOpen) {
+                            isBuzzerOpen = data.buzzerOpen;
+                            try {
+                                localStorage.setItem('tossup-buzzer-open_' + roomId, isBuzzerOpen ? '1' : '0');
+                                if (isBuzzerOpen) {
+                                    localStorage.removeItem('tossup-buzzer-winner_' + roomId);
+                                }
+                            } catch(e){}
+                            syncBuzzerState();
+                        }
+                    }
+                    if (data && data.latestWinner && data.latestBuzzTs) {
+                        const currentWinner = localStorage.getItem('tossup-buzzer-winner_' + roomId);
+                        if (!currentWinner && Date.now() - data.latestBuzzTs < 12000) {
+                            handleIncomingBuzz(data.latestWinner);
+                        }
+                    }
+                })
+                .catch(() => {});
+        }, 400);
 
         function playLocalDing() {
             try {
@@ -725,6 +900,11 @@
 
         function buzz() {
             if (!PLAYER_NUM) return;
+
+            // Strict lock check: chuông chỉ mở khi có lệnh START hoặc PLAY
+            if (!isBuzzerOpen) {
+                return;
+            }
 
             const btn = document.getElementById("buzzerBtn");
             if (btn.classList.contains("disabled") || btn.classList.contains("success")) {
@@ -737,6 +917,12 @@
                 syncBuzzerState();
                 return;
             }
+
+            // Lock buzzer immediately upon buzz
+            isBuzzerOpen = false;
+            try {
+                localStorage.setItem('tossup-buzzer-open_' + roomId, '0');
+            } catch(e){}
 
             // Write to localStorage
             localStorage.setItem('tossup-buzzer-winner', PLAYER_NUM);
@@ -752,9 +938,17 @@
             const payload = { playerNum: PLAYER_NUM, ts: Date.now() };
             const msgObj = { event: 'player-buzz', payload: payload, ts: Date.now(), roomid: roomId };
 
-            // 1. Post to Server API
+            // 1. Post to Server API (Both /api/buzz and /api/broadcast for multi-device guarantee)
             try {
-                fetch('/api/broadcast', {
+                fetch(getApiUrl('api/buzz'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roomid: roomId, playerNum: PLAYER_NUM, ts: Date.now() })
+                }).catch(() => {});
+            } catch(e) {}
+
+            try {
+                fetch(getApiUrl('api/broadcast'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(msgObj)
@@ -800,6 +994,9 @@
 
             btn.className = "success";
             pill.style.display = "inline-flex";
+            pill.style.background = "rgba(34, 197, 94, 0.25)";
+            pill.style.borderColor = "#22c55e";
+            pill.style.color = "#ffffff";
             pill.textContent = "🔔 BẠN ĐÃ DÀNH QUYỀN TRẢ LỜI!";
             hint.textContent = "Đang trong lượt trả lời của bạn";
         }
@@ -815,18 +1012,47 @@
 
             btn.className = "disabled";
             pill.style.display = "inline-flex";
+            pill.style.background = "rgba(239, 68, 68, 0.2)";
+            pill.style.borderColor = "#ef4444";
+            pill.style.color = "#fca5a5";
             pill.textContent = `🔒 Người chơi màu ${winnerColorName} đã bấm trước!`;
             hint.textContent = "Chuông đã khóa cho lượt này";
         }
 
-        function resetBuzzer() {
+        function setBuzzerClosed(reason = "Chờ hiệu lệnh START / PLAY từ MC") {
+            const btn = document.getElementById("buzzerBtn");
+            const pill = document.getElementById("statusPill");
+            const hint = document.getElementById("bottomHint");
+
+            btn.className = "disabled";
+            pill.style.display = "inline-flex";
+            pill.style.background = "rgba(239, 68, 68, 0.15)";
+            pill.style.borderColor = "#ef4444";
+            pill.style.color = "#f87171";
+            pill.textContent = "🔒 CHUÔNG ĐANG KHÓA";
+            hint.textContent = reason;
+        }
+
+        function setBuzzerOpenReady() {
             const btn = document.getElementById("buzzerBtn");
             const pill = document.getElementById("statusPill");
             const hint = document.getElementById("bottomHint");
 
             btn.className = "";
-            pill.style.display = "none";
-            hint.textContent = "Chạm màn hình hoặc phím Cách [Space] để chuông";
+            pill.style.display = "inline-flex";
+            pill.style.background = "rgba(34, 197, 94, 0.2)";
+            pill.style.borderColor = "#22c55e";
+            pill.style.color = "#4ade80";
+            pill.textContent = "🟢 CHUÔNG ĐÃ MỞ - SẴN SÀNG!";
+            hint.textContent = "Chạm màn hình hoặc phím Cách [Space] để bấm chuông";
+        }
+
+        function resetBuzzer() {
+            if (isBuzzerOpen) {
+                setBuzzerOpenReady();
+            } else {
+                setBuzzerClosed("Chờ hiệu lệnh START / PLAY từ MC");
+            }
         }
 
         function syncBuzzerState() {
@@ -838,8 +1064,14 @@
                 } else {
                     setBuzzerLocked(winner);
                 }
+                return;
+            }
+
+            // Ngoài các lúc bấm chuông trúng, chuông chỉ mở khi MC bấm START hoặc PLAY
+            if (isBuzzerOpen) {
+                setBuzzerOpenReady();
             } else {
-                resetBuzzer();
+                setBuzzerClosed("Chờ hiệu lệnh START / PLAY từ MC");
             }
         }
 
@@ -856,6 +1088,10 @@
 
         window.addEventListener('storage', (e) => {
             if (!PLAYER_NUM) return;
+            if (e.key === 'tossup-buzzer-open_' + roomId) {
+                isBuzzerOpen = (e.newValue === '1');
+                syncBuzzerState();
+            }
             if (e.key === 'tossup-buzzer-winner_' + roomId) {
                 syncBuzzerState();
             }

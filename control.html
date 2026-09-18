@@ -250,16 +250,95 @@
 
 <body>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; flex-wrap: wrap; gap: 10px;">
-        <h2 style="margin: 0; text-align: left;">BẢNG ĐIỀU KHIỂN TRÒ CHƠI (REALTIME)</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <h2 style="margin: 0; text-align: left;">BẢNG ĐIỀU KHIỂN TRÒ CHƠI (REALTIME)</h2>
+            <div id="controlConnectionStatusBadge" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; background: #18181b; color: #10b981; border: 1px solid #27272a;">
+                🟢 Phòng: <span id="headerRoomText" style="color: #fbbf24;">123456</span> | <span id="headerClientsText" style="color: #60a5fa;">Đang kết nối...</span>
+            </div>
+        </div>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <a id="audienceLinkBtn" href="index.html" target="_blank" style="background: #2980b9; color: #fff; padding: 8px 14px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
                 📺 Màn Hình Khán Giả
             </a>
             <div style="display: flex; gap: 4px;">
-                <a href="player.html?p=1" target="_blank" style="background: #e74c3c; color: #fff; padding: 8px 10px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px;" title="Mở chuông Người chơi 1">🔔 P1</a>
-                <a href="player.html?p=2" target="_blank" style="background: #27ae60; color: #fff; padding: 8px 10px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px;" title="Mở chuông Người chơi 2">🔔 P2</a>
-                <a href="player.html?p=3" target="_blank" style="background: #3498db; color: #fff; padding: 8px 10px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px;" title="Mở chuông Người chơi 3">🔔 P3</a>
+                <a id="headerP1Link" href="player.html?p=1" target="_blank" style="background: #e74c3c; color: #fff; padding: 8px 10px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px;" title="Mở chuông Người chơi 1">🔔 P1</a>
+                <a id="headerP2Link" href="player.html?p=2" target="_blank" style="background: #27ae60; color: #fff; padding: 8px 10px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px;" title="Mở chuông Người chơi 2">🔔 P2</a>
+                <a id="headerP3Link" href="player.html?p=3" target="_blank" style="background: #3498db; color: #fff; padding: 8px 10px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px;" title="Mở chuông Người chơi 3">🔔 P3</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANEL THÔNG TIN VÀ SAO CHÉP LINK CHO NGƯỜI CHƠI -->
+    <div style="background: #18181b; border: 1px solid #ffcc00; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.4);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">🎮</span>
+                <strong style="color: #ffcc00; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">THÔNG TIN & SAO CHÉP LINK NGƯỜI CHƠI (PLAYER)</strong>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button onclick="generateNewRoomCredentials()" style="background: #27272a; color: #e4e4e7; border: 1px solid #52525b; padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">🎲 Tạo Mã & Pass ngẫu nhiên</button>
+                <button onclick="saveRoomCredentials(true)" style="background: #16a34a; color: #fff; border: none; padding: 4px 12px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">💾 Lưu Cài Đặt</button>
+            </div>
+        </div>
+
+        <!-- 4 Khối thông tin bắt buộc: Domain, Tên file HTML, Mã phòng, Pass -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin-bottom: 10px;">
+            <div style="background: #09090b; border: 1px solid #27272a; padding: 7px 10px; border-radius: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; flex-wrap: wrap; gap: 4px;">
+                    <span style="color: #a1a1aa; font-size: 10px; text-transform: uppercase; font-weight: bold;">🌐 1. Domain / Host</span>
+                    <div style="display: flex; gap: 4px;">
+                        <button type="button" onclick="setDomainPreset('https://acestudio.mooo.com/PuzzleBoard-main')" style="background: #0284c7; color: #fff; border: none; font-size: 10px; cursor: pointer; padding: 1px 6px; border-radius: 3px; font-weight: bold;" title="Đặt domain mooo.com">🐮 mooo.com</button>
+                        <button type="button" onclick="resetDomainToDefault()" style="background: none; border: none; color: #38bdf8; font-size: 10px; cursor: pointer; padding: 0; text-decoration: underline;" title="Đặt lại theo địa chỉ web hiện tại">🔄 Mặc định</button>
+                    </div>
+                </div>
+                <input id="inputDomain" type="text" style="width: 100%; box-sizing: border-box; background: #18181b; border: 1px solid #3f3f46; color: #38bdf8; font-family: monospace; font-size: 12px; font-weight: bold; padding: 3px 6px; border-radius: 4px;" placeholder="https://acestudio.mooo.com/PuzzleBoard-main" oninput="updatePlayerUrlDisplay()">
+            </div>
+
+            <div style="background: #09090b; border: 1px solid #27272a; padding: 7px 10px; border-radius: 6px;">
+                <div style="color: #a1a1aa; font-size: 10px; text-transform: uppercase; font-weight: bold; margin-bottom: 3px;">📄 2. Tên File HTML</div>
+                <div style="color: #4ade80; font-family: monospace; font-size: 12px; font-weight: bold;">player.html</div>
+            </div>
+
+            <div style="background: #09090b; border: 1px solid #27272a; padding: 7px 10px; border-radius: 6px;">
+                <div style="color: #a1a1aa; font-size: 10px; text-transform: uppercase; font-weight: bold; margin-bottom: 3px;">🔑 3. Mã Phòng (Room ID)</div>
+                <input id="inputRoomId" type="text" style="width: 100%; box-sizing: border-box; background: #18181b; border: 1px solid #3f3f46; color: #fbbf24; font-family: monospace; font-size: 13px; font-weight: bold; padding: 3px 6px; border-radius: 4px;" oninput="updatePlayerUrlDisplay()">
+            </div>
+
+            <div style="background: #09090b; border: 1px solid #27272a; padding: 7px 10px; border-radius: 6px;">
+                <div style="color: #a1a1aa; font-size: 10px; text-transform: uppercase; font-weight: bold; margin-bottom: 3px;">🔒 4. Mật Khẩu (Pass)</div>
+                <input id="inputRoomPass" type="text" style="width: 100%; box-sizing: border-box; background: #18181b; border: 1px solid #3f3f46; color: #f87171; font-family: monospace; font-size: 13px; font-weight: bold; padding: 3px 6px; border-radius: 4px;" oninput="updatePlayerUrlDisplay()">
+            </div>
+        </div>
+
+        <!-- Full URL Preview and Copy Actions -->
+        <div style="background: #09090b; border: 1px solid #27272a; border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <span style="color: #e4e4e7; font-size: 11px; font-weight: bold; white-space: nowrap;">👉 Link Player:</span>
+                <input id="playerFullUrlInput" readonly style="flex: 1; min-width: 240px; background: #18181b; border: 1px solid #3f3f46; color: #4ade80; font-family: monospace; font-size: 12px; padding: 6px 8px; border-radius: 4px;" onclick="this.select()">
+                <button onclick="copyPlayerInvitationWithDetails()" style="background: #ffcc00; color: #000; border: none; padding: 6px 14px; border-radius: 4px; font-weight: bold; font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;" title="Sao chép toàn bộ: Domain, Tên file HTML, Mã phòng, Pass, Link">
+                    📋 SAO CHÉP LINK PLAYER (ĐỦ DOMAIN, FILE, MÃ, PASS)
+                </button>
+                <button onclick="copyPlayerLink('general')" style="background: #27272a; color: #e4e4e7; border: 1px solid #52525b; padding: 6px 10px; border-radius: 4px; font-weight: bold; font-size: 11px; cursor: pointer;" title="Chỉ sao chép đường dẫn URL">
+                    🔗 Chỉ copy URL
+                </button>
+                <button onclick="copyFormattedInvitation()" style="background: #8b5cf6; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; font-size: 11px; cursor: pointer;" title="Sao chép toàn bộ thông tin kèm chi tiết từng màu P1, P2, P3">
+                    📝 Copy Kèm Chi Tiết P1-P3
+                </button>
+            </div>
+
+            <!-- Role-specific quick copy & test buttons -->
+            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; border-top: 1px solid #1f1f23; padding-top: 6px;">
+                <span style="color: #a1a1aa; font-size: 11px; font-weight: bold;">Gán sẵn người chơi:</span>
+                <button onclick="copyPlayerLink(1)" style="background: #ef4444; color: #fff; border: none; padding: 3px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">🔴 Copy Link P1</button>
+                <button onclick="copyPlayerLink(2)" style="background: #eab308; color: #000; border: none; padding: 3px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">🟡 Copy Link P2</button>
+                <button onclick="copyPlayerLink(3)" style="background: #3b82f6; color: #fff; border: none; padding: 3px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">🔵 Copy Link P3</button>
+
+                <span style="color: #3f3f46; margin: 0 4px;">|</span>
+                <span style="color: #a1a1aa; font-size: 11px; font-weight: bold;">Mở tab test:</span>
+                <a id="btnOpenP1" href="#" target="_blank" style="background: #27272a; color: #f87171; border: 1px solid #ef4444; padding: 2px 7px; border-radius: 4px; font-size: 10px; text-decoration: none; font-weight: bold;">🔔 Mở P1</a>
+                <a id="btnOpenP2" href="#" target="_blank" style="background: #27272a; color: #fde047; border: 1px solid #eab308; padding: 2px 7px; border-radius: 4px; font-size: 10px; text-decoration: none; font-weight: bold;">🔔 Mở P2</a>
+                <a id="btnOpenP3" href="#" target="_blank" style="background: #27272a; color: #93c5fd; border: 1px solid #3b82f6; padding: 2px 7px; border-radius: 4px; font-size: 10px; text-decoration: none; font-weight: bold;">🔔 Mở P3</a>
             </div>
         </div>
     </div>
@@ -324,6 +403,11 @@
                 <h3>5. Vòng Lật Ô Nhanh (Toss-Up)</h3>
                 <div id="buzzerStatusBanner" style="display: none; background: #c0392b; color: #fff; padding: 10px; border-radius: 6px; font-weight: bold; text-align: center; margin-bottom: 10px; border: 1px solid #ff3b30; box-shadow: 0 0 10px rgba(255,59,48,0.5);">
                     🔔 PLAYER <span id="buzzerWinnerNum">1</span> ĐÃ BẤM CHUÔNG KHÓA!
+                </div>
+                <!-- Trạng thái mở/khóa chuông thí sinh -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; background: rgba(0,0,0,0.35); padding: 7px 10px; border-radius: 6px; border: 1px solid #34495e;">
+                    <span style="font-size: 11px; color: #bdc3c7; font-weight: bold;">TRẠNG THÁI CHUÔNG:</span>
+                    <span id="tossupBuzzerBadge" style="font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 4px; background: #2c3e50; color: #e74c3c; border: 1px solid #7f8c8d; transition: all 0.2s ease;">🔒 ĐANG KHÓA (Bấm START / PLAY để mở)</span>
                 </div>
                 <div class="group" style="margin-bottom: 8px;">
                     <button class="btn-tossup" id="startBtn" onclick="clickStartTossup()">START</button>
@@ -416,6 +500,12 @@
                 <!-- Đáp Án Ô Chữ Con Hiện Tại -->
                 <div id="round30CurrentAnswerBox" style="background: #111; padding: 8px; border-radius: 4px; border-left: 3px solid #f1c40f; margin-bottom: 10px; font-size: 11px; color: #ddd;">
                     <span style="color: #f1c40f; font-weight: bold;">🔑 ĐÁP ÁN:</span> <span id="round30AnswerText" style="font-weight: bold; color: #fff;">...</span>
+                </div>
+
+                <!-- Trạng thái mở/khóa chuông vòng 30s -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; background: rgba(0,0,0,0.35); padding: 7px 10px; border-radius: 6px; border: 1px solid #34495e;">
+                    <span style="font-size: 11px; color: #bdc3c7; font-weight: bold;">TRẠNG THÁI CHUÔNG 30S:</span>
+                    <span id="round30BuzzerBadge" style="font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 4px; background: #2c3e50; color: #e74c3c; border: 1px solid #7f8c8d; transition: all 0.2s ease;">🔒 ĐANG KHÓA (Bấm Bắt đầu / Tiếp để mở)</span>
                 </div>
 
                 <!-- Các Nút Điều Khiển Chính Cho Vòng 30s -->
@@ -514,9 +604,9 @@
                     <button style="background-color: #e74c3c; color: white;" onclick="sendCmd('PLAY_SFX', 'red.mp3')">🚨 ĐÈN ĐỎ CẢNH BÁO</button>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 6px; border-top: 1px solid #444; padding-top: 10px;">
-                    <button class="btn-reveal" style="background-color: #c0392b; padding: 10px 0;" onclick="sendCmd('REVEAL_ALL')">🔓 MỞ HẾT TOÀN BỘ Ô CHỮ</button>
+                    <button class="btn-reveal" style="background-color: #c0392b; padding: 10px 0;" onclick="sendCmd('REVEAL_ALL'); setControlBuzzerOpen(false);">🔓 MỞ HẾT TOÀN BỘ Ô CHỮ</button>
                     <button style="background-color: #f1c40f; color: black;" onclick="sendCmd('STOP_ALL_SFX')">🛑 DỪNG TẤT CẢ ÂM THANH</button>
-                    <button class="btn-reset" style="padding: 8px 0;" onclick="sendCmd('RESET_BOARD')">♻️ RESET BẢNG TRỐNG</button>
+                    <button class="btn-reset" style="padding: 8px 0;" onclick="sendCmd('RESET_BOARD'); setControlBuzzerOpen(false);">♻️ RESET BẢNG TRỐNG</button>
                 </div>
             </div>
         </div>
@@ -619,8 +709,280 @@
     </div>
 
     <script>
+        // API URL resolver supporting custom subpaths (e.g. /PuzzleBoard-main) and any host
+        function getApiUrl(endpoint) {
+            const clean = endpoint.replace(/^\/+/, '');
+            try {
+                return new URL(clean, window.location.href).href;
+            } catch(e) {
+                return '/' + clean;
+            }
+        }
+
+        // --- QUẢN LÝ MÃ PHÒNG (ROOM ID) VÀ MẬT KHẨU (PASS) CHO NGƯỜI CHƠI ---
         const urlParams = new URLSearchParams(window.location.search);
-        let roomId = urlParams.get('roomid') || '';
+        let roomId = urlParams.get('roomid') || localStorage.getItem('crossword_control_roomid') || '123456';
+        let roomPass = urlParams.get('pass') || localStorage.getItem('crossword_control_pass') || '8888';
+
+        function syncRoomCredentialsToServer() {
+            fetch(getApiUrl('api/set-room-config'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomid: roomId, pass: roomPass, buzzerOpen: !!isBuzzerCurrentlyOpen })
+            }).catch(err => console.error("Error syncing room credentials:", err));
+        }
+
+        function getDefaultBaseUrl() {
+            try {
+                const u = new URL('player.html', window.location.href);
+                return u.href.replace(/\/player\.html.*$/, '');
+            } catch(e) {
+                return window.location.origin;
+            }
+        }
+
+        function getBaseUrl() {
+            const inputD = document.getElementById("inputDomain");
+            let custom = inputD ? inputD.value.trim() : '';
+            if (!custom) {
+                custom = localStorage.getItem('crossword_control_domain') || '';
+            }
+            // Auto clean stale localhost domain when running in online cloud container
+            if (custom && (custom.includes('localhost') || custom.includes('127.0.0.1')) && !window.location.hostname.includes('localhost')) {
+                localStorage.removeItem('crossword_control_domain');
+                custom = '';
+            }
+            if (custom) {
+                return custom.replace(/\/+$/, '');
+            }
+            return getDefaultBaseUrl();
+        }
+
+        function setDomainPreset(preset) {
+            const inputD = document.getElementById("inputDomain");
+            if (inputD) inputD.value = preset;
+            localStorage.setItem('crossword_control_domain', preset);
+            updatePlayerUrlDisplay();
+            showCustomAlert(`✅ Đã đặt domain:\n${preset}`);
+        }
+
+        function resetDomainToDefault() {
+            const def = getDefaultBaseUrl();
+            const inputD = document.getElementById("inputDomain");
+            if (inputD) inputD.value = def;
+            localStorage.removeItem('crossword_control_domain');
+            updatePlayerUrlDisplay();
+        }
+
+        function getPlayerUrl(role = 0) {
+            const base = getBaseUrl();
+            let url = `${base}/player.html?roomid=${encodeURIComponent(roomId)}&pass=${encodeURIComponent(roomPass)}`;
+            if (role >= 1 && role <= 3) {
+                url += `&p=${role}`;
+            }
+            return url;
+        }
+
+        function updatePlayerUrlDisplay() {
+            const base = getBaseUrl();
+            const inputD = document.getElementById("inputDomain");
+            if (inputD && document.activeElement !== inputD) {
+                inputD.value = base;
+            }
+
+            const inputR = document.getElementById("inputRoomId");
+            const inputP = document.getElementById("inputRoomPass");
+            if (inputR && document.activeElement !== inputR) inputR.value = roomId;
+            if (inputP && document.activeElement !== inputP) inputP.value = roomPass;
+
+            const fullUrl = getPlayerUrl(0);
+            const fullUrlInput = document.getElementById("playerFullUrlInput");
+            if (fullUrlInput) fullUrlInput.value = fullUrl;
+
+            // Update audience screen link with room ID
+            const audBtn = document.getElementById("audienceLinkBtn");
+            if (audBtn) {
+                audBtn.href = `index.html?roomid=${encodeURIComponent(roomId)}`;
+            }
+
+            // Update direct test open buttons
+            const p1Url = getPlayerUrl(1);
+            const p2Url = getPlayerUrl(2);
+            const p3Url = getPlayerUrl(3);
+
+            const btnP1 = document.getElementById("btnOpenP1");
+            const btnP2 = document.getElementById("btnOpenP2");
+            const btnP3 = document.getElementById("btnOpenP3");
+            if (btnP1) btnP1.href = p1Url;
+            if (btnP2) btnP2.href = p2Url;
+            if (btnP3) btnP3.href = p3Url;
+
+            // Update top header links
+            const hP1 = document.getElementById("headerP1Link");
+            const hP2 = document.getElementById("headerP2Link");
+            const hP3 = document.getElementById("headerP3Link");
+            if (hP1) hP1.href = p1Url;
+            if (hP2) hP2.href = p2Url;
+            if (hP3) hP3.href = p3Url;
+
+            const roomText = document.getElementById("headerRoomText");
+            if (roomText) roomText.textContent = roomId;
+        }
+
+        function checkControlConnectedClients() {
+            if (!roomId) return;
+            fetch(getApiUrl('api/connected-clients?roomid=' + encodeURIComponent(roomId)))
+                .then(r => r.json())
+                .then(data => {
+                    const clText = document.getElementById("headerClientsText");
+                    if (clText) {
+                        const total = data.total || 0;
+                        const roles = (data.roles || []).map(r => 'P' + r).join(', ');
+                        if (total > 0) {
+                            clText.style.color = '#4ade80';
+                            clText.textContent = `${total} thiết bị online${roles ? ' (' + roles + ')' : ''}`;
+                        } else {
+                            clText.style.color = '#fbbf24';
+                            clText.textContent = `Chưa có thiết bị nào kết nối`;
+                        }
+                    }
+                })
+                .catch(() => {});
+        }
+        setInterval(checkControlConnectedClients, 2000);
+
+        function generateNewRoomCredentials() {
+            roomId = Math.floor(100000 + Math.random() * 900000).toString();
+            roomPass = Math.floor(1000 + Math.random() * 9000).toString();
+            const inputR = document.getElementById("inputRoomId");
+            const inputP = document.getElementById("inputRoomPass");
+            if (inputR) inputR.value = roomId;
+            if (inputP) inputP.value = roomPass;
+            saveRoomCredentials(true);
+        }
+
+        function saveRoomCredentials(showNotice = false) {
+            const inputD = document.getElementById("inputDomain");
+            const inputR = document.getElementById("inputRoomId");
+            const inputP = document.getElementById("inputRoomPass");
+            if (inputD && inputD.value.trim()) {
+                localStorage.setItem('crossword_control_domain', inputD.value.trim());
+            }
+            if (inputR && inputR.value.trim()) roomId = inputR.value.trim();
+            if (inputP) roomPass = inputP.value.trim();
+
+            localStorage.setItem('crossword_control_roomid', roomId);
+            localStorage.setItem('crossword_control_pass', roomPass);
+
+            syncRoomCredentialsToServer();
+            updatePlayerUrlDisplay();
+            if (typeof setupControlSSE === "function") {
+                setupControlSSE(roomId);
+            }
+
+            if (showNotice) {
+                showCustomAlert(`✅ Đã lưu cài đặt phòng!\n• Domain: ${getBaseUrl()}\n• File: player.html\n• Mã phòng: ${roomId}\n• Pass: ${roomPass}`);
+            }
+        }
+
+        function copyPlayerLink(type = 'general') {
+            saveRoomCredentials(false);
+            let url = '';
+            let title = '';
+            if (type === 1) {
+                url = getPlayerUrl(1);
+                title = 'Người chơi 1 (Đỏ)';
+            } else if (type === 2) {
+                url = getPlayerUrl(2);
+                title = 'Người chơi 2 (Vàng)';
+            } else if (type === 3) {
+                url = getPlayerUrl(3);
+                title = 'Người chơi 3 (Xanh)';
+            } else {
+                url = getPlayerUrl(0);
+                title = 'Người chơi tham gia';
+            }
+            copyTextToClipboard(url, `📋 Đã sao chép link ${title}:\n${url}`);
+        }
+
+        function copyPlayerInvitationWithDetails() {
+            saveRoomCredentials(false);
+            const base = getBaseUrl();
+            const fullUrl = getPlayerUrl(0);
+
+            const details = 
+`🎮 THÔNG TIN THAM GIA CHO NGƯỜI CHƠI (PLAYER):
+🌐 Domain / Base URL: ${base}
+📄 Tên file HTML: player.html
+🔑 Mã phòng (Room ID): ${roomId}
+🔒 Mật khẩu (Pass): ${roomPass}
+🔗 Link tham gia: ${fullUrl}`;
+
+            copyTextToClipboard(details, `📋 Đã sao chép link và thông tin người chơi (Domain, File HTML, Mã phòng, Pass)!`);
+        }
+
+        function copyFormattedInvitation() {
+            saveRoomCredentials(false);
+            const base = getBaseUrl();
+            const fullUrl = getPlayerUrl(0);
+            const p1 = getPlayerUrl(1);
+            const p2 = getPlayerUrl(2);
+            const p3 = getPlayerUrl(3);
+
+            const details = 
+`🎮 THÔNG TIN THAM GIA TRÒ CHƠI Ô CHỮ:
+🌐 Domain / Base URL: ${base}
+📄 Tên file HTML: player.html
+🔑 Mã phòng (Room ID): ${roomId}
+🔒 Mật khẩu (Pass): ${roomPass}
+
+👉 Link tham gia chung:
+${fullUrl}
+
+👉 Link trực tiếp từng người chơi:
+🔴 P1 (Đỏ): ${p1}
+🟡 P2 (Vàng): ${p2}
+🔵 P3 (Xanh): ${p3}`;
+
+            copyTextToClipboard(details, "📋 Đã sao chép toàn bộ thông tin tham gia (Domain, File, Mã phòng, Pass, Link)!");
+        }
+
+        function copyTextToClipboard(text, successMsg) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showCustomAlert(successMsg);
+                }).catch(() => {
+                    fallbackCopy(text, successMsg);
+                });
+            } else {
+                fallbackCopy(text, successMsg);
+            }
+        }
+
+        function fallbackCopy(text, successMsg) {
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            ta.style.position = "fixed";
+            ta.style.left = "-999999px";
+            ta.style.top = "-999999px";
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            try {
+                document.execCommand('copy');
+                showCustomAlert(successMsg);
+            } catch (err) {
+                window.prompt("Sao chép liên kết:", text);
+            }
+            document.body.removeChild(ta);
+        }
+
+        // Initialize display and server sync immediately
+        setTimeout(() => {
+            updatePlayerUrlDisplay();
+            setControlBuzzerOpen(false, false);
+            syncRoomCredentialsToServer();
+        }, 50);
 
         var SUPABASE_URL = "https://tukabyhjmcyptuwmwedp.supabase.co";
         var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OX0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
@@ -842,26 +1204,50 @@
             } catch (e) {}
         }
 
-        // 2. Server-Sent Events (SSE) Listener for multi-device
-        try {
-            if (typeof EventSource !== "undefined") {
-                const sseUrl = roomId ? ('/api/events?roomid=' + roomId) : '/api/events';
-                const sse = new EventSource(sseUrl);
-                sse.onmessage = (e) => {
+        // 2. Server-Sent Events (SSE) Listener for multi-device with automatic reconnect
+        let controlSSE = null;
+        let sseReconnectTimer = null;
+        function setupControlSSE(targetRid) {
+            if (typeof EventSource === "undefined") return;
+            if (controlSSE) {
+                try { controlSSE.close(); } catch(e) {}
+                controlSSE = null;
+            }
+            if (sseReconnectTimer) {
+                clearTimeout(sseReconnectTimer);
+                sseReconnectTimer = null;
+            }
+
+            const currentRid = targetRid || roomId || 'default';
+            const sseUrl = getApiUrl('api/events?roomid=' + encodeURIComponent(currentRid) + '&role=0&clientId=ctrl_' + Date.now());
+            try {
+                controlSSE = new EventSource(sseUrl);
+                controlSSE.onmessage = (e) => {
                     try {
                         const msg = JSON.parse(e.data);
                         if (!msg) return;
-                        if (msg.roomid && roomId && msg.roomid !== roomId) return;
+                        if (msg.roomid && currentRid && msg.roomid !== currentRid && msg.roomid !== 'default') return;
 
                         if (msg.event === 'display-to-control' && msg.payload) {
                             handleDisplayMessageWrapper(msg.payload, msg.ts || (msg.payload ? msg.payload.ts : null), msg.msgId || (msg.payload ? msg.payload.msgId : null));
                         } else if (msg.event === 'player-buzz' && msg.payload && msg.payload.playerNum) {
+                            console.log("[SSE] Received player buzz:", msg.payload.playerNum);
                             handlePlayerBuzz(msg.payload.playerNum);
                         }
                     } catch(err){}
                 };
-            }
-        } catch(e) {}
+                controlSSE.onerror = () => {
+                    try { controlSSE.close(); } catch(e) {}
+                    controlSSE = null;
+                    if (!sseReconnectTimer) {
+                        sseReconnectTimer = setTimeout(() => {
+                            setupControlSSE(roomId);
+                        }, 2500);
+                    }
+                };
+            } catch(e) {}
+        }
+        setupControlSSE(roomId);
 
         // 3. Local BroadcastChannel
         if (localBC) {
@@ -905,6 +1291,24 @@
             }
         });
 
+        // Fast fallback HTTP polling from server to guarantee buzz detection across different devices
+        let lastHandledServerBuzzTs = 0;
+        setInterval(() => {
+            if (!roomId) return;
+            fetch(getApiUrl('api/get-room-state?roomid=' + encodeURIComponent(roomId)))
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.latestWinner && data.latestBuzzTs) {
+                        if (data.latestBuzzTs > lastHandledServerBuzzTs && activeBuzzerWinner === null) {
+                            lastHandledServerBuzzTs = data.latestBuzzTs;
+                            console.log("[POLL] Detected buzz from server state:", data.latestWinner);
+                            handlePlayerBuzz(data.latestWinner);
+                        }
+                    }
+                })
+                .catch(() => {});
+        }, 200);
+
         setInterval(() => {
             try {
                 let raw = localStorage.getItem('display-to-control-msg');
@@ -926,6 +1330,7 @@
             if (activeBuzzerWinner !== null) return;
             
             activeBuzzerWinner = playerNum;
+            lastHandledServerBuzzTs = Date.now();
             localStorage.setItem('tossup-buzzer-winner', playerNum);
             if (roomId) localStorage.setItem('tossup-buzzer-winner_' + roomId, playerNum);
             
@@ -950,16 +1355,74 @@
             isTossupRunning = false;
             clearTimeout(tossupTimeout);
             
+            // Khóa chuông khi đã có người bấm
+            setControlBuzzerOpen(false, false);
+
             // Send command to display to show the winner highlight and play ding
             sendCmd('PLAYER_BUZZ_WIN', { playerNum: playerNum });
+        }
+
+        let isBuzzerCurrentlyOpen = false;
+
+        function setControlBuzzerOpen(isOpen, shouldBroadcast = true) {
+            isBuzzerCurrentlyOpen = !!isOpen;
+            const stateStr = isBuzzerCurrentlyOpen ? 'OPEN' : 'LOCKED';
+            try {
+                localStorage.setItem('tossup-buzzer-open_' + roomId, isBuzzerCurrentlyOpen ? '1' : '0');
+            } catch(e){}
+
+            if (shouldBroadcast) {
+                sendCmd('SET_BUZZER_STATE', { state: stateStr });
+            }
+
+            updateControlBuzzerUI();
+        }
+
+        function updateControlBuzzerUI() {
+            const tossupBadge = document.getElementById("tossupBuzzerBadge");
+            if (tossupBadge) {
+                if (isBuzzerCurrentlyOpen) {
+                    tossupBadge.innerHTML = '🟢 <b>ĐANG MỞ CHUÔNG</b> (START/PLAY)';
+                    tossupBadge.style.background = '#27ae60';
+                    tossupBadge.style.color = '#ffffff';
+                    tossupBadge.style.borderColor = '#2ecc71';
+                } else {
+                    tossupBadge.innerHTML = '🔒 <b>ĐANG KHÓA</b> (Bấm START/PLAY để mở)';
+                    tossupBadge.style.background = '#2c3e50';
+                    tossupBadge.style.color = '#e74c3c';
+                    tossupBadge.style.borderColor = '#7f8c8d';
+                }
+            }
+            const r30Badge = document.getElementById("round30BuzzerBadge");
+            if (r30Badge) {
+                if (isBuzzerCurrentlyOpen) {
+                    r30Badge.innerHTML = '🟢 <b>ĐANG MỞ CHUÔNG</b> (BẮT ĐẦU/TIẾP)';
+                    r30Badge.style.background = '#27ae60';
+                    r30Badge.style.color = '#ffffff';
+                    r30Badge.style.borderColor = '#2ecc71';
+                } else {
+                    r30Badge.innerHTML = '🔒 <b>ĐANG KHÓA</b> (Bấm Bắt đầu / Tiếp để mở)';
+                    r30Badge.style.background = '#2c3e50';
+                    r30Badge.style.color = '#e74c3c';
+                    r30Badge.style.borderColor = '#7f8c8d';
+                }
+            }
         }
         
         function clearControlBuzzer() {
             activeBuzzerWinner = null;
+            lastHandledServerBuzzTs = Date.now();
             try {
                 localStorage.removeItem('tossup-buzzer-winner');
                 if (roomId) localStorage.removeItem('tossup-buzzer-winner_' + roomId);
             } catch(e){}
+            try {
+                fetch(getApiUrl('api/reset-buzz'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roomid: roomId })
+                }).catch(() => {});
+            } catch(e) {}
             const banner = document.getElementById("buzzerStatusBanner");
             if (banner) banner.style.display = "none";
             const r30Banner = document.getElementById("round30BuzzerBanner");
@@ -1107,6 +1570,7 @@
             isTossupRunning = true;
             
             sendCmd('START_ROUND30');
+            setControlBuzzerOpen(true);
             
             // Start 30s Countdown
             round30TimerInterval = setInterval(() => {
@@ -1118,6 +1582,7 @@
                     isRound30Running = false;
                     isTossupRunning = false;
                     clearTimeout(tossupTimeout);
+                    setControlBuzzerOpen(false);
                     
                     sendCmd('UPDATE_ROUND30_TIMER', {
                         seconds: 0,
@@ -1163,7 +1628,7 @@
 
         function togglePauseRound30() {
             if (isRound30Running) {
-                // Pause
+                // Pause -> Lock buzzer
                 isRound30Running = false;
                 isTossupRunning = false;
                 if (round30TimerInterval) {
@@ -1172,17 +1637,19 @@
                 }
                 clearTimeout(tossupTimeout);
                 sendCmd('PAUSE_ROUND30_MUSIC');
+                setControlBuzzerOpen(false);
                 sendCmd('UPDATE_ROUND30_TIMER', {
                     seconds: Math.ceil(round30Seconds),
                     visible: true,
                     subTitle: 'TẠM DỪNG'
                 });
             } else {
-                // Resume
+                // Resume / Play -> Open buzzer
                 if (round30Seconds > 0) {
                     isRound30Running = true;
                     isTossupRunning = true;
                     clearControlBuzzer();
+                    setControlBuzzerOpen(true);
                     
                     sendCmd('RESUME_ROUND30_MUSIC');
                     round30TimerInterval = setInterval(() => {
@@ -1194,6 +1661,7 @@
                             isRound30Running = false;
                             isTossupRunning = false;
                             clearTimeout(tossupTimeout);
+                            setControlBuzzerOpen(false);
                             updateRound30TimerUI();
                             return;
                         }
@@ -1210,6 +1678,7 @@
                 isTossupRunning = false;
                 clearTimeout(tossupTimeout);
             }
+            setControlBuzzerOpen(false);
             round30SolvedStatus[currentRound30SubIndex] = true;
             renderRound30SubButtons();
             sendCmd('REVEAL_ALL');
@@ -1218,6 +1687,7 @@
 
         function nextRound30Puzzle() {
             clearControlBuzzer();
+            setControlBuzzerOpen(false);
             const total = round30SubPuzzles.length || 8;
             currentRound30SubIndex = (currentRound30SubIndex + 1) % total;
             selectRound30Sub(currentRound30SubIndex);
@@ -1238,6 +1708,7 @@
             updateRound30TimerUI();
             selectRound30Sub(0);
             clearControlBuzzer();
+            setControlBuzzerOpen(false);
             sendCmd('STOP_ROUND30_MUSIC');
             sendCmd('UPDATE_ROUND30_TIMER', {
                 seconds: 30,
@@ -1255,15 +1726,19 @@
                 sendCmd('PLAY_SFX', 'FlashGreen.mp3');
                 revealRound30Answer();
                 clearControlBuzzer();
+                setControlBuzzerOpen(false);
             } else {
                 sendCmd('PLAY_SFX', 'wrong.mp3');
                 sendCmd('PLAY_SFX', 'FlashRed.mp3');
                 clearControlBuzzer();
-                // Nếu đồng hồ 30s vẫn đang chạy và còn thời gian, tiếp tục lật chữ cái ngẫu nhiên
+                // Nếu đồng hồ 30s vẫn đang chạy và còn thời gian, tiếp tục lật chữ cái ngẫu nhiên và mở chuông lại
                 if (isRound30Running && round30Seconds > 0) {
                     isTossupRunning = true;
                     clearTimeout(tossupTimeout);
                     tossupTimeout = setTimeout(controlRevealRandomCell, getLetterRevealDelay());
+                    setControlBuzzerOpen(true);
+                } else {
+                    setControlBuzzerOpen(false);
                 }
             }
         }
@@ -1606,6 +2081,7 @@
                 }
                 sendCmd('UPDATE_QUIZ_ACTIVE', 12);
                 clearControlBuzzer();
+                setControlBuzzerOpen(false);
                 selectPreviewQuiz(12);
                 setTimeout(updateScoreboard, 300);
                 return;
@@ -1645,6 +2121,7 @@
             isTossupRunning = false;
             sendCmd('LOAD_QUIZ', { index: quizIndex, letters: quizLetters });
             clearControlBuzzer();
+            setControlBuzzerOpen(false);
             selectPreviewQuiz(quizIndex);
             setTimeout(updateScoreboard, 300);
         }
@@ -1676,12 +2153,26 @@
             controlRevealedStates = new Array(52).fill(false);
             isTossupRunning = true;
             sendCmd('START_TOSSUP');
+            setControlBuzzerOpen(true);
             clearControlBuzzer();
             controlRevealRandomCell();
         }
 
-        function clickPauseTossup(keepMusic = false) { isTossupRunning = false; clearTimeout(tossupTimeout); sendCmd('PAUSE_TOSSUP', { keepMusic: keepMusic }); }
-        function clickPlayTossup() { if (isTossupRunning) return; isTossupRunning = true; sendCmd('PLAY_TOSSUP'); clearControlBuzzer(); controlRevealRandomCell(); }
+        function clickPauseTossup(keepMusic = false) { 
+            isTossupRunning = false; 
+            clearTimeout(tossupTimeout); 
+            sendCmd('PAUSE_TOSSUP', { keepMusic: keepMusic }); 
+            setControlBuzzerOpen(false);
+        }
+
+        function clickPlayTossup() { 
+            if (isTossupRunning) return; 
+            isTossupRunning = true; 
+            sendCmd('PLAY_TOSSUP'); 
+            setControlBuzzerOpen(true);
+            clearControlBuzzer(); 
+            controlRevealRandomCell(); 
+        }
 
         function removeVietnameseTones(str) {
             if (!str) return "";
@@ -1749,7 +2240,13 @@
             container.appendChild(btn);
         });
 
-        function solveTossUp() { isTossupRunning = false; clearTimeout(tossupTimeout); sendCmd('REVEAL_ALL'); clearControlBuzzer(); }
+        function solveTossUp() { 
+            isTossupRunning = false; 
+            clearTimeout(tossupTimeout); 
+            sendCmd('REVEAL_ALL'); 
+            setControlBuzzerOpen(false);
+            clearControlBuzzer(); 
+        }
 
         function showCustomAlert(message) { document.getElementById("popupMessage").textContent = message; document.getElementById("customPopup").style.display = "flex"; }
         function closePopup() { document.getElementById("customPopup").style.display = "none"; }
@@ -1762,7 +2259,7 @@
 
             // 1. Post to Server API for instant multi-device sync
             try {
-                fetch('/api/broadcast', {
+                fetch(getApiUrl('api/broadcast'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(msgObj)
