@@ -799,7 +799,7 @@
                     } else {
                         document.getElementById("alphabetSection").style.display = "none";
                     }
-                    if ([9, 10, 11].includes(data)) {
+                    if ([8, 9, 10, 11].includes(data)) {
                         document.getElementById("extraLettersSection").style.display = "block";
                     } else {
                         document.getElementById("extraLettersSection").style.display = "none";
@@ -1623,6 +1623,25 @@
             // Normal quizzes 1 to 12
             document.getElementById("standardTossupSection").style.display = "block";
             document.getElementById("round30Section").style.display = "none";
+
+            const targetAlphabetQuizzes = [2, 3, 4, 8, 9, 10, 11]; // Đề 3, 4, 5, 9, 10, 11, 12
+            if (targetAlphabetQuizzes.includes(quizIndex)) {
+                document.getElementById("alphabetSection").style.display = "block";
+            } else {
+                document.getElementById("alphabetSection").style.display = "none";
+            }
+
+            const targetExtraQuizzes = [8, 9, 10, 11]; // Đề 9, 10, 11, 12
+            if (targetExtraQuizzes.includes(quizIndex)) {
+                document.getElementById("extraLettersSection").style.display = "block";
+            } else {
+                document.getElementById("extraLettersSection").style.display = "none";
+            }
+
+            document.querySelectorAll(".btn-letter").forEach(btn => btn.disabled = false);
+            if (document.getElementById("numCells")) document.getElementById("numCells").value = "";
+            if (document.getElementById("childTextBoxes")) document.getElementById("childTextBoxes").innerHTML = "";
+
             sendCmd('STOP_ROUND30_MUSIC');
             sendCmd('UPDATE_ROUND30_TIMER', { visible: false });
 
