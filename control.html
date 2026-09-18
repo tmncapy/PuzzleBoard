@@ -253,17 +253,14 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; flex-wrap: wrap; gap: 10px;">
         <h2 style="margin: 0; text-align: left;">BẢNG ĐIỀU KHIỂN TRÒ CHƠI (REALTIME)</h2>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <!-- Room Info and Controls -->
-            <div style="background: #222; border: 1px solid #ffcc00; padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 10px; font-size: 12px;">
-                <span style="color: #ffcc00; font-weight: 900; letter-spacing: 0.5px;">🔑 PHÒNG: <span id="roomDisplayVal" style="color: #fff; background: #333; padding: 2px 6px; border-radius: 4px;">------</span></span>
-                <button onclick="createNewRoom()" style="background: #e67e22; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px;">Tạo phòng mới</button>
-                <button onclick="copyPlayerLink()" style="background: #9b59b6; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px;">📋 Copy Link Player</button>
-                <a id="playerBtnLink" href="#" target="_blank" style="background: #34495e; color: #fff; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; text-decoration: none; display: inline-flex; align-items: center;">🔔 Mở Player</a>
-            </div>
-
             <a id="audienceLinkBtn" href="index.html" target="_blank" style="background: #2980b9; color: #fff; padding: 8px 14px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
                 📺 Màn Hình Khán Giả
             </a>
+            <div style="display: flex; gap: 4px;">
+                <a href="player.html?p=1" target="_blank" style="background: #e74c3c; color: #fff; padding: 8px 10px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px;" title="Mở chuông Người chơi 1">🔔 P1</a>
+                <a href="player.html?p=2" target="_blank" style="background: #27ae60; color: #fff; padding: 8px 10px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px;" title="Mở chuông Người chơi 2">🔔 P2</a>
+                <a href="player.html?p=3" target="_blank" style="background: #3498db; color: #fff; padding: 8px 10px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px;" title="Mở chuông Người chơi 3">🔔 P3</a>
+            </div>
         </div>
     </div>
 
@@ -622,25 +619,8 @@
     </div>
 
     <script>
-        // --- TRUY XUẤT MÃ PHÒNG (ROOM ID) ---
         const urlParams = new URLSearchParams(window.location.search);
-        let roomId = urlParams.get('roomid');
-        if (!roomId) {
-            roomId = Math.floor(100000 + Math.random() * 900000).toString();
-            urlParams.set('roomid', roomId);
-            window.location.search = urlParams.toString();
-        } else {
-            // Register active room with the server
-            fetch('/api/set-active-room', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ roomid: roomId })
-            }).then(res => res.json())
-              .then(data => console.log("Active room registered:", data))
-              .catch(err => console.error("Error registering active room:", err));
-        }
-
-        const channelName = 'crossword_broadcast_room_' + roomId;
+        let roomId = urlParams.get('roomid') || '';
 
         var SUPABASE_URL = "https://tukabyhjmcyptuwmwedp.supabase.co";
         var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1a2FieWhqbWN5cHR1d213ZWRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NDk3NDksImV4cCI6MjA5NjAyNTc0OX0.gNWdvZ_hRdon_w_KL3C3eXFFiV_EoA4eLgikcYb6dpQ";
@@ -650,7 +630,7 @@
         try {
             if (typeof supabase !== "undefined" && supabase.createClient) {
                 supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                channel = supabaseClient.channel(channelName, {
+                channel = supabaseClient.channel('crossword_broadcast_room', {
                     config: { broadcast: { ack: false, self: true } }
                 });
             }
@@ -658,7 +638,7 @@
             console.warn("Supabase initialization error, falling back to Server/BroadcastChannel/localStorage:", err);
         }
 
-        const localBC = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel(channelName) : null;
+        const localBC = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel('crossword_broadcast_room') : null;
 
         let tossupTimeout = null;
         let isTossupRunning = false;
@@ -862,15 +842,16 @@
             } catch (e) {}
         }
 
-        // 2. Server-Sent Events (SSE) Listener for multi-device with room support
+        // 2. Server-Sent Events (SSE) Listener for multi-device
         try {
             if (typeof EventSource !== "undefined") {
-                const sse = new EventSource('/api/events?roomid=' + roomId);
+                const sseUrl = roomId ? ('/api/events?roomid=' + roomId) : '/api/events';
+                const sse = new EventSource(sseUrl);
                 sse.onmessage = (e) => {
                     try {
                         const msg = JSON.parse(e.data);
                         if (!msg) return;
-                        if (msg.roomid && msg.roomid !== roomId) return;
+                        if (msg.roomid && roomId && msg.roomid !== roomId) return;
 
                         if (msg.event === 'display-to-control' && msg.payload) {
                             handleDisplayMessageWrapper(msg.payload, msg.ts || (msg.payload ? msg.payload.ts : null), msg.msgId || (msg.payload ? msg.payload.msgId : null));
@@ -906,7 +887,7 @@
         });
 
         window.addEventListener('storage', (e) => {
-            if (e.key === 'display-to-control-msg_' + roomId && e.newValue) {
+            if ((e.key === 'display-to-control-msg' || (roomId && e.key === 'display-to-control-msg_' + roomId)) && e.newValue) {
                 try {
                     const data = JSON.parse(e.newValue);
                     if (data && data.payload) {
@@ -914,7 +895,7 @@
                     }
                 } catch (err) {}
             }
-            if (e.key === 'player-buzz-msg_' + roomId && e.newValue) {
+            if ((e.key === 'player-buzz-msg' || (roomId && e.key === 'player-buzz-msg_' + roomId)) && e.newValue) {
                 try {
                     const data = JSON.parse(e.newValue);
                     if (data && data.payload && data.payload.playerNum) {
@@ -926,7 +907,10 @@
 
         setInterval(() => {
             try {
-                const raw = localStorage.getItem('display-to-control-msg_' + roomId);
+                let raw = localStorage.getItem('display-to-control-msg');
+                if (!raw && roomId) {
+                    raw = localStorage.getItem('display-to-control-msg_' + roomId);
+                }
                 if (raw) {
                     const data = JSON.parse(raw);
                     if (data && data.payload && data.ts && data.ts > lastProcessedDisplayTs) {
@@ -942,7 +926,8 @@
             if (activeBuzzerWinner !== null) return;
             
             activeBuzzerWinner = playerNum;
-            localStorage.setItem('tossup-buzzer-winner_' + roomId, playerNum);
+            localStorage.setItem('tossup-buzzer-winner', playerNum);
+            if (roomId) localStorage.setItem('tossup-buzzer-winner_' + roomId, playerNum);
             
             // Show status on host banner
             const banner = document.getElementById("buzzerStatusBanner");
@@ -1692,6 +1677,57 @@
         function clickPauseTossup(keepMusic = false) { isTossupRunning = false; clearTimeout(tossupTimeout); sendCmd('PAUSE_TOSSUP', { keepMusic: keepMusic }); }
         function clickPlayTossup() { if (isTossupRunning) return; isTossupRunning = true; sendCmd('PLAY_TOSSUP'); clearControlBuzzer(); controlRevealRandomCell(); }
 
+        function removeVietnameseTones(str) {
+            if (!str) return "";
+            const map = {
+                "á": "a", "à": "a", "ả": "a", "ã": "a", "ạ": "a", "Á": "A", "À": "A", "Ả": "A", "Ã": "A", "Ạ": "A",
+                "ấ": "â", "ầ": "â", "ẩ": "â", "ẫ": "â", "ậ": "â", "Ấ": "Â", "Ầ": "Â", "Ẩ": "Â", "Ẫ": "Â", "Ậ": "Â",
+                "ắ": "ă", "ằ": "ă", "ẳ": "ă", "ẵ": "ă", "ặ": "ă", "Ắ": "Ă", "Ằ": "Ă", "Ẳ": "Ă", "Ẵ": "Ă", "Ặ": "Ă",
+                "é": "e", "è": "e", "ẻ": "e", "ẽ": "e", "ẹ": "e", "É": "E", "È": "E", "Ẻ": "E", "Ẽ": "E", "Ẹ": "E",
+                "ế": "ê", "ề": "ê", "ể": "ê", "ễ": "ê", "ệ": "ê", "Ế": "Ê", "Ề": "Ê", "Ể": "Ê", "Ễ": "Ê", "Ệ": "Ê",
+                "í": "i", "ì": "i", "ỉ": "i", "ĩ": "i", "ị": "i", "Í": "I", "Ì": "I", "Ỉ": "I", "Ĩ": "I", "Ị": "I",
+                "ó": "o", "ò": "o", "ỏ": "o", "õ": "o", "ọ": "o", "Ó": "O", "Ò": "O", "Ỏ": "O", "Õ": "O", "Ọ": "O",
+                "ố": "ô", "ồ": "ô", "ổ": "ô", "ỗ": "ô", "ộ": "ô", "Ố": "Ô", "Ồ": "Ô", "Ổ": "Ô", "Ỗ": "Ô", "Ộ": "Ô",
+                "ớ": "ơ", "ờ": "ơ", "ở": "ơ", "ỡ": "ơ", "ợ": "ơ", "Ớ": "Ơ", "Ờ": "Ơ", "Ở": "Ơ", "Ỡ": "Ơ", "Ợ": "Ơ",
+                "ú": "u", "ù": "u", "ủ": "u", "ũ": "u", "ụ": "u", "Ú": "U", "Ù": "U", "Ủ": "U", "Ũ": "U", "Ụ": "U",
+                "ứ": "ư", "ừ": "ư", "ử": "ư", "ữ": "ư", "ự": "ư", "Ứ": "Ư", "Ừ": "Ư", "Ử": "Ư", "Ữ": "Ư", "Ự": "Ư",
+                "ý": "y", "ỳ": "y", "ỷ": "y", "ỹ": "y", "ỵ": "y", "Ý": "Y", "Ỳ": "Y", "Ỷ": "Y", "Ỹ": "Y", "Ỵ": "Y"
+            };
+            return str.split('').map(c => map[c] || c).join('');
+        }
+
+        function cleanLetter(letter) {
+            if (!letter) return "";
+            let cleaned = letter.replace("_", "");
+            return removeVietnameseTones(cleaned).toUpperCase();
+        }
+
+        function handleLocalLetterGuess(letter) {
+            if (!controlActiveQuizLetters || controlActiveQuizLetters.length === 0) return;
+            const guessedChar = letter.toUpperCase();
+            let matchPositions = [];
+            controlActiveQuizLetters.forEach((itemLetter, idx) => {
+                if (itemLetter && cleanLetter(itemLetter) === guessedChar && !controlRevealedStates[idx]) {
+                    matchPositions.push(idx + 1);
+                }
+            });
+            document.getElementById("numCells").value = matchPositions.length;
+            generateChildTextBoxes(matchPositions);
+        }
+
+        function handleLocalMultiLettersGuess(letters) {
+            if (!controlActiveQuizLetters || controlActiveQuizLetters.length === 0) return;
+            const guessedChars = letters.map(c => removeVietnameseTones(c).toUpperCase());
+            let matchPositions = [];
+            controlActiveQuizLetters.forEach((itemLetter, idx) => {
+                if (itemLetter && !controlRevealedStates[idx] && guessedChars.includes(cleanLetter(itemLetter))) {
+                    matchPositions.push(idx + 1);
+                }
+            });
+            document.getElementById("numCells").value = matchPositions.length;
+            generateChildTextBoxes(matchPositions);
+        }
+
         const vietnameseAlphabet = ["A", "Ă", "Â", "B", "C", "D", "Đ", "E", "Ê", "G", "H", "I", "K", "L", "M", "N", "O", "Ô", "Ơ", "P", "Q", "R", "S", "T", "U", "Ư", "V", "X", "Y"];
         const container = document.getElementById("alphabetContainer");
         vietnameseAlphabet.forEach(letter => {
@@ -1699,50 +1735,15 @@
             btn.className = "btn-letter";
             btn.id = `btn-char-${letter}`;
             btn.textContent = letter;
-            btn.onclick = () => { btn.disabled = true; sendCmd('GUESS_LETTER', letter); };
+            btn.onclick = () => {
+                btn.disabled = true;
+                sendCmd('GUESS_LETTER', letter);
+                handleLocalLetterGuess(letter);
+            };
             container.appendChild(btn);
         });
 
         function solveTossUp() { isTossupRunning = false; clearTimeout(tossupTimeout); sendCmd('REVEAL_ALL'); clearControlBuzzer(); }
-        function getPlayerUrl() {
-            // Build the URL based on current host
-            const origin = window.location.origin;
-            let path = window.location.pathname;
-            if (path.endsWith('control.html')) {
-                path = path.replace('control.html', 'player.html');
-            } else if (path.endsWith('control')) {
-                path = path.replace('control', 'player.html');
-            } else {
-                if (!path.endsWith('/')) path += '/';
-                path += 'player.html';
-            }
-            return `${origin}${path}?roomid=${roomId}`;
-        }
-
-        function copyPlayerLink() {
-            const url = getPlayerUrl();
-            navigator.clipboard.writeText(url).then(() => {
-                showCustomAlert("Đã sao chép liên kết người chơi: " + url);
-            }).catch(() => {
-                // Fallback for older browsers or if blocked
-                const tempInput = document.createElement("input");
-                tempInput.value = url;
-                document.body.appendChild(tempInput);
-                tempInput.select();
-                document.execCommand("copy");
-                document.body.removeChild(tempInput);
-                showCustomAlert("Đã sao chép liên kết người chơi: " + url);
-            });
-        }
-
-        function createNewRoom() {
-            if (confirm("Bạn có chắc chắn muốn tạo phòng mới? Thiết lập và điểm số hiện tại sẽ không bị ảnh hưởng, nhưng người chơi sẽ cần vào liên kết phòng mới.")) {
-                const newRoomId = Math.floor(100000 + Math.random() * 900000).toString();
-                const urlParams = new URLSearchParams(window.location.search);
-                urlParams.set('roomid', newRoomId);
-                window.location.search = urlParams.toString();
-            }
-        }
 
         function showCustomAlert(message) { document.getElementById("popupMessage").textContent = message; document.getElementById("customPopup").style.display = "flex"; }
         function closePopup() { document.getElementById("customPopup").style.display = "none"; }
@@ -1778,7 +1779,8 @@
 
             // 4. LocalStorage fallback
             try {
-                localStorage.setItem('control-to-display-msg_' + roomId, JSON.stringify(msgObj));
+                localStorage.setItem('control-to-display-msg', JSON.stringify(msgObj));
+                if (roomId) localStorage.setItem('control-to-display-msg_' + roomId, JSON.stringify(msgObj));
             } catch (e) {}
 
             // 5. PostMessage for parent windows and openers
@@ -1810,7 +1812,15 @@
                 const val = parseInt(input.value);
                 if (!isNaN(val) && val >= 1 && val <= 52) positions.push(val);
             });
-            if (positions.length > 0) { positions.sort((a, b) => a - b); sendCmd(actionType, positions); }
+            if (positions.length > 0) {
+                positions.sort((a, b) => a - b);
+                if (actionType === 'REVEAL_SEQ') {
+                    positions.forEach(pos => {
+                        controlRevealedStates[pos - 1] = true;
+                    });
+                }
+                sendCmd(actionType, positions);
+            }
         }
 
         function confirmExtraLetters() {
@@ -1819,6 +1829,7 @@
             inputs.forEach(inp => { const val = inp.value.trim().toUpperCase(); if (val !== "") letters.push(val); });
             if (letters.length === 0) { showCustomAlert("Vui lòng nhập ít nhất 1 chữ cái!"); return; }
             sendCmd("GUESS_MULTI_LETTERS", letters);
+            handleLocalMultiLettersGuess(letters);
         }
         function clearExtraLetters() { document.querySelectorAll(".extra-letter-input").forEach(inp => inp.value = ""); }
     </script>

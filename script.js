@@ -329,6 +329,11 @@ function syncControlUI(type, data) {
             channel.send({ type: 'broadcast', event: 'display-to-control', payload: payload });
         } catch (e) {}
     }
+    if (typeof activeRoomSupabaseChannel !== "undefined" && activeRoomSupabaseChannel) {
+        try {
+            activeRoomSupabaseChannel.send({ type: 'broadcast', event: 'display-to-control', payload: payload });
+        } catch (e) {}
+    }
 
     // 3. Local BroadcastChannel
     if (localBC) {
@@ -336,10 +341,18 @@ function syncControlUI(type, data) {
             localBC.postMessage(msgObj);
         } catch (e) {}
     }
+    if (typeof activeRoomLocalBC !== "undefined" && activeRoomLocalBC) {
+        try {
+            activeRoomLocalBC.postMessage(msgObj);
+        } catch (e) {}
+    }
 
     // 4. LocalStorage
     try {
         localStorage.setItem('display-to-control-msg', JSON.stringify(msgObj));
+        if (typeof currentActiveRoomId !== "undefined" && currentActiveRoomId) {
+            localStorage.setItem('display-to-control-msg_' + currentActiveRoomId, JSON.stringify(msgObj));
+        }
     } catch(e) {}
 }
 
