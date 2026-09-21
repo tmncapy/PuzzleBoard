@@ -1541,14 +1541,48 @@
 
         // Send Command to Display Screen (Index.html)
         function sendCmd(action, data = null) {
-            const payload = { action, data, roomId: roomId };
-            const fullMsg = { event: 'control-to-display', payload, ts: Date.now(), roomid: roomId };
+            const payload = { action: action, type: action, data: data, roomId: roomId };
+            const fullMsg = { 
+                event: 'control-to-display', 
+                payload: payload, 
+                type: action, 
+                action: action, 
+                data: data, 
+                ts: Date.now(), 
+                roomid: roomId, 
+                msgId: 'cmd_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) 
+            };
 
-            if (channel) channel.send(fullMsg).catch(() => {});
-            if (globalChannel) globalChannel.send(fullMsg).catch(() => {});
-            if (roomBC) roomBC.postMessage(fullMsg);
-            if (localBC) localBC.postMessage(fullMsg);
+            // 1. Post to Server API for cross-device sync
+            try {
+                fetch(getApiUrl('api/broadcast'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(fullMsg)
+                }).catch(() => {});
+            } catch(e) {}
 
+            // 2. Supabase Realtime
+            if (channel) {
+                try {
+                    channel.send({ type: 'broadcast', event: 'control-to-display', payload: payload, ...fullMsg }).catch(() => {});
+                } catch(e){}
+            }
+            if (globalChannel) {
+                try {
+                    globalChannel.send({ type: 'broadcast', event: 'control-to-display', payload: payload, ...fullMsg }).catch(() => {});
+                } catch(e){}
+            }
+
+            // 3. BroadcastChannel
+            if (roomBC) {
+                try { roomBC.postMessage(fullMsg); } catch(e){}
+            }
+            if (localBC) {
+                try { localBC.postMessage(fullMsg); } catch(e){}
+            }
+
+            // 4. LocalStorage
             try {
                 localStorage.setItem('control-to-display-msg', JSON.stringify(fullMsg));
                 if (roomId) localStorage.setItem('control-to-display-msg_' + roomId, JSON.stringify(fullMsg));
@@ -1557,12 +1591,19 @@
 
         function handleDisplayMessageWrapper(payload) {
             if (!payload) return;
-            const { type, data } = payload;
+            const type = payload.type || payload.action;
+            const data = payload.data;
             if (type === "UPDATE_QUIZ_ACTIVE") {
                 currentControlQuizIndex = data;
                 for (let i = 1; i <= 13; i++) {
                     const btn = document.getElementById(`btnQuiz${i}`);
                     if (btn) btn.classList.toggle("active", i === (data + 1));
+                }
+            } else if (type === "FILL_POSITIONS") {
+                if (Array.isArray(data)) {
+                    const numInput = document.getElementById("numCells");
+                    if (numInput) numInput.value = data.length;
+                    generateChildTextBoxes(data);
                 }
             }
         }

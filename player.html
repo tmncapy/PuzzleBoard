@@ -990,7 +990,7 @@
 
         function handleIncomingControl(payload) {
             if (!payload) return;
-            const type = payload.type;
+            const type = payload.type || payload.action;
             if (type === 'START_TOSSUP' || type === 'PLAY_TOSSUP' || type === 'START_ROUND30' || type === 'RESUME_ROUND30_MUSIC' || (type === 'SET_BUZZER_STATE' && payload.data && payload.data.state === 'OPEN')) {
                 isBuzzerOpen = true;
                 try {

@@ -460,23 +460,25 @@ function loadQuiz(quizPayload) {
 
 function handleControlCommand(payload) {
     if (!payload) return;
-    const { type, data } = payload;
+    const type = payload.type || payload.action;
+    const data = payload.data;
+    if (!type) return;
 
     if (type === "UPDATE_SCOREBOARD") {
-        if (document.getElementById("playerName1")) document.getElementById("playerName1").textContent = data.p1.name;
-        if (document.getElementById("playerScore1")) {
+        if (data && data.p1 && document.getElementById("playerName1")) document.getElementById("playerName1").textContent = data.p1.name;
+        if (data && data.p1 && document.getElementById("playerScore1")) {
             const score1 = Number(data.p1.score) || 0;
             document.getElementById("playerScore1").textContent = score1.toLocaleString('vi-VN');
         }
         
-        if (document.getElementById("playerName2")) document.getElementById("playerName2").textContent = data.p2.name;
-        if (document.getElementById("playerScore2")) {
+        if (data && data.p2 && document.getElementById("playerName2")) document.getElementById("playerName2").textContent = data.p2.name;
+        if (data && data.p2 && document.getElementById("playerScore2")) {
             const score2 = Number(data.p2.score) || 0;
             document.getElementById("playerScore2").textContent = score2.toLocaleString('vi-VN');
         }
         
-        if (document.getElementById("playerName3")) document.getElementById("playerName3").textContent = data.p3.name;
-        if (document.getElementById("playerScore3")) {
+        if (data && data.p3 && document.getElementById("playerName3")) document.getElementById("playerName3").textContent = data.p3.name;
+        if (data && data.p3 && document.getElementById("playerScore3")) {
             const score3 = Number(data.p3.score) || 0;
             document.getElementById("playerScore3").textContent = score3.toLocaleString('vi-VN');
         }
@@ -572,7 +574,7 @@ function handleControlCommand(payload) {
     }
     else if (type === "PLAY_SFX") {
         initAudioPermission();
-        if (!isMuted) {
+        if (!isMuted && data) {
             const sfxAudio = new Audio(data);
             activeSFXList.push(sfxAudio);
             sfxAudio.play().catch(e => console.log(e));
@@ -592,7 +594,6 @@ function handleControlCommand(payload) {
             triggerGreenLight();
         }
 
-        // KHI GIẢI SAI Ô CHỮ BONUS Ở ĐỀ 10, 11, 12 (Index tương ứng 9, 10, 11) -> HIỆN TOÀN BỘ Ô CHỮ
         if (data === "FailBonus.mp3" && [9, 10, 11].includes(currentQuizIndex)) {
             allCells.forEach(item => {
                 item.element.style.background = 'url("obox.png") center center no-repeat';
@@ -610,15 +611,14 @@ function handleControlCommand(payload) {
         activeSFXList.forEach(audio => { try { audio.pause(); audio.currentTime = 0; audio.remove(); } catch (e) {} });
         activeSFXList = [];
     }
-    else if (type === "GUESS_LETTER") {
+    else if (type === "GUESS_LETTER" || type === "CHOOSE_LETTER") {
         initAudioPermission();
-        const guessedChar = data.toUpperCase();
+        const guessedChar = (typeof data === "string" ? data : String(data)).toUpperCase();
         let matchPositions = [];
         absoluteCells.forEach(item => {
             if (item && cleanLetter(item.letter) === guessedChar && item.state === 0) matchPositions.push(item.absoluteIndex);
         });
 
-        // SỬA LỖI: Phát ngay âm thanh wrong.mp3 và nháy đèn đỏ nếu không có chữ nào khớp trên bảng
         if (matchPositions.length === 0) {
             playWrong();
             triggerRedLight();
@@ -626,21 +626,24 @@ function handleControlCommand(payload) {
 
         syncControlUI("FILL_POSITIONS", matchPositions);
     }
-    else if (type === "GUESS_MULTI_LETTERS") {
+    else if (type === "GUESS_MULTI_LETTERS" || type === "CONFIRM_EXTRA_LETTERS") {
         initAudioPermission();
-        const guessedChars = data.map(c => removeVietnameseTones(c).toUpperCase());
+        const letterArray = Array.isArray(data) ? data : [data];
+        const guessedChars = letterArray.map(c => removeVietnameseTones(String(c)).toUpperCase());
         let matchPositions = [];
         absoluteCells.forEach(item => {
             if (item && item.state === 0 && guessedChars.includes(cleanLetter(item.letter))) matchPositions.push(item.absoluteIndex);
         });
 
-        // SỬA LỖI: Phát tiếng wrong.mp3 và nháy đèn đỏ nếu chuỗi ký tự đoán không có ký tự nào trùng khớp
         if (matchPositions.length === 0) {
             playWrong();
             triggerRedLight();
         }
 
         syncControlUI("FILL_POSITIONS", matchPositions);
+    }
+    else if (type === "CLEAR_EXTRA_LETTERS") {
+        syncControlUI("FILL_POSITIONS", []);
     }
     else if (type === "RESET_BOARD") {
         clearBuzzerHighlights();
@@ -657,7 +660,8 @@ function handleControlCommand(payload) {
     else if (type === "MARK_SEQ") {
         initAudioPermission();
         let delay = 0;
-        data.forEach(pos => {
+        const seq = Array.isArray(data) ? data : [];
+        seq.forEach(pos => {
             setTimeout(() => {
                 let item = absoluteCells[pos - 1];
                 if (item && item.state === 0) {
@@ -673,7 +677,8 @@ function handleControlCommand(payload) {
     else if (type === "REVEAL_SEQ") {
         initAudioPermission();
         let delay = 0;
-        data.forEach(pos => {
+        const seq = Array.isArray(data) ? data : [];
+        seq.forEach(pos => {
             setTimeout(() => {
                 let item = absoluteCells[pos - 1];
                 if (item && (item.state === 1 || item.state === 0)) {
@@ -751,21 +756,28 @@ function handleControlCommand(payload) {
     else if (type === "RESUME_ROUND30_MUSIC") {
         playRound30Music();
     }
-    else if (type === "TOSSUP_REVEAL_CELL") {
-        const idx = data.absoluteIndex;
-        const targetItem = absoluteCells[idx - 1];
-        if (targetItem && !targetItem.revealed) {
-            targetItem.element.style.background = 'url("obox.png") center center no-repeat';
-            targetItem.element.style.backgroundSize = "100% 100%";
-            targetItem.element.textContent = removeVietnameseTones(targetItem.letter);
-            targetItem.revealed = true;
-            targetItem.state = 2;
+    else if (type === "REVEAL_CELL" || type === "TOSSUP_REVEAL_CELL") {
+        let idx = -1;
+        if (typeof data === "number") {
+            idx = data;
+        } else if (typeof data === "object" && data !== null) {
+            if (data.absoluteIndex !== undefined) idx = data.absoluteIndex - 1;
+            else if (data.index !== undefined) idx = data.index;
+        }
+        if (idx >= 0 && idx < 52) {
+            const targetItem = absoluteCells[idx];
+            if (targetItem && !targetItem.revealed) {
+                targetItem.element.style.background = 'url("obox.png") center center no-repeat';
+                targetItem.element.style.backgroundSize = "100% 100%";
+                targetItem.element.textContent = removeVietnameseTones(targetItem.letter);
+                targetItem.revealed = true;
+                targetItem.state = 2;
+            }
         }
     }
     else if (type === "PAUSE_TOSSUP") {
         syncControlUI("UPDATE_CTRL_ACTIVE", "pauseBtn");
         clearAllTossupTimeouts(); 
-        // Giữ nhạc nền đoán nhanh tiếp tục phát cho tới khi mở toàn bộ ô chữ
     }
     else if (type === "PLAY_TOSSUP") {
         clearBuzzerHighlights();
@@ -782,11 +794,30 @@ function handleControlCommand(payload) {
         syncControlUI("UPDATE_CTRL_ACTIVE", null);
         fadeOutTossupMusic(300, true);
     }
+    else if (type === "SOLVE_TOSSUP") {
+        clearAllTossupTimeouts();
+        fadeOutTossupMusic(200, true);
+        syncControlUI("UPDATE_CTRL_ACTIVE", null);
+        revealSound.currentTime = 0;
+        revealSound.play().catch(e => console.log(e));
+        if (lightGreen) {
+            lightGreen.style.display = "block";
+        }
+        allCells.forEach(item => {
+            if (item) {
+                item.element.style.background = 'url("obox.png") center center no-repeat';
+                item.element.style.backgroundSize = "100% 100%";
+                item.element.textContent = item.letter;
+                item.revealed = true;
+                item.state = 2;
+            }
+        });
+    }
     else if (type === "SHOW_BOARD") {
         hideAllLights(); 
         initAudioPermission();
         showSound.currentTime = 0;
-        showSound.play();
+        showSound.play().catch(e => console.log(e));
 
         if (lightWhite) {
             lightWhite.style.display = "block";
@@ -884,17 +915,24 @@ const processedControlMsgIds = new Set();
 
 function handleControlCommandWrapper(payload, ts, msgId) {
     if (!payload) return;
-    const id = msgId || payload.msgId || (payload.type + '_' + (payload.ts || ts));
-    if (id && processedControlMsgIds.has(id)) return;
+    const type = payload.type || payload.action;
+    if (!type) return;
+
+    // Normalizing type/action
+    payload.type = type;
+    payload.action = type;
+
+    const id = msgId || payload.msgId || payload.id;
+    if (id && processedControlMsgIds.has(id)) {
+        return;
+    }
     if (id) {
         processedControlMsgIds.add(id);
-        if (processedControlMsgIds.size > 200) {
+        if (processedControlMsgIds.size > 300) {
             const first = processedControlMsgIds.values().next().value;
             processedControlMsgIds.delete(first);
         }
     }
-    if (ts && ts <= lastProcessedControlTs && !msgId && !payload.msgId) return;
-    if (ts && ts > lastProcessedControlTs) lastProcessedControlTs = ts;
     handleControlCommand(payload);
 }
 
