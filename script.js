@@ -769,7 +769,7 @@ function handleControlCommand(payload) {
             if (targetItem && !targetItem.revealed) {
                 targetItem.element.style.background = 'url("obox.png") center center no-repeat';
                 targetItem.element.style.backgroundSize = "100% 100%";
-                targetItem.element.textContent = removeVietnameseTones(targetItem.letter);
+                targetItem.element.textContent = removeVietnameseTones(targetItem.letter).replace("_", "").toUpperCase();
                 targetItem.revealed = true;
                 targetItem.state = 2;
             }
@@ -1216,6 +1216,25 @@ setInterval(() => {
         }
     } catch (err) {}
 }, 100);
+
+function initEmptyBoard() {
+    if (allCells.length > 0) return;
+    clearOldBoardElements();
+    allCells = [];
+    absoluteCells = new Array(52).fill(null);
+    cells.forEach((p, i) => {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        cell.style.left = p.x + "px";
+        cell.style.top = p.y + "px";
+        cell.style.background = 'url("defaultbox.png") center center no-repeat';
+        cell.style.backgroundSize = "100% 100%";
+        cell.style.pointerEvents = "none";
+        board.appendChild(cell);
+    });
+}
+window.addEventListener('DOMContentLoaded', initEmptyBoard);
+setTimeout(initEmptyBoard, 50);
 
 // Startup check to load active room ID if API server is available
 function checkActiveRoomDisplay() {

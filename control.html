@@ -1012,12 +1012,30 @@
         let controlActiveQuizLetters = [];
         let controlRevealedStates = new Array(52).fill(false);
 
+        function getActiveQuizLetters() {
+            if (currentControlQuizIndex === 12) {
+                return (round30SubPuzzles && round30SubPuzzles[currentRound30SubIndex]) || new Array(52).fill("");
+            }
+            if (controlActiveQuizLetters && controlActiveQuizLetters.some(c => c && c.trim() !== "")) {
+                return controlActiveQuizLetters;
+            }
+            if (importedQuizzes[currentControlQuizIndex] && importedQuizzes[currentControlQuizIndex].some(c => c && c.trim() !== "")) {
+                return importedQuizzes[currentControlQuizIndex];
+            }
+            if (window.quizData && window.quizData[currentControlQuizIndex]) {
+                return window.quizItemTo52Array ? window.quizItemTo52Array(window.quizData[currentControlQuizIndex]) : new Array(52).fill("");
+            }
+            return new Array(52).fill("");
+        }
+
         function clickStartTossup() {
+            controlActiveQuizLetters = getActiveQuizLetters();
+            sendCmd('LOAD_QUIZ', { index: currentControlQuizIndex, letters: controlActiveQuizLetters });
             clearControlBuzzer();
             setControlBuzzerOpen(true);
             isTossupRunning = true;
-            sendCmd("START_TOSSUP");
             controlRevealedStates = new Array(52).fill(false);
+            sendCmd("START_TOSSUP");
             clearTimeout(tossupTimeout);
             tossupTimeout = setTimeout(controlRevealRandomCell, getLetterRevealDelay());
         }
@@ -1030,6 +1048,7 @@
         }
 
         function clickPlayTossup() {
+            controlActiveQuizLetters = getActiveQuizLetters();
             clearControlBuzzer();
             setControlBuzzerOpen(true);
             isTossupRunning = true;
@@ -1048,9 +1067,13 @@
 
         function controlRevealRandomCell() {
             if (!isTossupRunning) return;
+            if (!controlActiveQuizLetters || !controlActiveQuizLetters.some(c => c && c.trim() !== "")) {
+                controlActiveQuizLetters = getActiveQuizLetters();
+            }
             let hiddenIndices = [];
             for (let i = 0; i < 52; i++) {
-                if (controlActiveQuizLetters[i] && controlActiveQuizLetters[i].trim() !== "" && !controlRevealedStates[i]) {
+                const ch = (controlActiveQuizLetters[i] || "").trim();
+                if (ch !== "" && !controlRevealedStates[i]) {
                     hiddenIndices.push(i);
                 }
             }
@@ -1635,7 +1658,10 @@
                 .then(b => {
                     const workbook = XLSX.read(new Uint8Array(b), { type: 'array' });
                     populateQuizzesFromWorkbook(workbook);
-                    setTimeout(() => selectPreviewQuiz(0), 400);
+                    setTimeout(() => {
+                        loadQuizFromExcel(0);
+                        selectPreviewQuiz(0);
+                    }, 400);
                 })
                 .catch(() => {
                     if (window.quizData) {
@@ -1644,7 +1670,10 @@
                         if (window.quizData[12] && window.quizData[12].subPuzzles) {
                             importedQuizzes[12] = window.quizData[12].subPuzzles.map(p => window.quizItemTo52Array(p));
                         }
-                        setTimeout(() => selectPreviewQuiz(0), 400);
+                        setTimeout(() => {
+                            loadQuizFromExcel(0);
+                            selectPreviewQuiz(0);
+                        }, 400);
                     }
                 });
         });
