@@ -518,8 +518,8 @@
                 
                 <!-- Nút Bật/Tắt Chế Độ Words With Friends -->
                 <div style="margin-bottom: 6px;">
-                    <button id="btnToggleWWF" style="width: 100%; padding: 7px 10px; font-weight: 800; font-size: 11.5px; border-radius: 4px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: space-between; background: #181f2f; border: 1px solid #2a354c; color: #94a3b8;" onclick="toggleWWFMode()">
-                        <span style="display: flex; align-items: center; gap: 5px;">🔤 CHẾ ĐỘ WORDS WITH FRIENDS</span>
+                    <button id="btnToggleWWF" style="width: 100%; padding: 7px 10px; font-weight: 800; font-size: 11.5px; border-radius: 4px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: space-between; background: #181f2f; border: 1px solid #2a354c; color: #94a3b8;" onclick="toggleWWFMode()" title="Chế độ Words With Friends (DL x2 / TL x3) chỉ áp dụng cho các vòng đoán thường Đề 3, 4, 5, 9">
+                        <span style="display: flex; align-items: center; gap: 5px;">🔤 CHẾ ĐỘ WORDS WITH FRIENDS (ĐỀ 3, 4, 5, 9)</span>
                         <span id="wwfBadge" style="padding: 2px 8px; border-radius: 12px; font-size: 10.5px; font-weight: 800; background: #090c14; color: #94a3b8; border: 1px solid #334155;">ĐANG TẮT</span>
                     </button>
                 </div>
@@ -1674,7 +1674,7 @@
                 btn.style.borderColor = "#38bdf8";
                 btn.style.color = "#ffffff";
                 btn.style.boxShadow = "0 0 10px rgba(14, 165, 233, 0.35)";
-                badge.textContent = "🟢 BẬT (DL x2 / TL x3)";
+                badge.textContent = "🟢 BẬT (ĐỀ 3, 4, 5, 9)";
                 badge.style.background = "#090c14";
                 badge.style.color = "#38bdf8";
                 badge.style.borderColor = "#38bdf8";
