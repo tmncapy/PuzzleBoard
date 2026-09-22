@@ -119,12 +119,19 @@ function isWWFActiveForCurrentRound() {
 }
 
 function updateBoardBackground() {
+    const bgNormal = document.getElementById("bg-normal");
+    const bgWWF = document.getElementById("bg-wwf");
     const boardEl = document.getElementById("board");
-    if (!boardEl) return;
-    if (isWWFActiveForCurrentRound()) {
-        boardEl.style.backgroundImage = 'url("bangochu_WWF.png")';
-    } else {
-        boardEl.style.backgroundImage = 'url("bangochu.png")';
+    const active = isWWFActiveForCurrentRound();
+
+    if (bgNormal) {
+        bgNormal.style.display = active ? "none" : "block";
+    }
+    if (bgWWF) {
+        bgWWF.style.display = active ? "block" : "none";
+    }
+    if (boardEl) {
+        boardEl.style.backgroundImage = active ? 'url("bangochu_WWF.png")' : 'url("bangochu.png")';
     }
 }
 
