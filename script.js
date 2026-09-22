@@ -67,8 +67,14 @@ function fitGameContainer() {
     container.style.transform = `scale(${scale})`;
 }
 window.addEventListener("resize", fitGameContainer);
-window.addEventListener("DOMContentLoaded", fitGameContainer);
-setTimeout(fitGameContainer, 100);
+window.addEventListener("DOMContentLoaded", () => {
+    fitGameContainer();
+    updateBoardBackground();
+});
+setTimeout(() => {
+    fitGameContainer();
+    updateBoardBackground();
+}, 100);
 
 const board = document.getElementById("board");
 
@@ -109,7 +115,17 @@ let isWWFMode = (function() {
 const WWF_ALLOWED_QUIZ_INDEXES = [2, 3, 4, 8];
 
 function isWWFActiveForCurrentRound() {
-    return isWWFMode && WWF_ALLOWED_QUIZ_INDEXES.includes(currentQuizIndex);
+    return isWWFMode && (currentQuizIndex === -1 || WWF_ALLOWED_QUIZ_INDEXES.includes(currentQuizIndex));
+}
+
+function updateBoardBackground() {
+    const boardEl = document.getElementById("board");
+    if (!boardEl) return;
+    if (isWWFActiveForCurrentRound()) {
+        boardEl.style.backgroundImage = 'url("bangochu_WWF.png")';
+    } else {
+        boardEl.style.backgroundImage = 'url("bangochu.png")';
+    }
 }
 
 const boardRowDefinitions = [
@@ -463,6 +479,7 @@ function loadQuiz(quizPayload) {
 
     const prevIndex = currentQuizIndex;
     currentQuizIndex = index;
+    updateBoardBackground();
     
     // Nhạc 30s sẽ KHÔNG dừng khi chuyển qua lại các ô con trong Vòng 30s (Đề 13 / Index 12)
     if (index !== 12) {
@@ -673,6 +690,7 @@ function handleControlCommand(payload) {
         const enabled = (data && (data.enabled !== undefined ? !!data.enabled : !!data)) || false;
         isWWFMode = enabled;
         try { localStorage.setItem('crossword_wwf_mode', isWWFMode ? '1' : '0'); } catch(e){}
+        updateBoardBackground();
         
         if (allCells.length > 0) {
             const activeWWF = isWWFActiveForCurrentRound();
