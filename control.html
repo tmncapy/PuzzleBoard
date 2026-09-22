@@ -515,6 +515,15 @@
             <!-- Thao Tác Bảng & Khẩn Cấp -->
             <div class="section-wrapper">
                 <h3 class="section-title">🚨 THAO TÁC BẢNG & KHẨN CẤP</h3>
+                
+                <!-- Nút Bật/Tắt Chế Độ Words With Friends -->
+                <div style="margin-bottom: 6px;">
+                    <button id="btnToggleWWF" style="width: 100%; padding: 7px 10px; font-weight: 800; font-size: 11.5px; border-radius: 4px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: space-between; background: #181f2f; border: 1px solid #2a354c; color: #94a3b8;" onclick="toggleWWFMode()">
+                        <span style="display: flex; align-items: center; gap: 5px;">🔤 CHẾ ĐỘ WORDS WITH FRIENDS</span>
+                        <span id="wwfBadge" style="padding: 2px 8px; border-radius: 12px; font-size: 10.5px; font-weight: 800; background: #090c14; color: #94a3b8; border: 1px solid #334155;">ĐANG TẮT</span>
+                    </button>
+                </div>
+
                 <div class="group" style="margin-bottom: 6px;">
                     <button class="btn-main" style="flex: 1;" onclick="sendCmd('SHOW_BOARD')">🎬 SHOW Ô CHỮ CHÍNH</button>
                     <button style="background: linear-gradient(135deg, #0284c7, #0ea5e9); color: white;" onclick="sendCmd('SHOW_THUMBNAIL')">🖼️ HIỆN THUMBNAIL</button>
@@ -1647,11 +1656,56 @@
             if (box) box.style.display = "none";
         }
 
+        // WWF Mode (Words With Friends) State & Control
+        let isWWFMode = (function() {
+            try {
+                return localStorage.getItem('crossword_wwf_mode') === '1';
+            } catch(e) {
+                return false;
+            }
+        })();
+
+        function updateWWFButtonUI() {
+            const btn = document.getElementById("btnToggleWWF");
+            const badge = document.getElementById("wwfBadge");
+            if (!btn || !badge) return;
+            if (isWWFMode) {
+                btn.style.background = "linear-gradient(135deg, #0284c7, #0ea5e9)";
+                btn.style.borderColor = "#38bdf8";
+                btn.style.color = "#ffffff";
+                btn.style.boxShadow = "0 0 10px rgba(14, 165, 233, 0.35)";
+                badge.textContent = "🟢 BẬT (DL x2 / TL x3)";
+                badge.style.background = "#090c14";
+                badge.style.color = "#38bdf8";
+                badge.style.borderColor = "#38bdf8";
+            } else {
+                btn.style.background = "#181f2f";
+                btn.style.borderColor = "#2a354c";
+                btn.style.color = "#94a3b8";
+                btn.style.boxShadow = "none";
+                badge.textContent = "⚪ ĐANG TẮT";
+                badge.style.background = "#090c14";
+                badge.style.color = "#94a3b8";
+                badge.style.borderColor = "#334155";
+            }
+        }
+
+        function toggleWWFMode() {
+            isWWFMode = !isWWFMode;
+            try {
+                localStorage.setItem('crossword_wwf_mode', isWWFMode ? '1' : '0');
+            } catch(e){}
+            updateWWFButtonUI();
+            sendCmd("SET_WWF_MODE", { enabled: isWWFMode });
+        }
+
         // Initialize on DOM load
         window.addEventListener('DOMContentLoaded', () => {
+            updateWWFButtonUI();
             updatePlayerUrlDisplay();
             renderTossupSpeedUI();
             renderRound30SpeedUI();
+            sendCmd("SET_WWF_MODE", { enabled: isWWFMode });
 
             fetch('data.xlsx')
                 .then(r => r.arrayBuffer())

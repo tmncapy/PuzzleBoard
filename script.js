@@ -97,6 +97,60 @@ let allCells = [];
 let absoluteCells = new Array(52).fill(null);
 let currentQuizIndex = -1;
 
+let isWWFMode = (function() {
+    try {
+        return localStorage.getItem('crossword_wwf_mode') === '1';
+    } catch(e) {
+        return false;
+    }
+})();
+
+const boardRowDefinitions = [
+    { start: 0, end: 12 },
+    { start: 12, end: 26 },
+    { start: 26, end: 40 },
+    { start: 40, end: 52 }
+];
+
+function calculateWWFBonuses(absCells) {
+    boardRowDefinitions.forEach(row => {
+        let currentWord = [];
+        for (let i = row.start; i < row.end; i++) {
+            const item = absCells[i];
+            if (item && item.letter && item.letter.trim() !== "" && item.letter !== " ") {
+                currentWord.push(item);
+            } else {
+                if (currentWord.length > 0) {
+                    assignWordWWFBonuses(currentWord);
+                    currentWord = [];
+                }
+            }
+        }
+        if (currentWord.length > 0) {
+            assignWordWWFBonuses(currentWord);
+        }
+    });
+}
+
+function assignWordWWFBonuses(wordCells) {
+    if (!wordCells || wordCells.length === 0) return;
+    wordCells.forEach(item => {
+        item.wwfBonus = 'NORMAL';
+        item.wwfBg = 'url("defaultbox_WWF.png") center center no-repeat';
+    });
+    // Chọn ngẫu nhiên 1 ô trong mỗi TỪ để thành DL (x2) hoặc TL (x3)
+    const randomIdx = Math.floor(Math.random() * wordCells.length);
+    const isTL = Math.random() < 0.5;
+    const bonusItem = wordCells[randomIdx];
+    if (isTL) {
+        bonusItem.wwfBonus = 'TL';
+        bonusItem.wwfBg = 'url("defaultbox_TL_WWF.png") center center no-repeat';
+    } else {
+        bonusItem.wwfBonus = 'DL';
+        bonusItem.wwfBg = 'url("defaultbox_DL_WWF.png") center center no-repeat';
+    }
+}
+
 // Mute control: Âm thanh CHỈ phát trên màn hình chính (index.html), tắt hoàn toàn trên frame xem thử / iframe và các trang khác
 const urlParams = new URLSearchParams(window.location.search);
 const isInIframe = (function() {
@@ -443,9 +497,9 @@ function loadQuiz(quizPayload) {
 
         cell.style.pointerEvents = "none";
 
-        // Vòng 13 (Vòng 30s Liên Hoàn): BẮT BUỘC hiển thị khung trắng (obox.png) ngay lập tức cho tất cả các ô chữ sử dụng
+        // Vòng 13 (Vòng 30s Liên Hoàn): BẮT BUỘC hiển thị khung trắng ngay lập tức cho tất cả các ô chữ sử dụng
         if (index === 12) {
-            cell.style.background = 'url("obox.png") center center no-repeat';
+            cell.style.background = isWWFMode ? 'url("obox_WWF.png") center center no-repeat' : 'url("obox.png") center center no-repeat';
             cell.style.backgroundSize = "100% 100%";
         }
 
@@ -454,6 +508,8 @@ function loadQuiz(quizPayload) {
         absoluteCells[i] = cellObj;
         board.appendChild(cell);
     });
+
+    calculateWWFBonuses(absoluteCells);
 
     syncControlUI("UPDATE_QUIZ_ACTIVE", index);
 }
@@ -596,11 +652,30 @@ function handleControlCommand(payload) {
 
         if (data === "FailBonus.mp3" && [9, 10, 11].includes(currentQuizIndex)) {
             allCells.forEach(item => {
-                item.element.style.background = 'url("obox.png") center center no-repeat';
+                item.element.style.background = isWWFMode ? 'url("obox_WWF.png") center center no-repeat' : 'url("obox.png") center center no-repeat';
                 item.element.style.backgroundSize = "100% 100%";
                 item.element.textContent = item.letter;
                 item.revealed = true;
                 item.state = 2;
+            });
+        }
+    }
+    else if (type === "SET_WWF_MODE") {
+        const enabled = (data && (data.enabled !== undefined ? !!data.enabled : !!data)) || false;
+        isWWFMode = enabled;
+        try { localStorage.setItem('crossword_wwf_mode', isWWFMode ? '1' : '0'); } catch(e){}
+        
+        if (allCells.length > 0) {
+            calculateWWFBonuses(absoluteCells);
+            allCells.forEach(item => {
+                if (item.state === 1) {
+                    item.element.style.background = isWWFMode ? 'url("highlight_WWL.png") center center no-repeat' : 'url("choosebox.png") center center no-repeat';
+                } else if (item.state === 2 || item.revealed) {
+                    item.element.style.background = isWWFMode ? 'url("obox_WWF.png") center center no-repeat' : 'url("occhu.png") center center no-repeat';
+                } else if (item.state === 0 && item.element.style.background && !item.element.style.background.includes('defaultbox.png')) {
+                    item.element.style.background = isWWFMode ? (item.wwfBg || 'url("defaultbox_WWF.png") center center no-repeat') : 'url("obox.png") center center no-repeat';
+                }
+                item.element.style.backgroundSize = "100% 100%";
             });
         }
     }
@@ -665,7 +740,7 @@ function handleControlCommand(payload) {
             setTimeout(() => {
                 let item = absoluteCells[pos - 1];
                 if (item && item.state === 0) {
-                    item.element.style.background = 'url("choosebox.png") center center no-repeat';
+                    item.element.style.background = isWWFMode ? 'url("highlight_WWL.png") center center no-repeat' : 'url("choosebox.png") center center no-repeat';
                     item.element.style.backgroundSize = "100% 100%";
                     item.state = 1;
                     playDing();
@@ -682,7 +757,7 @@ function handleControlCommand(payload) {
             setTimeout(() => {
                 let item = absoluteCells[pos - 1];
                 if (item && (item.state === 1 || item.state === 0)) {
-                    item.element.style.background = 'url("occhu.png") center center no-repeat';
+                    item.element.style.background = isWWFMode ? 'url("obox_WWF.png") center center no-repeat' : 'url("occhu.png") center center no-repeat';
                     item.element.style.backgroundSize = "100% 100%";
                     item.element.textContent = removeVietnameseTones(item.letter).replace("_", "").toUpperCase();
                     item.revealed = true;
@@ -699,7 +774,7 @@ function handleControlCommand(payload) {
         clearAllTossupTimeouts();
         syncControlUI("UPDATE_CTRL_ACTIVE", "startBtn");
         allCells.forEach(item => {
-            item.element.style.background = 'url("obox.png") center center no-repeat';
+            item.element.style.background = isWWFMode ? (item.wwfBg || 'url("defaultbox_WWF.png") center center no-repeat') : 'url("obox.png") center center no-repeat';
             item.element.style.backgroundSize = "100% 100%";
             item.element.textContent = "";
             item.revealed = false;
@@ -723,7 +798,7 @@ function handleControlCommand(payload) {
         initAudioPermission();
         clearAllTossupTimeouts();
         allCells.forEach(item => {
-            item.element.style.background = 'url("obox.png") center center no-repeat';
+            item.element.style.background = isWWFMode ? 'url("obox_WWF.png") center center no-repeat' : 'url("obox.png") center center no-repeat';
             item.element.style.backgroundSize = "100% 100%";
             item.element.textContent = "";
             item.revealed = false;
@@ -740,7 +815,7 @@ function handleControlCommand(payload) {
         clearBuzzerHighlights();
         clearAllTossupTimeouts();
         allCells.forEach(item => {
-            item.element.style.background = 'url("obox.png") center center no-repeat';
+            item.element.style.background = isWWFMode ? 'url("obox_WWF.png") center center no-repeat' : 'url("obox.png") center center no-repeat';
             item.element.style.backgroundSize = "100% 100%";
             item.element.textContent = "";
             item.revealed = false;
@@ -767,7 +842,7 @@ function handleControlCommand(payload) {
         if (idx >= 0 && idx < 52) {
             const targetItem = absoluteCells[idx];
             if (targetItem && !targetItem.revealed) {
-                targetItem.element.style.background = 'url("obox.png") center center no-repeat';
+                targetItem.element.style.background = isWWFMode ? 'url("obox_WWF.png") center center no-repeat' : 'url("obox.png") center center no-repeat';
                 targetItem.element.style.backgroundSize = "100% 100%";
                 targetItem.element.textContent = removeVietnameseTones(targetItem.letter).replace("_", "").toUpperCase();
                 targetItem.revealed = true;
@@ -805,7 +880,7 @@ function handleControlCommand(payload) {
         }
         allCells.forEach(item => {
             if (item) {
-                item.element.style.background = 'url("obox.png") center center no-repeat';
+                item.element.style.background = isWWFMode ? 'url("obox_WWF.png") center center no-repeat' : 'url("obox.png") center center no-repeat';
                 item.element.style.backgroundSize = "100% 100%";
                 item.element.textContent = item.letter;
                 item.revealed = true;
@@ -828,7 +903,11 @@ function handleControlCommand(payload) {
 
         allCells.forEach((item, index) => {
             setTimeout(() => {
-                item.element.style.background = 'url("obox.png") center center no-repeat';
+                if (isWWFMode) {
+                    item.element.style.background = item.wwfBg || 'url("defaultbox_WWF.png") center center no-repeat';
+                } else {
+                    item.element.style.background = 'url("obox.png") center center no-repeat';
+                }
                 item.element.style.backgroundSize = "100% 100%";
                 item.element.textContent = "";
                 item.revealed = false;
@@ -864,7 +943,7 @@ function handleControlCommand(payload) {
         }
 
         allCells.forEach(item => {
-            item.element.style.background = 'url("obox.png") center center no-repeat';
+            item.element.style.background = isWWFMode ? 'url("obox_WWF.png") center center no-repeat' : 'url("obox.png") center center no-repeat';
             item.element.style.backgroundSize = "100% 100%";
             item.element.textContent = item.letter;
             item.revealed = true;
