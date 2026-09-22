@@ -6,10 +6,33 @@
     src: url("SVN-Gilroy Bold.otf") format("opentype");
 }
 
-/* Giữ font Helvetica hoặc font mặc định cho hệ thống ô chữ cũ */
+/* Tải font Helvetica Neue và Helvetica Neue Bold */
 @font-face {
-    font-family: "HelveticaNeue-CondensedBlack";
-    src: url("helveticaneuecondensedblack.ttf") format("truetype");
+    font-family: "Helvetica Neue";
+    src: url("helveticaneuebold.ttf") format("truetype");
+    font-weight: bold;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Helvetica Neue";
+    src: url("helveticaneue.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "HelveticaNeue-Bold";
+    src: url("helveticaneuebold.ttf") format("truetype");
+    font-weight: bold;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "HelveticaNeue";
+    src: url("helveticaneue.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
 }
 
 body {
@@ -85,7 +108,7 @@ body {
     color: #ffffff; /* Hoặc đổi thành #ffcc00 nếu bạn muốn điểm hiển thị màu vàng sáng */
 }
 
-/* Cấu trúc các ô chữ (Giữ nguyên font chữ cũ của ô chữ để không bị lệch size) */
+/* Cấu trúc các ô chữ (Sử dụng font Helvetica Neue Bold) */
 .cell {
     position: absolute;
     width: 110px;
@@ -95,7 +118,8 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-family: "HelveticaNeue-CondensedBlack", Arial, sans-serif;
+    font-family: "Helvetica Neue", "HelveticaNeue-Bold", "HelveticaNeue", Arial, sans-serif;
+    font-weight: bold;
     font-size: 90px;
     color: #000;
     cursor: pointer;
@@ -103,10 +127,10 @@ body {
 }
 
 .cell-manual {
-    font-family: "HelveticaNeue-CondensedBlack", Arial, sans-serif !important;
+    font-family: "Helvetica Neue", "HelveticaNeue-Bold", "HelveticaNeue", Arial, sans-serif !important;
     font-size: 90px !important;
     color: #000 !important;
-    font-weight: normal !important;
+    font-weight: bold !important;
 }
 
 #programThumbnail {

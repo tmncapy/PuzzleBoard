@@ -1148,7 +1148,11 @@
                     btn.style.background = "#1e293b";
                     btn.style.color = "#fff";
                 }
-                btn.onclick = () => selectRound30Sub(i);
+                btn.onclick = () => {
+                    clearControlBuzzer();
+                    setControlBuzzerOpen(true);
+                    selectRound30Sub(i);
+                };
                 container.appendChild(btn);
             }
         }
@@ -1286,7 +1290,7 @@
 
         function nextRound30Puzzle() {
             clearControlBuzzer();
-            setControlBuzzerOpen(false);
+            setControlBuzzerOpen(true);
             const total = round30SubPuzzles.length || 8;
             currentRound30SubIndex = (currentRound30SubIndex + 1) % total;
             selectRound30Sub(currentRound30SubIndex);
