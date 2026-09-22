@@ -1,9 +1,25 @@
 /* style.css */
 
-/* Tải font SVN-Gilroy Bold bạn cung cấp */
+/* Tải font SVN-Gilroy Bold cho bảng điểm */
 @font-face {
     font-family: "SVN-Gilroy Bold";
     src: url("SVN-Gilroy Bold.otf") format("opentype");
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "SVN-Gilroy Bold";
+    src: url("SVN-Gilroy Bold.otf") format("opentype");
+    font-weight: bold;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "SVN-Gilroy";
+    src: url("SVN-Gilroy Bold.otf") format("opentype");
+    font-weight: bold;
+    font-style: normal;
 }
 
 /* Tải font Helvetica Neue và Helvetica Neue Bold */
@@ -89,12 +105,13 @@ body {
     justify-content: center;
     align-items: center;
     /* Áp dụng font chữ SVN-Gilroy Bold */
-    font-family: "SVN-Gilroy Bold", Arial, sans-serif;
+    font-family: "SVN-Gilroy Bold", "SVN-Gilroy", Arial, sans-serif;
     color: #ffffff;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .player-name {
+    font-family: "SVN-Gilroy Bold", "SVN-Gilroy", Arial, sans-serif;
     font-size: 26px;
     font-weight: bold;
     text-transform: uppercase;
@@ -102,6 +119,7 @@ body {
 }
 
 .player-score {
+    font-family: "SVN-Gilroy Bold", "SVN-Gilroy", Arial, sans-serif;
     font-size: 40px;
     font-weight: bold;
     margin-top: -2.5px;
