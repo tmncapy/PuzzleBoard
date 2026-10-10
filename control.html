@@ -53,9 +53,15 @@
 
         .main-layout {
             display: grid;
-            grid-template-columns: 1fr 1fr 1.05fr;
+            grid-template-columns: 290px minmax(580px, 1.8fr) 330px;
             gap: 12px;
             align-items: start;
+        }
+
+        @media (max-width: 1400px) {
+            .main-layout {
+                grid-template-columns: 270px 1fr 310px;
+            }
         }
 
         @media (max-width: 1100px) {
@@ -314,6 +320,305 @@
             border: none;
             cursor: pointer;
         }
+
+        /* === BẢNG Ô CHỮ TƯƠNG TÁC Ở GIỮA (CENTRAL BOARD) === */
+        .ctrl-board-card {
+            border-color: #0284c7;
+            box-shadow: 0 4px 20px rgba(2, 132, 199, 0.2);
+            padding: 10px;
+            margin-bottom: 12px;
+        }
+
+        .ctrl-board-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #232d42;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+
+        .ctrl-badge-quiz {
+            background: #090c14;
+            color: #38bdf8;
+            border: 1px solid #0284c7;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+
+        .ctrl-board-opt-btn {
+            background: #090c14;
+            color: #94a3b8;
+            border: 1px solid #232d42;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .ctrl-board-opt-btn:hover {
+            color: #fff;
+            border-color: #38bdf8;
+        }
+        .ctrl-board-opt-btn.active {
+            background: #1e293b;
+            color: #38bdf8;
+            border-color: #0284c7;
+        }
+
+        .ctrl-mode-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #090c14;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #1e293b;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .ctrl-mode-label {
+            font-size: 11px;
+            color: #94a3b8;
+            font-weight: 800;
+        }
+
+        .ctrl-mode-buttons {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .btn-click-mode {
+            background: #181f2f;
+            color: #cbd5e1;
+            border: 1px solid #2a354c;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10.5px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-click-mode:hover {
+            background: #242e42;
+            color: #fff;
+        }
+        .btn-click-mode.active {
+            background: linear-gradient(135deg, #0284c7, #0ea5e9);
+            color: #fff;
+            border-color: #38bdf8;
+            box-shadow: 0 0 8px rgba(14, 165, 233, 0.4);
+        }
+
+        .ctrl-mode-hint {
+            font-size: 10px;
+            color: #64748b;
+            margin-left: auto;
+            font-style: italic;
+        }
+
+        .ctrl-board-frame {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 2px solid #1e293b;
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8), 0 4px 16px rgba(0, 0, 0, 0.5);
+            margin-bottom: 8px;
+        }
+
+        .ctrl-board {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1920 / 1080;
+            background-image: url("bangochu.png");
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: 100% 100%;
+            container-type: inline-size;
+            user-select: none;
+        }
+
+        .ctrl-cell {
+            position: absolute;
+            width: 5.729166%; /* 110 / 1920 */
+            height: 13.425925%; /* 145 / 1080 */
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: 100% 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: "Helvetica Neue", "HelveticaNeue-Bold", Arial, sans-serif;
+            font-weight: bold;
+            font-size: 3.4cqw;
+            box-sizing: border-box;
+            cursor: pointer;
+            transition: transform 0.12s ease, filter 0.12s ease;
+            z-index: 10;
+        }
+
+        .ctrl-cell.has-letter:hover {
+            transform: scale(1.12);
+            filter: brightness(1.25);
+            z-index: 25;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+            border-radius: 2px;
+        }
+
+        .ctrl-cell-empty {
+            cursor: default;
+            opacity: 0.9;
+        }
+
+        .ctrl-cell-idx {
+            position: absolute;
+            top: 1px;
+            left: 2px;
+            font-size: 0.85cqw;
+            color: #475569;
+            font-family: monospace;
+            font-weight: 800;
+            line-height: 1;
+            pointer-events: none;
+        }
+
+        .ctrl-cell-bonus {
+            position: absolute;
+            bottom: 1px;
+            right: 2px;
+            font-size: 0.8cqw;
+            font-weight: 900;
+            line-height: 1;
+            pointer-events: none;
+            border-radius: 2px;
+            padding: 0 1px;
+        }
+        .ctrl-cell-bonus.bonus-dl { color: #f59e0b; background: rgba(0,0,0,0.7); }
+        .ctrl-cell-bonus.bonus-tl { color: #ef4444; background: rgba(0,0,0,0.7); }
+
+        .ctrl-cell-text {
+            line-height: 1;
+            pointer-events: none;
+        }
+        .ctrl-cell-text.peek-hidden {
+            color: #0284c7;
+            font-weight: 900;
+            text-shadow: 0 0 2px rgba(255, 255, 255, 0.7);
+            opacity: 0.85;
+        }
+        .ctrl-cell-text.state-marked {
+            color: #fbbf24;
+            font-weight: 900;
+            text-shadow: 0 0 6px rgba(0, 0, 0, 0.9);
+        }
+        .ctrl-cell-text.state-revealed {
+            color: #000000;
+            font-weight: 900;
+        }
+
+        .ctrl-board-actions-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #090c14;
+            padding: 6px 8px;
+            border-radius: 6px;
+            border: 1px solid #1e293b;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .ctrl-row-buttons {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-row-reveal {
+            background: #181f2f;
+            color: #cbd5e1;
+            border: 1px solid #2a354c;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-row-reveal:hover {
+            background: #38bdf8;
+            color: #000;
+        }
+
+        .btn-board-quick {
+            padding: 4px 8px;
+            font-size: 10.5px;
+            font-weight: 700;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-board-quick:hover {
+            filter: brightness(1.2);
+            transform: translateY(-1px);
+        }
+
+        .ctrl-puzzle-chips-container {
+            background: #090c14;
+            border: 1px solid #1e293b;
+            border-radius: 6px;
+            padding: 6px 8px;
+        }
+
+        .ctrl-chips-list {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            min-height: 24px;
+            align-items: center;
+        }
+
+        .ctrl-letter-chip {
+            background: #181f2f;
+            border: 1px solid #28354f;
+            color: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .ctrl-letter-chip:hover {
+            background: #0284c7;
+            border-color: #38bdf8;
+            color: #fff;
+            transform: translateY(-1px);
+        }
+        .ctrl-letter-chip.all-revealed {
+            background: #064e3b;
+            border-color: #059669;
+            color: #a7f3d0;
+            opacity: 0.6;
+        }
+        .ctrl-letter-chip .chip-cnt {
+            background: #090c14;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 9.5px;
+            color: #fbbf24;
+        }
     </style>
 </head>
 
@@ -423,8 +728,86 @@
             </div>
         </div>
 
-        <!-- CỘT 2: ĐIỀU KHIỂN TOSS-UP, VÒNG 30S & THAO TÁC BẢNG -->
+        <!-- CỘT 2: BẢNG Ô CHỮ TRỰC TIẾP & ĐIỀU KHIỂN TOSS-UP, VÒNG 30S -->
         <div>
+            <!-- BẢNG Ô CHỮ TRỰC TIẾP (BỐ CỤC CHUẨN GIỐNG INDEX - THAO TÁC CHỮ CÁI) -->
+            <div class="section-wrapper ctrl-board-card" id="interactiveBoardSection">
+                <div class="ctrl-board-header">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 13px; font-weight: 800; color: #38bdf8;">📺 BẢNG Ô CHỮ TRỰC TIẾP</span>
+                        <span id="ctrlBoardQuizBadge" class="ctrl-badge-quiz">ĐỀ 1</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <button type="button" class="ctrl-board-opt-btn active" id="btnTogglePeek" onclick="toggleHostPeek()" title="Bật/Tắt xem trước chữ cái đang ẩn cho kỹ thuật">
+                            👁️ Soi chữ: BẬT
+                        </button>
+                        <button type="button" class="ctrl-board-opt-btn active" id="btnToggleCellIdx" onclick="toggleCellIndex()" title="Bật/Tắt số thứ tự ô (1-52)">
+                            🔢 Số ô: BẬT
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Thanh chọn chế độ click -->
+                <div class="ctrl-mode-bar">
+                    <span class="ctrl-mode-label">👆 THAO TÁC KHI CLICK Ô:</span>
+                    <div class="ctrl-mode-buttons">
+                        <button type="button" class="btn-click-mode active" id="btnModeReveal" data-mode="reveal" onclick="setClickMode('reveal')">
+                            ⚡ MỞ Ô (REVEAL)
+                        </button>
+                        <button type="button" class="btn-click-mode" id="btnModeMark" data-mode="mark" onclick="setClickMode('mark')">
+                            ✨ ĐÁNH DẤU (DẤU)
+                        </button>
+                        <button type="button" class="btn-click-mode" id="btnModeRevealSame" data-mode="reveal_same" onclick="setClickMode('reveal_same')">
+                            🔤 MỞ HẾT CHỮ NÀY
+                        </button>
+                        <button type="button" class="btn-click-mode" id="btnModeHide" data-mode="hide" onclick="setClickMode('hide')">
+                            🔒 ĐÓNG Ô (ẨN)
+                        </button>
+                    </div>
+                    <span class="ctrl-mode-hint">(Chuột phải: đổi trạng thái nhanh)</span>
+                </div>
+
+                <!-- Khung Bảng Ô Chữ 1920x1080 Responsive -->
+                <div class="ctrl-board-frame">
+                    <div id="ctrlBoard" class="ctrl-board">
+                        <!-- 52 ô chữ tự động khởi tạo -->
+                    </div>
+                </div>
+
+                <!-- Thanh mở nhanh theo dòng & thao tác bảng -->
+                <div class="ctrl-board-actions-bar">
+                    <div class="ctrl-row-buttons">
+                        <span style="font-size: 10.5px; color: #94a3b8; font-weight: 700;">MỞ DÒNG:</span>
+                        <button type="button" class="btn-row-reveal" onclick="controlRevealRow(1)">Dòng 1</button>
+                        <button type="button" class="btn-row-reveal" onclick="controlRevealRow(2)">Dòng 2</button>
+                        <button type="button" class="btn-row-reveal" onclick="controlRevealRow(3)">Dòng 3</button>
+                        <button type="button" class="btn-row-reveal" onclick="controlRevealRow(4)">Dòng 4</button>
+                    </div>
+                    <div style="display: flex; gap: 4px;">
+                        <button type="button" class="btn-board-quick" style="background: linear-gradient(135deg, #e11d48, #f43f5e); color: #fff;" onclick="sendCmd('REVEAL_ALL'); setControlBuzzerOpen(false); controlRevealAllLocally();" title="Mở toàn bộ ô chữ trên bảng">
+                            🔓 MỞ TOÀN BẢNG
+                        </button>
+                        <button type="button" class="btn-board-quick" style="background: #334155; color: #fff;" onclick="sendCmd('SHOW_BOARD'); controlShowBoardLocally();" title="Hiện khung trắng tất cả ô chữ cho người chơi đoán">
+                            🎬 SHOW LẠI Ô CHỮ
+                        </button>
+                        <button type="button" class="btn-board-quick" style="background: #1e293b; color: #94a3b8; border: 1px solid #334155;" onclick="sendCmd('RESET_BOARD'); setControlBuzzerOpen(false); controlResetBoardLocally();" title="Reset bảng về trạng thái ban đầu">
+                            ♻️ RESET BẢNG
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Thống kê chữ cái và danh sách chip mở theo chữ -->
+                <div class="ctrl-puzzle-chips-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <span style="font-size: 10.5px; color: #fbbf24; font-weight: 700;">🔤 CHỮ CÁI TRONG Ô CHỮ (CLICK ĐỂ MỞ TẤT CẢ):</span>
+                        <span id="ctrlBoardStatsText" style="font-size: 10.5px; color: #38bdf8; font-family: monospace; font-weight: 700;">Tổng: 0 chữ | Đã mở: 0</span>
+                    </div>
+                    <div id="ctrlLetterChipsList" class="ctrl-chips-list">
+                        <!-- Chips rendered via JS -->
+                    </div>
+                </div>
+            </div>
+
             <!-- Vòng Toss-Up chuẩn -->
             <div class="section-wrapper" id="standardTossupSection">
                 <h3 class="section-title">⚡ ĐIỀU KHIỂN VÒNG TOSS-UP</h3>
@@ -511,33 +894,9 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Thao Tác Bảng & Khẩn Cấp -->
-            <div class="section-wrapper">
-                <h3 class="section-title">🚨 THAO TÁC BẢNG & KHẨN CẤP</h3>
-                
-                <!-- Nút Bật/Tắt Chế Độ Words With Friends -->
-                <div style="margin-bottom: 6px;">
-                    <button id="btnToggleWWF" style="width: 100%; padding: 7px 10px; font-weight: 800; font-size: 11.5px; border-radius: 4px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: space-between; background: #181f2f; border: 1px solid #2a354c; color: #94a3b8;" onclick="toggleWWFMode()" title="Chế độ Words With Friends (DL x2 / TL x3) chỉ áp dụng cho các vòng đoán thường Đề 3, 4, 5, 9">
-                        <span style="display: flex; align-items: center; gap: 5px;">🔤 CHẾ ĐỘ WORDS WITH FRIENDS (ĐỀ 3, 4, 5, 9)</span>
-                        <span id="wwfBadge" style="padding: 2px 8px; border-radius: 12px; font-size: 10.5px; font-weight: 800; background: #090c14; color: #94a3b8; border: 1px solid #334155;">ĐANG TẮT</span>
-                    </button>
-                </div>
-
-                <div class="group" style="margin-bottom: 6px;">
-                    <button class="btn-main" style="flex: 1;" onclick="sendCmd('SHOW_BOARD')">🎬 SHOW Ô CHỮ CHÍNH</button>
-                    <button style="background: linear-gradient(135deg, #0284c7, #0ea5e9); color: white;" onclick="sendCmd('SHOW_THUMBNAIL')">🖼️ HIỆN THUMBNAIL</button>
-                    <button style="background: #475569; color: white;" onclick="sendCmd('HIDE_THUMBNAIL')">🙈 ẨN THUMBNAIL</button>
-                </div>
-                <div class="group" style="margin-bottom: 0;">
-                    <button class="btn-reveal" style="flex: 1.2; padding: 8px 0;" onclick="sendCmd('REVEAL_ALL'); setControlBuzzerOpen(false);">🔓 MỞ HẾT Ô CHỮ</button>
-                    <button style="background: linear-gradient(135deg, #d97706, #f59e0b); color: #000; font-weight: 800;" onclick="sendCmd('STOP_ALL_SFX')">🛑 DỪNG ÂM THANH</button>
-                    <button class="btn-reset" onclick="sendCmd('RESET_BOARD'); setControlBuzzerOpen(false);">♻️ RESET</button>
-                </div>
-            </div>
         </div>
 
-        <!-- CỘT 3: BẢNG ĐIỂM & BÀN PHÍM CHỮ CÁI -->
+        <!-- CỘT 3: BẢNG ĐIỂM, THAO TÁC BẢNG & BÀN PHÍM CHỮ CÁI -->
         <div>
             <!-- Card Bảng Điểm & Chuông Báo -->
             <div class="section-wrapper">
@@ -606,6 +965,30 @@
                         <button style="background: #8b5cf6; color: white;" onclick="modifyScore(3, 'x2')">x2</button>
                         <button style="background: #ef4444; color: white;" onclick="modifyScore(3, '0')">Mất(0)</button>
                     </div>
+                </div>
+            </div>
+
+            <!-- Thao Tác Bảng & Khẩn Cấp -->
+            <div class="section-wrapper">
+                <h3 class="section-title">🚨 THAO TÁC BẢNG & KHẨN CẤP</h3>
+                
+                <!-- Nút Bật/Tắt Chế Độ Words With Friends -->
+                <div style="margin-bottom: 6px;">
+                    <button id="btnToggleWWF" style="width: 100%; padding: 7px 10px; font-weight: 800; font-size: 11.5px; border-radius: 4px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: space-between; background: #181f2f; border: 1px solid #2a354c; color: #94a3b8;" onclick="toggleWWFMode()" title="Chế độ Words With Friends (DL x2 / TL x3) chỉ áp dụng cho các vòng đoán thường Đề 3, 4, 5, 9">
+                        <span style="display: flex; align-items: center; gap: 5px;">🔤 CHẾ ĐỘ WORDS WITH FRIENDS (ĐỀ 3, 4, 5, 9)</span>
+                        <span id="wwfBadge" style="padding: 2px 8px; border-radius: 12px; font-size: 10.5px; font-weight: 800; background: #090c14; color: #94a3b8; border: 1px solid #334155;">ĐANG TẮT</span>
+                    </button>
+                </div>
+
+                <div class="group" style="margin-bottom: 6px;">
+                    <button class="btn-main" style="flex: 1;" onclick="sendCmd('SHOW_BOARD'); controlShowBoardLocally();">🎬 SHOW Ô CHỮ CHÍNH</button>
+                    <button style="background: linear-gradient(135deg, #0284c7, #0ea5e9); color: white;" onclick="sendCmd('SHOW_THUMBNAIL')">🖼️ HIỆN THUMBNAIL</button>
+                    <button style="background: #475569; color: white;" onclick="sendCmd('HIDE_THUMBNAIL')">🙈 ẨN THUMBNAIL</button>
+                </div>
+                <div class="group" style="margin-bottom: 0;">
+                    <button class="btn-reveal" style="flex: 1.2; padding: 8px 0;" onclick="sendCmd('REVEAL_ALL'); setControlBuzzerOpen(false); controlRevealAllLocally();">🔓 MỞ HẾT Ô CHỮ</button>
+                    <button style="background: linear-gradient(135deg, #d97706, #f59e0b); color: #000; font-weight: 800;" onclick="sendCmd('STOP_ALL_SFX')">🛑 DỪNG ÂM THANH</button>
+                    <button class="btn-reset" onclick="sendCmd('RESET_BOARD'); setControlBuzzerOpen(false); controlResetBoardLocally();">♻️ RESET</button>
                 </div>
             </div>
 
@@ -1014,12 +1397,479 @@
             sendCmd("UPDATE_CTRL_ACTIVE", null);
         }
 
-        // Toss-Up Logic
-        let tossupTimeout = null;
-        let isTossupRunning = false;
+        // ==========================================
+        // BẢNG Ô CHỮ TƯƠNG TÁC (CENTRAL PUZZLE BOARD)
+        // ==========================================
+        const cells = [
+            { x: 246, y: 240 }, { x: 366, y: 240 }, { x: 486, y: 240 }, { x: 606, y: 240 }, { x: 726, y: 240 }, { x: 846, y: 240 }, { x: 966, y: 240 }, { x: 1086, y: 240 }, { x: 1206, y: 240 }, { x: 1326, y: 240 }, { x: 1446, y: 240 }, { x: 1566, y: 240 },
+            { x: 126, y: 390 }, { x: 246, y: 390 }, { x: 366, y: 390 }, { x: 486, y: 390 }, { x: 606, y: 390 }, { x: 726, y: 390 }, { x: 846, y: 390 }, { x: 966, y: 390 }, { x: 1086, y: 390 }, { x: 1206, y: 390 }, { x: 1326, y: 390 }, { x: 1446, y: 390 }, { x: 1566, y: 390 }, { x: 1686, y: 390 },
+            { x: 126, y: 540 }, { x: 246, y: 540 }, { x: 366, y: 540 }, { x: 486, y: 540 }, { x: 606, y: 540 }, { x: 726, y: 540 }, { x: 846, y: 540 }, { x: 966, y: 540 }, { x: 1086, y: 540 }, { x: 1206, y: 540 }, { x: 1326, y: 540 }, { x: 1446, y: 540 }, { x: 1566, y: 540 }, { x: 1688, y: 540 },
+            { x: 246, y: 690 }, { x: 366, y: 690 }, { x: 486, y: 690 }, { x: 606, y: 690 }, { x: 726, y: 690 }, { x: 846, y: 690 }, { x: 966, y: 690 }, { x: 1086, y: 690 }, { x: 1206, y: 690 }, { x: 1326, y: 690 }, { x: 1446, y: 690 }, { x: 1566, y: 690 }
+        ];
+
+        function removeVietnameseTones(str) {
+            if (!str) return "";
+            const map = {
+                "á": "a", "à": "a", "ả": "a", "ã": "a", "ạ": "a", "Á": "A", "À": "A", "Ả": "A", "Ã": "A", "Ạ": "A",
+                "ấ": "â", "ầ": "â", "ẩ": "â", "ẫ": "â", "ậ": "â", "Ấ": "Â", "Ầ": "Â", "Ẩ": "Â", "Ẫ": "Â", "Ậ": "Â",
+                "ắ": "ă", "ằ": "ă", "ẳ": "ă", "ẵ": "ă", "ặ": "ă", "Ắ": "Ă", "Ằ": "Ă", "Ẳ": "Ă", "Ẵ": "Ă", "Ặ": "Ă",
+                "é": "e", "è": "e", "ẻ": "e", "ẽ": "e", "ẹ": "e", "É": "E", "È": "E", "Ẻ": "E", "Ẽ": "E", "Ẹ": "E",
+                "ế": "ê", "ề": "ê", "ể": "ê", "ễ": "ê", "ệ": "ê", "Ế": "Ê", "Ề": "Ê", "Ể": "Ê", "Ễ": "Ê", "Ệ": "Ê",
+                "í": "i", "ì": "i", "ỉ": "i", "ĩ": "i", "ị": "i", "Í": "I", "Ì": "I", "Ỉ": "I", "Ĩ": "I", "Ị": "I",
+                "ó": "o", "ò": "o", "ỏ": "o", "õ": "o", "ọ": "o", "Ó": "O", "Ò": "O", "Ỏ": "O", "Õ": "O", "Ọ": "O",
+                "ố": "ô", "ồ": "ô", "ổ": "ô", "ỗ": "ô", "ộ": "ô", "Ố": "Ô", "Ồ": "Ô", "Ổ": "Ô", "Ỗ": "Ô", "Ộ": "Ô",
+                "ớ": "ơ", "ờ": "ơ", "ở": "ơ", "ỡ": "ơ", "ợ": "ơ", "Ớ": "Ơ", "Ờ": "Ơ", "Ở": "Ơ", "Ỡ": "Ơ", "Ợ": "Ơ",
+                "ú": "u", "ù": "u", "ủ": "u", "ũ": "u", "ụ": "u", "Ú": "U", "Ù": "U", "Ủ": "U", "Ũ": "U", "Ụ": "U",
+                "ứ": "ư", "ừ": "ư", "ử": "ư", "ữ": "ư", "ự": "ư", "Ứ": "Ư", "Ừ": "Ư", "Ử": "Ư", "Ữ": "Ư", "Ự": "Ư",
+                "ý": "y", "ỳ": "y", "ỷ": "y", "ỹ": "y", "ỵ": "y", "Ý": "Y", "Ỳ": "Y", "Ỷ": "Y", "Ỹ": "Y", "Ỵ": "Y"
+            };
+            return str.split("").map(c => map[c] || c).join("");
+        }
+
+        function cleanLetter(letter) {
+            if (!letter) return "";
+            let cleaned = letter.replace("_", "");
+            return removeVietnameseTones(cleaned).toUpperCase();
+        }
+
         let currentControlQuizIndex = 0;
         let controlActiveQuizLetters = [];
         let controlRevealedStates = new Array(52).fill(false);
+        let controlMarkedStates = new Array(52).fill(false);
+        let controlWWFBonuses = new Array(52).fill('NORMAL');
+
+        let currentClickMode = 'reveal'; // 'reveal', 'mark', 'reveal_same', 'hide'
+        let isHostPeekEnabled = true;
+        let isShowCellIndexEnabled = true;
+
+        const WWF_ALLOWED_QUIZ_INDEXES = [2, 3, 4, 8];
+        function isWWFActiveForCurrentRound() {
+            return isWWFMode && (currentControlQuizIndex === -1 || WWF_ALLOWED_QUIZ_INDEXES.includes(currentControlQuizIndex));
+        }
+
+        function calculateControlWWFBonuses(absLetters) {
+            controlWWFBonuses = new Array(52).fill('NORMAL');
+            const boardRowDefinitions = [
+                { start: 0, end: 12 },
+                { start: 12, end: 26 },
+                { start: 26, end: 40 },
+                { start: 40, end: 52 }
+            ];
+            boardRowDefinitions.forEach(row => {
+                let currentWord = [];
+                for (let i = row.start; i < row.end; i++) {
+                    const ch = (absLetters[i] || "").trim();
+                    if (ch && ch !== " ") {
+                        currentWord.push(i);
+                    } else {
+                        if (currentWord.length > 0) {
+                            assignWordBonus(currentWord);
+                            currentWord = [];
+                        }
+                    }
+                }
+                if (currentWord.length > 0) {
+                    assignWordBonus(currentWord);
+                }
+            });
+            function assignWordBonus(wordIndices) {
+                if (!wordIndices || wordIndices.length === 0) return;
+                const randIdx = wordIndices[Math.floor(Math.random() * wordIndices.length)];
+                const isTL = Math.random() < 0.5;
+                controlWWFBonuses[randIdx] = isTL ? 'TL' : 'DL';
+            }
+        }
+
+        function setClickMode(mode) {
+            currentClickMode = mode;
+            document.querySelectorAll('.btn-click-mode').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-mode') === mode);
+            });
+        }
+
+        function toggleHostPeek() {
+            isHostPeekEnabled = !isHostPeekEnabled;
+            const btn = document.getElementById("btnTogglePeek");
+            if (btn) {
+                btn.textContent = isHostPeekEnabled ? "👁️ Soi chữ: BẬT" : "👁️ Soi chữ: TẮT";
+                btn.classList.toggle("active", isHostPeekEnabled);
+            }
+            renderControlBoard();
+        }
+
+        function toggleCellIndex() {
+            isShowCellIndexEnabled = !isShowCellIndexEnabled;
+            const btn = document.getElementById("btnToggleCellIdx");
+            if (btn) {
+                btn.textContent = isShowCellIndexEnabled ? "🔢 Số ô: BẬT" : "🔢 Số ô: TẮT";
+                btn.classList.toggle("active", isShowCellIndexEnabled);
+            }
+            renderControlBoard();
+        }
+
+        function renderControlBoard() {
+            const board = document.getElementById("ctrlBoard");
+            if (!board) return;
+
+            const activeWWF = isWWFActiveForCurrentRound();
+            board.style.backgroundImage = activeWWF ? 'url("bangochu_WWF.png")' : 'url("bangochu.png")';
+
+            const badge = document.getElementById("ctrlBoardQuizBadge");
+            if (badge) {
+                if (currentControlQuizIndex === -1) {
+                    badge.textContent = "NHẬP TAY";
+                } else if (currentControlQuizIndex === 12) {
+                    badge.textContent = `ĐỀ 13 (Ô ${currentRound30SubIndex + 1}/${(round30SubPuzzles && round30SubPuzzles.length) || 8})`;
+                } else {
+                    badge.textContent = `ĐỀ ${currentControlQuizIndex + 1}`;
+                }
+            }
+
+            board.innerHTML = "";
+
+            cells.forEach((pos, i) => {
+                const cell = document.createElement("div");
+                cell.id = `ctrlCell_${i}`;
+                cell.style.left = ((pos.x / 1920) * 100) + "%";
+                cell.style.top = ((pos.y / 1080) * 100) + "%";
+
+                const rawLetter = (controlActiveQuizLetters[i] || "").trim();
+                const isRevealed = !!controlRevealedStates[i];
+                const isMarked = !!controlMarkedStates[i];
+
+                if (!rawLetter) {
+                    cell.className = "ctrl-cell ctrl-cell-empty";
+                    cell.style.backgroundImage = 'url("defaultbox.png")';
+                    board.appendChild(cell);
+                    return;
+                }
+
+                cell.className = "ctrl-cell has-letter";
+                cell.dataset.index = i;
+                cell.dataset.letter = rawLetter;
+
+                const displayChar = removeVietnameseTones(rawLetter).replace("_", "").toUpperCase();
+
+                if (isRevealed) {
+                    cell.classList.add("is-revealed");
+                    cell.style.backgroundImage = activeWWF ? 'url("obox_WWF.png")' : 'url("occhu.png")';
+                    cell.innerHTML = `
+                        ${isShowCellIndexEnabled ? `<span class="ctrl-cell-idx">${i + 1}</span>` : ""}
+                        <span class="ctrl-cell-text state-revealed">${displayChar}</span>
+                    `;
+                    cell.title = `Ô ${i + 1}: Chữ "${displayChar}" (Đã mở)\nClick: Đóng lại | Chuột phải: Đổi trạng thái`;
+                } else if (isMarked) {
+                    cell.classList.add("is-marked");
+                    cell.style.backgroundImage = activeWWF ? 'url("highlight_WWL.png")' : 'url("highlight.png")';
+                    cell.innerHTML = `
+                        ${isShowCellIndexEnabled ? `<span class="ctrl-cell-idx">${i + 1}</span>` : ""}
+                        <span class="ctrl-cell-text state-marked">${displayChar}</span>
+                    `;
+                    cell.title = `Ô ${i + 1}: Chữ "${displayChar}" (Đang chọn/Highlight)\nClick: Mở ô | Chuột phải: Đổi trạng thái`;
+                } else {
+                    cell.classList.add("is-hidden");
+                    const bonus = controlWWFBonuses[i];
+                    if (activeWWF) {
+                        if (bonus === 'TL') cell.style.backgroundImage = 'url("defaultbox_TL_WWF.png")';
+                        else if (bonus === 'DL') cell.style.backgroundImage = 'url("defaultbox_DL_WWF.png")';
+                        else cell.style.backgroundImage = 'url("defaultbox_WWF.png")';
+                    } else {
+                        cell.style.backgroundImage = 'url("obox.png")';
+                    }
+
+                    let bonusTag = "";
+                    if (activeWWF && bonus === 'TL') bonusTag = `<span class="ctrl-cell-bonus bonus-tl">TL</span>`;
+                    else if (activeWWF && bonus === 'DL') bonusTag = `<span class="ctrl-cell-bonus bonus-dl">DL</span>`;
+
+                    cell.innerHTML = `
+                        ${isShowCellIndexEnabled ? `<span class="ctrl-cell-idx">${i + 1}</span>` : ""}
+                        ${bonusTag}
+                        ${isHostPeekEnabled ? `<span class="ctrl-cell-text peek-hidden">${displayChar}</span>` : ""}
+                    `;
+                    cell.title = `Ô ${i + 1}: Chữ "${displayChar}" (Đang ẩn)\nClick: Thao tác theo chế độ | Chuột phải: Đổi trạng thái`;
+                }
+
+                cell.onclick = (e) => {
+                    e.stopPropagation();
+                    handleControlCellClick(i);
+                };
+
+                cell.oncontextmenu = (e) => {
+                    handleControlCellRightClick(e, i);
+                };
+
+                board.appendChild(cell);
+            });
+
+            updateControlBoardStats();
+        }
+
+        function updateControlBoardCell(i) {
+            const cell = document.getElementById(`ctrlCell_${i}`);
+            if (!cell) {
+                renderControlBoard();
+                return;
+            }
+
+            const rawLetter = (controlActiveQuizLetters[i] || "").trim();
+            if (!rawLetter) return;
+
+            const activeWWF = isWWFActiveForCurrentRound();
+            const isRevealed = !!controlRevealedStates[i];
+            const isMarked = !!controlMarkedStates[i];
+            const displayChar = removeVietnameseTones(rawLetter).replace("_", "").toUpperCase();
+
+            cell.className = "ctrl-cell has-letter";
+
+            if (isRevealed) {
+                cell.classList.add("is-revealed");
+                cell.style.backgroundImage = activeWWF ? 'url("obox_WWF.png")' : 'url("occhu.png")';
+                cell.innerHTML = `
+                    ${isShowCellIndexEnabled ? `<span class="ctrl-cell-idx">${i + 1}</span>` : ""}
+                    <span class="ctrl-cell-text state-revealed">${displayChar}</span>
+                `;
+                cell.title = `Ô ${i + 1}: Chữ "${displayChar}" (Đã mở)`;
+            } else if (isMarked) {
+                cell.classList.add("is-marked");
+                cell.style.backgroundImage = activeWWF ? 'url("highlight_WWL.png")' : 'url("highlight.png")';
+                cell.innerHTML = `
+                    ${isShowCellIndexEnabled ? `<span class="ctrl-cell-idx">${i + 1}</span>` : ""}
+                    <span class="ctrl-cell-text state-marked">${displayChar}</span>
+                `;
+                cell.title = `Ô ${i + 1}: Chữ "${displayChar}" (Đang chọn/Highlight)`;
+            } else {
+                cell.classList.add("is-hidden");
+                const bonus = controlWWFBonuses[i];
+                if (activeWWF) {
+                    if (bonus === 'TL') cell.style.backgroundImage = 'url("defaultbox_TL_WWF.png")';
+                    else if (bonus === 'DL') cell.style.backgroundImage = 'url("defaultbox_DL_WWF.png")';
+                    else cell.style.backgroundImage = 'url("defaultbox_WWF.png")';
+                } else {
+                    cell.style.backgroundImage = 'url("obox.png")';
+                }
+
+                let bonusTag = "";
+                if (activeWWF && bonus === 'TL') bonusTag = `<span class="ctrl-cell-bonus bonus-tl">TL</span>`;
+                else if (activeWWF && bonus === 'DL') bonusTag = `<span class="ctrl-cell-bonus bonus-dl">DL</span>`;
+
+                cell.innerHTML = `
+                    ${isShowCellIndexEnabled ? `<span class="ctrl-cell-idx">${i + 1}</span>` : ""}
+                    ${bonusTag}
+                    ${isHostPeekEnabled ? `<span class="ctrl-cell-text peek-hidden">${displayChar}</span>` : ""}
+                `;
+                cell.title = `Ô ${i + 1}: Chữ "${displayChar}" (Đang ẩn)`;
+            }
+        }
+
+        function updateControlBoardStats() {
+            let total = 0;
+            let revealed = 0;
+            let letterMap = {};
+
+            for (let i = 0; i < 52; i++) {
+                const ch = (controlActiveQuizLetters[i] || "").trim();
+                if (ch && ch !== " ") {
+                    total++;
+                    const clean = cleanLetter(ch);
+                    if (!letterMap[clean]) letterMap[clean] = { total: 0, revealed: 0 };
+                    letterMap[clean].total++;
+                    if (controlRevealedStates[i]) {
+                        revealed++;
+                        letterMap[clean].revealed++;
+                    }
+                }
+            }
+
+            const statsText = document.getElementById("ctrlBoardStatsText");
+            if (statsText) {
+                statsText.textContent = `Tổng: ${total} chữ | Đã mở: ${revealed} | Còn: ${total - revealed}`;
+            }
+
+            const chipsList = document.getElementById("ctrlLetterChipsList");
+            if (chipsList) {
+                chipsList.innerHTML = "";
+                const sortedKeys = Object.keys(letterMap).sort();
+                if (sortedKeys.length === 0) {
+                    chipsList.innerHTML = `<span style="font-size: 11px; color: #64748b; font-style: italic;">Chưa nạp chữ cái nào.</span>`;
+                    return;
+                }
+                sortedKeys.forEach(k => {
+                    const item = letterMap[k];
+                    const chip = document.createElement("div");
+                    const allDone = item.revealed >= item.total;
+                    chip.className = `ctrl-letter-chip ${allDone ? 'all-revealed' : ''}`;
+                    chip.innerHTML = `<b>${k}</b> <span class="chip-cnt">${item.revealed}/${item.total}</span>`;
+                    chip.title = allDone ? `Chữ "${k}" đã mở hết (${item.total} ô)` : `Click để mở tất cả ${item.total - item.revealed} chữ "${k}" còn lại!`;
+                    chip.onclick = () => {
+                        controlRevealAllSameLetter(k);
+                    };
+                    chipsList.appendChild(chip);
+                });
+            }
+        }
+
+        function handleControlCellClick(i) {
+            const letter = (controlActiveQuizLetters[i] || "").trim();
+            if (!letter) return;
+
+            if (controlRevealedStates[i]) {
+                controlHideCell(i);
+            } else if (controlMarkedStates[i]) {
+                // Ô đang highlight -> bấm vào mở chữ cái đó luôn
+                controlRevealCell(i, true);
+            } else {
+                // Ô chưa mở -> bấm vào sẽ highlight (thay vì mở trực tiếp)
+                controlMarkCell(i);
+            }
+        }
+
+        function handleControlCellRightClick(e, i) {
+            e.preventDefault();
+            const letter = (controlActiveQuizLetters[i] || "").trim();
+            if (!letter) return;
+
+            // Cycle: Hidden (0) -> Marked (1) -> Revealed (2) -> Hidden (0)
+            if (!controlRevealedStates[i] && !controlMarkedStates[i]) {
+                controlMarkCell(i);
+            } else if (controlMarkedStates[i]) {
+                controlRevealCell(i, true);
+            } else {
+                controlHideCell(i);
+            }
+        }
+
+        function controlRevealCell(idx, playSound = true) {
+            if (idx < 0 || idx >= 52) return;
+            const letter = (controlActiveQuizLetters[idx] || "").trim();
+            if (!letter) return;
+            controlRevealedStates[idx] = true;
+            controlMarkedStates[idx] = false;
+            updateControlBoardCell(idx);
+            updateControlBoardStats();
+            sendCmd("REVEAL_CELL", { index: idx, playSound: playSound });
+        }
+
+        function controlMarkCell(idx) {
+            if (idx < 0 || idx >= 52) return;
+            const letter = (controlActiveQuizLetters[idx] || "").trim();
+            if (!letter) return;
+            controlMarkedStates[idx] = true;
+            controlRevealedStates[idx] = false;
+            updateControlBoardCell(idx);
+            updateControlBoardStats();
+            sendCmd("MARK_CELL", { index: idx });
+        }
+
+        function controlHideCell(idx) {
+            if (idx < 0 || idx >= 52) return;
+            controlRevealedStates[idx] = false;
+            controlMarkedStates[idx] = false;
+            updateControlBoardCell(idx);
+            updateControlBoardStats();
+            sendCmd("HIDE_CELL", { index: idx });
+        }
+
+        function controlRevealAllSameLetter(targetChar) {
+            if (!targetChar) return;
+            const cleanTarget = cleanLetter(targetChar);
+            let matched = [];
+            for (let i = 0; i < 52; i++) {
+                const letter = controlActiveQuizLetters[i] || "";
+                if (cleanLetter(letter) === cleanTarget && !controlRevealedStates[i]) {
+                    matched.push(i);
+                }
+            }
+            if (matched.length === 0) {
+                showCustomAlert(`Không còn chữ "${cleanTarget}" nào chưa mở.`);
+                return;
+            }
+            matched.forEach((pos, delayIdx) => {
+                setTimeout(() => {
+                    controlRevealCell(pos, true);
+                }, delayIdx * 250);
+            });
+        }
+
+        function controlRevealRow(rowNum) {
+            const rowRanges = [
+                { start: 0, end: 12 },
+                { start: 12, end: 26 },
+                { start: 26, end: 40 },
+                { start: 40, end: 52 }
+            ];
+            const r = rowRanges[rowNum - 1];
+            if (!r) return;
+            let matched = [];
+            for (let i = r.start; i < r.end; i++) {
+                const letter = (controlActiveQuizLetters[i] || "").trim();
+                if (letter && !controlRevealedStates[i]) {
+                    matched.push(i);
+                }
+            }
+            if (matched.length === 0) {
+                showCustomAlert(`Hàng ${rowNum} không còn chữ nào chưa mở.`);
+                return;
+            }
+            matched.forEach((pos, delayIdx) => {
+                setTimeout(() => {
+                    controlRevealCell(pos, true);
+                }, delayIdx * 200);
+            });
+        }
+
+        function controlRevealAllLocally() {
+            for (let i = 0; i < 52; i++) {
+                if ((controlActiveQuizLetters[i] || "").trim() !== "") {
+                    controlRevealedStates[i] = true;
+                    controlMarkedStates[i] = false;
+                }
+            }
+            renderControlBoard();
+        }
+
+        function controlResetBoardLocally() {
+            controlRevealedStates = new Array(52).fill(false);
+            controlMarkedStates = new Array(52).fill(false);
+            renderControlBoard();
+        }
+
+        function controlShowBoardLocally() {
+            controlRevealedStates = new Array(52).fill(false);
+            controlMarkedStates = new Array(52).fill(false);
+            renderControlBoard();
+        }
+
+        function populateManualTextToControlGrid(lines) {
+            const rowConfigs = [
+                { startIdx: 0, totalCells: 12 },  
+                { startIdx: 12, totalCells: 14 }, 
+                { startIdx: 26, totalCells: 14 }, 
+                { startIdx: 40, totalCells: 12 }  
+            ];
+            let manualGrid = new Array(52).fill("");
+            let targetRowIndex = lines.length <= 2 ? 1 : 0;
+            lines.forEach((lineText, lIdx) => {
+                let currentRow = Math.min(3, targetRowIndex + lIdx);
+                let config = rowConfigs[currentRow];
+                let offset = Math.max(0, Math.floor((config.totalCells - lineText.length) / 2));
+                let activeStartIdx = config.startIdx + offset;
+                for (let charPos = 0; charPos < lineText.length; charPos++) {
+                    let gridIndex = activeStartIdx + charPos;
+                    if (gridIndex < config.startIdx + config.totalCells) {
+                        manualGrid[gridIndex] = lineText[charPos] === " " ? "" : lineText[charPos];
+                    }
+                }
+            });
+            currentControlQuizIndex = -1;
+            controlActiveQuizLetters = manualGrid;
+            controlRevealedStates = manualGrid.map(ch => ch.trim() !== "");
+            controlMarkedStates = new Array(52).fill(false);
+            renderControlBoard();
+        }
+
+        // Toss-Up Logic
+        let tossupTimeout = null;
+        let isTossupRunning = false;
 
         function getActiveQuizLetters() {
             if (currentControlQuizIndex === 12) {
@@ -1044,6 +1894,8 @@
             setControlBuzzerOpen(true);
             isTossupRunning = true;
             controlRevealedStates = new Array(52).fill(false);
+            controlMarkedStates = new Array(52).fill(false);
+            renderControlBoard();
             sendCmd("START_TOSSUP");
             clearTimeout(tossupTimeout);
             tossupTimeout = setTimeout(controlRevealRandomCell, getLetterRevealDelay());
@@ -1072,6 +1924,7 @@
             setControlBuzzerOpen(false);
             sendCmd("SOLVE_TOSSUP");
             clearControlBuzzer();
+            controlRevealAllLocally();
         }
 
         function controlRevealRandomCell() {
@@ -1093,6 +1946,9 @@
             }
             const randomIndex = hiddenIndices[Math.floor(Math.random() * hiddenIndices.length)];
             controlRevealedStates[randomIndex] = true;
+            controlMarkedStates[randomIndex] = false;
+            updateControlBoardCell(randomIndex);
+            updateControlBoardStats();
             sendCmd("REVEAL_CELL", randomIndex);
 
             if (isTossupRunning) {
@@ -1178,6 +2034,8 @@
             const subLetters = round30SubPuzzles[subIndex] || new Array(52).fill("");
             controlActiveQuizLetters = subLetters;
             controlRevealedStates = new Array(52).fill(false);
+            controlMarkedStates = new Array(52).fill(false);
+            renderControlBoard();
 
             const badge = document.getElementById("round30SubBadgeCtrl");
             if (badge) badge.textContent = `Ô ${subIndex + 1}/${total}`;
@@ -1284,6 +2142,7 @@
             setControlBuzzerOpen(false);
             round30SolvedStatus[currentRound30SubIndex] = true;
             renderRound30SubButtons();
+            controlRevealAllLocally();
             sendCmd('REVEAL_ALL');
             clearControlBuzzer();
         }
@@ -1306,6 +2165,7 @@
             round30SolvedStatus = new Array(total).fill(false);
             updateRound30TimerUI();
             selectRound30Sub(0);
+            controlResetBoardLocally();
             clearControlBuzzer();
             setControlBuzzerOpen(false);
             sendCmd('STOP_ROUND30_MUSIC');
@@ -1445,6 +2305,9 @@
             const letters = importedQuizzes[quizIndex] || (window.quizData && window.quizData[quizIndex] ? window.quizItemTo52Array(window.quizData[quizIndex]) : new Array(52).fill(""));
             controlActiveQuizLetters = letters;
             controlRevealedStates = new Array(52).fill(false);
+            controlMarkedStates = new Array(52).fill(false);
+            if (isWWFActiveForCurrentRound()) calculateControlWWFBonuses(letters);
+            renderControlBoard();
 
             sendCmd('LOAD_QUIZ', { index: quizIndex, letters: letters });
             sendCmd('UPDATE_QUIZ_ACTIVE', quizIndex);
@@ -1525,6 +2388,7 @@
             }
             sendCmd("SHOW_MANUAL_TEXT", lines);
             clearControlBuzzer();
+            populateManualTextToControlGrid(lines);
         }
 
         // Alphabet buttons rendering
@@ -1640,6 +2504,14 @@
                     const numInput = document.getElementById("numCells");
                     if (numInput) numInput.value = data.length;
                     generateChildTextBoxes(data);
+                    data.forEach(p => {
+                        const idx = p - 1;
+                        if (idx >= 0 && idx < 52 && !controlRevealedStates[idx]) {
+                            controlMarkedStates[idx] = true;
+                            updateControlBoardCell(idx);
+                        }
+                    });
+                    updateControlBoardStats();
                 }
             }
         }
@@ -1700,11 +2572,14 @@
                 localStorage.setItem('crossword_wwf_mode', isWWFMode ? '1' : '0');
             } catch(e){}
             updateWWFButtonUI();
+            if (isWWFActiveForCurrentRound()) calculateControlWWFBonuses(controlActiveQuizLetters);
+            renderControlBoard();
             sendCmd("SET_WWF_MODE", { enabled: isWWFMode });
         }
 
         // Initialize on DOM load
         window.addEventListener('DOMContentLoaded', () => {
+            renderControlBoard();
             updateWWFButtonUI();
             updatePlayerUrlDisplay();
             renderTossupSpeedUI();

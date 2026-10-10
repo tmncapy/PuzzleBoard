@@ -870,20 +870,62 @@ function handleControlCommand(payload) {
     }
     else if (type === "REVEAL_CELL" || type === "TOSSUP_REVEAL_CELL") {
         let idx = -1;
+        let withSound = false;
         if (typeof data === "number") {
             idx = data;
         } else if (typeof data === "object" && data !== null) {
             if (data.absoluteIndex !== undefined) idx = data.absoluteIndex - 1;
             else if (data.index !== undefined) idx = data.index;
+            if (data.playSound) withSound = true;
         }
         if (idx >= 0 && idx < 52) {
             const targetItem = absoluteCells[idx];
             if (targetItem && !targetItem.revealed) {
-                targetItem.element.style.background = isWWFActiveForCurrentRound() ? 'url("obox_WWF.png") center center no-repeat' : 'url("obox.png") center center no-repeat';
+                targetItem.element.style.background = isWWFActiveForCurrentRound() ? 'url("obox_WWF.png") center center no-repeat' : 'url("occhu.png") center center no-repeat';
                 targetItem.element.style.backgroundSize = "100% 100%";
                 targetItem.element.textContent = removeVietnameseTones(targetItem.letter).replace("_", "").toUpperCase();
                 targetItem.revealed = true;
                 targetItem.state = 2;
+                if (withSound) {
+                    initAudioPermission();
+                    playSecondDing();
+                }
+            }
+        }
+    }
+    else if (type === "MARK_CELL") {
+        let idx = -1;
+        if (typeof data === "number") idx = data;
+        else if (typeof data === "object" && data !== null) {
+            if (data.absoluteIndex !== undefined) idx = data.absoluteIndex - 1;
+            else if (data.index !== undefined) idx = data.index;
+        }
+        if (idx >= 0 && idx < 52) {
+            const item = absoluteCells[idx];
+            if (item && item.state === 0) {
+                initAudioPermission();
+                item.element.style.background = isWWFActiveForCurrentRound() ? 'url("highlight_WWL.png") center center no-repeat' : 'url("highlight.png") center center no-repeat';
+                item.element.style.backgroundSize = "100% 100%";
+                item.state = 1;
+                playDing();
+            }
+        }
+    }
+    else if (type === "HIDE_CELL") {
+        let idx = -1;
+        if (typeof data === "number") idx = data;
+        else if (typeof data === "object" && data !== null) {
+            if (data.absoluteIndex !== undefined) idx = data.absoluteIndex - 1;
+            else if (data.index !== undefined) idx = data.index;
+        }
+        if (idx >= 0 && idx < 52) {
+            const item = absoluteCells[idx];
+            if (item) {
+                item.element.style.background = isWWFActiveForCurrentRound() ? (item.wwfBg || 'url("defaultbox_WWF.png") center center no-repeat') : 'url("obox.png") center center no-repeat';
+                item.element.style.backgroundSize = "100% 100%";
+                item.element.textContent = "";
+                item.revealed = false;
+                item.state = 0;
             }
         }
     }
