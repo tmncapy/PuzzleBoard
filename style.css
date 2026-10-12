@@ -51,6 +51,49 @@
     font-style: normal;
 }
 
+/* Tải font Helvetica Neue Condensed Black cho các chữ cái ô chữ */
+@font-face {
+    font-family: "HelveticaNeue-CondensedBlack";
+    src: url("helveticaneuecondensedblack.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "HelveticaNeue-CondensedBlack";
+    src: url("helveticaneuecondensedblack.ttf") format("truetype");
+    font-weight: bold;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Helvetica Neue Condensed Black";
+    src: url("helveticaneuecondensedblack.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Helvetica Neue Condensed Black";
+    src: url("helveticaneuecondensedblack.ttf") format("truetype");
+    font-weight: bold;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "helveticaneuecondensedblack";
+    src: url("helveticaneuecondensedblack.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "helveticaneuecondensedblack";
+    src: url("helveticaneuecondensedblack.ttf") format("truetype");
+    font-weight: bold;
+    font-style: normal;
+}
+
 body {
     margin: 0;
     background: #000;
@@ -144,7 +187,7 @@ body {
     color: #ffffff; /* Hoặc đổi thành #ffcc00 nếu bạn muốn điểm hiển thị màu vàng sáng */
 }
 
-/* Cấu trúc các ô chữ (Sử dụng font Helvetica Neue Bold) */
+/* Cấu trúc các ô chữ (Sử dụng font helveticaneuecondensedblack.ttf) */
 .cell {
     position: absolute;
     width: 110px;
@@ -154,8 +197,8 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-family: "Helvetica Neue", "HelveticaNeue-Bold", "HelveticaNeue", Arial, sans-serif;
-    font-weight: bold;
+    font-family: "HelveticaNeue-CondensedBlack", "Helvetica Neue Condensed Black", "helveticaneuecondensedblack", Arial, sans-serif;
+    font-weight: normal;
     font-size: 90px;
     color: #000;
     cursor: pointer;
@@ -164,10 +207,9 @@ body {
 }
 
 .cell-manual {
-    font-family: "Helvetica Neue", "HelveticaNeue-Bold", "HelveticaNeue", Arial, sans-serif !important;
+    font-family: "HelveticaNeue-CondensedBlack", "Helvetica Neue Condensed Black", "helveticaneuecondensedblack", Arial, sans-serif !important;
     font-size: 90px !important;
     color: #000 !important;
-    font-weight: bold !important;
 }
 
 /* Hiệu ứng Zoom In + Overshoot cho từng chữ cái khi mở ô (500ms: 0-0.25s 0->1.1, 0.25-0.5s 1.1->1) */
@@ -185,6 +227,7 @@ body {
 
 .letter-char {
     display: inline-block;
+    font-family: "HelveticaNeue-CondensedBlack", "Helvetica Neue Condensed Black", "helveticaneuecondensedblack", Arial, sans-serif;
     line-height: 1;
     pointer-events: none;
     transform-origin: center center;

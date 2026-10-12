@@ -334,6 +334,18 @@ app.get('/player3', (req, res) => {
   res.redirect('/player' + (req.query.roomid ? '?roomid=' + req.query.roomid : ''));
 });
 
+app.get('/scoreboard1', (req, res) => {
+  res.sendFile(path.join(__dirname, 'scoreboard1.html'));
+});
+
+app.get('/scoreboard2', (req, res) => {
+  res.sendFile(path.join(__dirname, 'scoreboard2.html'));
+});
+
+app.get('/scoreboard3', (req, res) => {
+  res.sendFile(path.join(__dirname, 'scoreboard3.html'));
+});
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
