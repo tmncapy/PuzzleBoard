@@ -797,10 +797,15 @@ function handleControlCommand(payload) {
                 if (item && (item.state === 1 || item.state === 0)) {
                     item.element.style.background = isWWFActiveForCurrentRound() ? 'url("obox_WWF.png") center center no-repeat' : 'url("occhu.png") center center no-repeat';
                     item.element.style.backgroundSize = "100% 100%";
-                    item.element.textContent = removeVietnameseTones(item.letter).replace("_", "").toUpperCase();
+                    const cleanChar = removeVietnameseTones(item.letter).replace("_", "").toUpperCase();
+                    item.element.innerHTML = `<span class="letter-char letter-reveal-animation">${cleanChar}</span>`;
                     item.revealed = true;
                     item.state = 2;
                     playSecondDing();
+                    setTimeout(() => {
+                        const span = item.element.querySelector('.letter-char');
+                        if (span) span.classList.remove('letter-reveal-animation');
+                    }, 500);
                 }
             }, delay);
             delay += 1000;
@@ -870,29 +875,51 @@ function handleControlCommand(payload) {
         playRound30Music();
     }
     else if (type === "REVEAL_CELL" || type === "TOSSUP_REVEAL_CELL") {
-        let idx = -1;
-        let withSound = false;
-        if (typeof data === "number") {
-            idx = data;
-        } else if (typeof data === "object" && data !== null) {
-            if (data.absoluteIndex !== undefined) idx = data.absoluteIndex - 1;
-            else if (data.index !== undefined) idx = data.index;
-            if (data.playSound) withSound = true;
+        let itemsToReveal = [];
+        if (Array.isArray(data)) {
+            data.forEach(d => {
+                let idx = -1;
+                let withSound = false;
+                if (typeof d === "number") idx = d;
+                else if (typeof d === "object" && d !== null) {
+                    if (d.absoluteIndex !== undefined) idx = d.absoluteIndex - 1;
+                    else if (d.index !== undefined) idx = d.index;
+                    if (d.playSound) withSound = true;
+                }
+                if (idx >= 0 && idx < 52) itemsToReveal.push({ idx, withSound });
+            });
+        } else {
+            let idx = -1;
+            let withSound = false;
+            if (typeof data === "number") {
+                idx = data;
+            } else if (typeof data === "object" && data !== null) {
+                if (data.absoluteIndex !== undefined) idx = data.absoluteIndex - 1;
+                else if (data.index !== undefined) idx = data.index;
+                if (data.playSound) withSound = true;
+            }
+            if (idx >= 0 && idx < 52) itemsToReveal.push({ idx, withSound });
         }
-        if (idx >= 0 && idx < 52) {
+
+        itemsToReveal.forEach(({ idx, withSound }) => {
             const targetItem = absoluteCells[idx];
             if (targetItem && !targetItem.revealed) {
                 targetItem.element.style.background = isWWFActiveForCurrentRound() ? 'url("obox_WWF.png") center center no-repeat' : 'url("occhu.png") center center no-repeat';
                 targetItem.element.style.backgroundSize = "100% 100%";
-                targetItem.element.textContent = removeVietnameseTones(targetItem.letter).replace("_", "").toUpperCase();
+                const cleanChar = removeVietnameseTones(targetItem.letter).replace("_", "").toUpperCase();
+                targetItem.element.innerHTML = `<span class="letter-char letter-reveal-animation">${cleanChar}</span>`;
                 targetItem.revealed = true;
                 targetItem.state = 2;
                 if (withSound) {
                     initAudioPermission();
                     playSecondDing();
                 }
+                setTimeout(() => {
+                    const span = targetItem.element.querySelector('.letter-char');
+                    if (span) span.classList.remove('letter-reveal-animation');
+                }, 500);
             }
-        }
+        });
     }
     else if (type === "MARK_CELL") {
         let idx = -1;
