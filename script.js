@@ -706,7 +706,7 @@ function handleControlCommand(payload) {
             }
             allCells.forEach(item => {
                 if (item.state === 1) {
-                    item.element.style.background = activeWWF ? 'url("highlight_WWL.png") center center no-repeat' : 'url("choosebox.png") center center no-repeat';
+                    item.element.style.background = 'url("highlight.png") center center no-repeat';
                 } else if (item.state === 2 || item.revealed) {
                     item.element.style.background = activeWWF ? 'url("obox_WWF.png") center center no-repeat' : 'url("occhu.png") center center no-repeat';
                 } else if (item.state === 0 && item.element.style.background && !item.element.style.background.includes('defaultbox.png')) {
@@ -777,8 +777,9 @@ function handleControlCommand(payload) {
             setTimeout(() => {
                 let item = absoluteCells[pos - 1];
                 if (item && item.state === 0) {
-                    item.element.style.background = isWWFActiveForCurrentRound() ? 'url("highlight_WWL.png") center center no-repeat' : 'url("choosebox.png") center center no-repeat';
+                    item.element.style.background = 'url("highlight.png") center center no-repeat';
                     item.element.style.backgroundSize = "100% 100%";
+                    item.element.textContent = "";
                     item.state = 1;
                     playDing();
                 }
@@ -902,10 +903,11 @@ function handleControlCommand(payload) {
         }
         if (idx >= 0 && idx < 52) {
             const item = absoluteCells[idx];
-            if (item && item.state === 0) {
+            if (item && !item.revealed) {
                 initAudioPermission();
-                item.element.style.background = isWWFActiveForCurrentRound() ? 'url("highlight_WWL.png") center center no-repeat' : 'url("highlight.png") center center no-repeat';
+                item.element.style.background = 'url("highlight.png") center center no-repeat';
                 item.element.style.backgroundSize = "100% 100%";
+                item.element.textContent = "";
                 item.state = 1;
                 playDing();
             }

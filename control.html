@@ -455,26 +455,26 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: "Helvetica Neue", "HelveticaNeue-Bold", Arial, sans-serif;
+            font-family: "Helvetica Neue", "HelveticaNeue-Bold", "HelveticaNeue", Arial, sans-serif;
             font-weight: bold;
-            font-size: 3.4cqw;
+            font-size: 4.68cqw;
+            color: #000;
             box-sizing: border-box;
             cursor: pointer;
-            transition: transform 0.12s ease, filter 0.12s ease;
+            user-select: none;
             z-index: 10;
         }
 
         .ctrl-cell.has-letter:hover {
-            transform: scale(1.12);
-            filter: brightness(1.25);
+            filter: brightness(1.15);
             z-index: 25;
-            box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
             border-radius: 2px;
         }
 
         .ctrl-cell-empty {
             cursor: default;
-            opacity: 0.9;
+            opacity: 1.0;
         }
 
         .ctrl-cell-idx {
@@ -506,21 +506,20 @@
         .ctrl-cell-text {
             line-height: 1;
             pointer-events: none;
+            user-select: none;
         }
         .ctrl-cell-text.peek-hidden {
             color: #0284c7;
             font-weight: 900;
             text-shadow: 0 0 2px rgba(255, 255, 255, 0.7);
             opacity: 0.85;
-        }
-        .ctrl-cell-text.state-marked {
-            color: #fbbf24;
-            font-weight: 900;
-            text-shadow: 0 0 6px rgba(0, 0, 0, 0.9);
+            font-size: 3.2cqw;
         }
         .ctrl-cell-text.state-revealed {
             color: #000000;
-            font-weight: 900;
+            font-weight: bold;
+            font-family: "Helvetica Neue", "HelveticaNeue-Bold", "HelveticaNeue", Arial, sans-serif;
+            font-size: 4.68cqw;
         }
 
         .ctrl-board-actions-bar {
@@ -738,11 +737,11 @@
                         <span id="ctrlBoardQuizBadge" class="ctrl-badge-quiz">ĐỀ 1</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        <button type="button" class="ctrl-board-opt-btn active" id="btnTogglePeek" onclick="toggleHostPeek()" title="Bật/Tắt xem trước chữ cái đang ẩn cho kỹ thuật">
-                            👁️ Soi chữ: BẬT
+                        <button type="button" class="ctrl-board-opt-btn" id="btnTogglePeek" onclick="toggleHostPeek()" title="Bật/Tắt xem trước chữ cái đang ẩn cho kỹ thuật">
+                            👁️ Soi chữ: TẮT
                         </button>
-                        <button type="button" class="ctrl-board-opt-btn active" id="btnToggleCellIdx" onclick="toggleCellIndex()" title="Bật/Tắt số thứ tự ô (1-52)">
-                            🔢 Số ô: BẬT
+                        <button type="button" class="ctrl-board-opt-btn" id="btnToggleCellIdx" onclick="toggleCellIndex()" title="Bật/Tắt số thứ tự ô (1-52)">
+                            🔢 Số ô: TẮT
                         </button>
                     </div>
                 </div>
@@ -1439,8 +1438,8 @@
         let controlWWFBonuses = new Array(52).fill('NORMAL');
 
         let currentClickMode = 'reveal'; // 'reveal', 'mark', 'reveal_same', 'hide'
-        let isHostPeekEnabled = true;
-        let isShowCellIndexEnabled = true;
+        let isHostPeekEnabled = false;
+        let isShowCellIndexEnabled = false;
 
         const WWF_ALLOWED_QUIZ_INDEXES = [2, 3, 4, 8];
         function isWWFActiveForCurrentRound() {
@@ -1560,10 +1559,10 @@
                     cell.title = `Ô ${i + 1}: Chữ "${displayChar}" (Đã mở)\nClick: Đóng lại | Chuột phải: Đổi trạng thái`;
                 } else if (isMarked) {
                     cell.classList.add("is-marked");
-                    cell.style.backgroundImage = activeWWF ? 'url("highlight_WWL.png")' : 'url("highlight.png")';
+                    cell.style.backgroundImage = 'url("highlight.png")';
                     cell.innerHTML = `
                         ${isShowCellIndexEnabled ? `<span class="ctrl-cell-idx">${i + 1}</span>` : ""}
-                        <span class="ctrl-cell-text state-marked">${displayChar}</span>
+                        ${isHostPeekEnabled ? `<span class="ctrl-cell-text peek-hidden">${displayChar}</span>` : ""}
                     `;
                     cell.title = `Ô ${i + 1}: Chữ "${displayChar}" (Đang chọn/Highlight)\nClick: Mở ô | Chuột phải: Đổi trạng thái`;
                 } else {
@@ -1631,10 +1630,10 @@
                 cell.title = `Ô ${i + 1}: Chữ "${displayChar}" (Đã mở)`;
             } else if (isMarked) {
                 cell.classList.add("is-marked");
-                cell.style.backgroundImage = activeWWF ? 'url("highlight_WWL.png")' : 'url("highlight.png")';
+                cell.style.backgroundImage = 'url("highlight.png")';
                 cell.innerHTML = `
                     ${isShowCellIndexEnabled ? `<span class="ctrl-cell-idx">${i + 1}</span>` : ""}
-                    <span class="ctrl-cell-text state-marked">${displayChar}</span>
+                    ${isHostPeekEnabled ? `<span class="ctrl-cell-text peek-hidden">${displayChar}</span>` : ""}
                 `;
                 cell.title = `Ô ${i + 1}: Chữ "${displayChar}" (Đang chọn/Highlight)`;
             } else {
@@ -2423,6 +2422,26 @@
             const inputs = document.querySelectorAll(".child-text-input");
             const positions = Array.from(inputs).map(inp => parseInt(inp.value.trim())).filter(val => !isNaN(val));
             if (positions.length === 0) { showCustomAlert("Vui lòng nhập ít nhất 1 vị trí ô."); return; }
+            if (type === 'MARK_SEQ') {
+                positions.forEach(p => {
+                    const idx = p - 1;
+                    if (idx >= 0 && idx < 52 && !controlRevealedStates[idx]) {
+                        controlMarkedStates[idx] = true;
+                        updateControlBoardCell(idx);
+                    }
+                });
+                updateControlBoardStats();
+            } else if (type === 'REVEAL_SEQ') {
+                positions.forEach(p => {
+                    const idx = p - 1;
+                    if (idx >= 0 && idx < 52) {
+                        controlRevealedStates[idx] = true;
+                        controlMarkedStates[idx] = false;
+                        updateControlBoardCell(idx);
+                    }
+                });
+                updateControlBoardStats();
+            }
             sendCmd(type, positions);
         }
 
