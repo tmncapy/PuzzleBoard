@@ -2651,6 +2651,14 @@
                 return;
             }
 
+            if (round30TimerInterval) {
+                clearInterval(round30TimerInterval);
+                round30TimerInterval = null;
+            }
+            isRound30Running = false;
+            sendCmd('STOP_ROUND30_MUSIC');
+            sendCmd('UPDATE_ROUND30_TIMER', { visible: false });
+
             document.getElementById("standardTossupSection").style.display = "block";
             document.getElementById("round30Section").style.display = "none";
 
@@ -2738,6 +2746,13 @@
                     return;
                 }
             }
+            if (round30TimerInterval) {
+                clearInterval(round30TimerInterval);
+                round30TimerInterval = null;
+            }
+            isRound30Running = false;
+            sendCmd('STOP_ROUND30_MUSIC');
+            sendCmd('UPDATE_ROUND30_TIMER', { visible: false });
             sendCmd("SHOW_MANUAL_TEXT", lines);
             clearControlBuzzer();
             populateManualTextToControlGrid(lines);
@@ -2872,6 +2887,13 @@
                 for (let i = 1; i <= 13; i++) {
                     const btn = document.getElementById(`btnQuiz${i}`);
                     if (btn) btn.classList.toggle("active", i === (data + 1));
+                }
+                if (data !== 12) {
+                    if (round30TimerInterval) {
+                        clearInterval(round30TimerInterval);
+                        round30TimerInterval = null;
+                    }
+                    isRound30Running = false;
                 }
             } else if (type === "FILL_POSITIONS") {
                 if (Array.isArray(data)) {

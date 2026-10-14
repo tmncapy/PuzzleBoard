@@ -495,6 +495,17 @@ function loadQuiz(quizPayload) {
         tossupSound.volume = 1.0;
         clearAllTossupTimeouts(); 
         syncControlUI("UPDATE_CTRL_ACTIVE", null);
+
+        // Ẩn hoàn toàn đồng hồ 30s và bộ đếm ô chữ khi chuyển sang đề khác
+        const timerBadge = document.getElementById("round30TimerBadge");
+        if (timerBadge) {
+            timerBadge.style.display = "none";
+            timerBadge.classList.remove("warning");
+        }
+        const subBadge = document.getElementById("round30SubBadge");
+        if (subBadge) {
+            subBadge.style.display = "none";
+        }
     } else {
         clearAllTossupTimeouts();
         if (round30Sound.currentTime > 0) {
@@ -580,11 +591,23 @@ function handleControlCommand(payload) {
         clearBuzzerHighlights();
         hideAllLights(); 
         initAudioPermission();
+        currentQuizIndex = -1;
+        stopRound30Music(true);
         tossupSound.pause();
         tossupSound.currentTime = 0;
         tossupSound.volume = 1.0;
         clearAllTossupTimeouts();
         syncControlUI("UPDATE_CTRL_ACTIVE", null);
+
+        const timerBadge = document.getElementById("round30TimerBadge");
+        if (timerBadge) {
+            timerBadge.style.display = "none";
+            timerBadge.classList.remove("warning");
+        }
+        const subBadge = document.getElementById("round30SubBadge");
+        if (subBadge) {
+            subBadge.style.display = "none";
+        }
 
         clearOldBoardElements();
         allCells = [];
@@ -760,6 +783,17 @@ function handleControlCommand(payload) {
     else if (type === "RESET_BOARD") {
         clearBuzzerHighlights();
         hideAllLights(); 
+        if (currentQuizIndex !== 12) {
+            const timerBadge = document.getElementById("round30TimerBadge");
+            if (timerBadge) {
+                timerBadge.style.display = "none";
+                timerBadge.classList.remove("warning");
+            }
+            const subBadge = document.getElementById("round30SubBadge");
+            if (subBadge) {
+                subBadge.style.display = "none";
+            }
+        }
         const allDomCells = document.querySelectorAll('.cell');
         allDomCells.forEach(cell => {
             cell.style.background = 'url("defaultbox.png") center center no-repeat';
@@ -1065,10 +1099,15 @@ function handleControlCommand(payload) {
     else if (type === "UPDATE_ROUND30_TIMER") {
         const timerBadge = document.getElementById("round30TimerBadge");
         const timerVal = document.getElementById("round30Val");
+        const subBadge = document.getElementById("round30SubBadge");
+        const subText = document.getElementById("round30SubIndexText");
+
+        const shouldShow = !!(data && data.visible && currentQuizIndex === 12);
+
         if (timerBadge && timerVal) {
-            if (data && data.visible) {
+            if (shouldShow) {
                 timerBadge.style.display = "flex";
-                timerVal.textContent = data.seconds;
+                timerVal.textContent = (data.seconds !== undefined) ? data.seconds : "30";
                 if (data.seconds <= 5 && data.seconds > 0) {
                     timerBadge.classList.add("warning");
                 } else {
@@ -1079,10 +1118,8 @@ function handleControlCommand(payload) {
                 timerBadge.classList.remove("warning");
             }
         }
-        const subBadge = document.getElementById("round30SubBadge");
-        const subText = document.getElementById("round30SubIndexText");
         if (subBadge && subText) {
-            if (data && data.visible && data.subTitle) {
+            if (shouldShow && data.subTitle) {
                 subBadge.style.display = "flex";
                 subText.textContent = data.subTitle;
             } else {
