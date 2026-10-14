@@ -658,13 +658,13 @@
             font-style: italic;
         }
 
-        /* 1920x1080 Interactive Board Frame - Giữ nguyên tỷ lệ 16:9 chuẩn như trên index */
+        /* 1920x1080 Interactive Board Frame - Giữ nguyên tỷ lệ 16:9 chuẩn như trên index, tăng kích thước không bị dẹt/bị wide */
         .ctrl-board-frame {
             position: relative;
-            width: 100%;
+            width: min(100%, calc(min(540px, 56vh) * 16 / 9));
             aspect-ratio: 16 / 9;
-            max-height: min(480px, 52vh);
-            max-width: calc(min(480px, 52vh) * 16 / 9);
+            height: auto;
+            max-height: min(540px, 56vh);
             margin: 0 auto 4px auto;
             background: #000;
             border-radius: 4px;
@@ -674,6 +674,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
         }
 
         .ctrl-board {
@@ -779,7 +780,7 @@
         }
 
         .letter-reveal-animation {
-            animation: letterZoomReveal 0.5s ease-out both;
+            animation: letterZoomReveal 0.75s ease-out both;
             transform-origin: center center;
             will-change: transform;
             display: inline-block;
@@ -1257,7 +1258,7 @@
                             </div>
                             <div class="player-score-btns-row2">
                                 <button type="button" style="background: #4f46e5; color: white; border-color: #6366f1;" onclick="modifyScore(1, 'x2')" title="Nhân đôi điểm">x2</button>
-                                <button type="button" style="background: #0284c7; color: white; border-color: #0ea5e9;" onclick="modifyScore(1, ':2')" title="Chia đôi điểm">:2</button>
+                                <button type="button" style="background: #0284c7; color: white; border-color: #0ea5e9;" onclick="modifyScore(1, '÷2')" title="Chia đôi số điểm hiện tại (/2)">÷2</button>
                                 <button type="button" class="btn-reveal" onclick="modifyScore(1, '0')" title="Về 0 điểm">Mất(0)</button>
                             </div>
                         </div>
@@ -1278,7 +1279,7 @@
                             </div>
                             <div class="player-score-btns-row2">
                                 <button type="button" style="background: #4f46e5; color: white; border-color: #6366f1;" onclick="modifyScore(2, 'x2')" title="Nhân đôi điểm">x2</button>
-                                <button type="button" style="background: #0284c7; color: white; border-color: #0ea5e9;" onclick="modifyScore(2, ':2')" title="Chia đôi điểm">:2</button>
+                                <button type="button" style="background: #0284c7; color: white; border-color: #0ea5e9;" onclick="modifyScore(2, '÷2')" title="Chia đôi số điểm hiện tại (/2)">÷2</button>
                                 <button type="button" class="btn-reveal" onclick="modifyScore(2, '0')" title="Về 0 điểm">Mất(0)</button>
                             </div>
                         </div>
@@ -1299,7 +1300,7 @@
                             </div>
                             <div class="player-score-btns-row2">
                                 <button type="button" style="background: #4f46e5; color: white; border-color: #6366f1;" onclick="modifyScore(3, 'x2')" title="Nhân đôi điểm">x2</button>
-                                <button type="button" style="background: #0284c7; color: white; border-color: #0ea5e9;" onclick="modifyScore(3, ':2')" title="Chia đôi điểm">:2</button>
+                                <button type="button" style="background: #0284c7; color: white; border-color: #0ea5e9;" onclick="modifyScore(3, '÷2')" title="Chia đôi số điểm hiện tại (/2)">÷2</button>
                                 <button type="button" class="btn-reveal" onclick="modifyScore(3, '0')" title="Về 0 điểm">Mất(0)</button>
                             </div>
                         </div>
@@ -1696,7 +1697,7 @@
             else if (action === 100) currentScore += 100;
             else if (action === 1000) currentScore += 1000;
             else if (action === 'x2') currentScore *= 2;
-            else if (action === ':2' || action === '/2' || action === 'div2') currentScore = Math.floor(currentScore / 2);
+            else if (action === ':2' || action === '÷2' || action === '/2' || action === 'div2' || action === 'chia_doi') currentScore = Math.floor(currentScore / 2);
             else if (action === '0') currentScore = 0;
             scoreInput.value = currentScore;
             updateScoreboard();
@@ -1985,7 +1986,7 @@
                     setTimeout(() => {
                         const span = cell.querySelector('.letter-reveal-animation');
                         if (span) span.classList.remove('letter-reveal-animation');
-                    }, 500);
+                    }, 750);
                 }
             } else if (isMarked) {
                 cell.classList.add("is-marked");

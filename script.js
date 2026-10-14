@@ -61,12 +61,15 @@ const localBC = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel('
 function fitGameContainer() {
     const container = document.getElementById("game-container");
     if (!container) return;
-    const scaleX = window.innerWidth / 1920;
-    const scaleY = window.innerHeight / 1080;
+    const w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth || 1920;
+    const h = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight || 1080;
+    const scaleX = w / 1920;
+    const scaleY = h / 1080;
     const scale = Math.min(scaleX, scaleY);
     container.style.transform = `scale(${scale})`;
 }
 window.addEventListener("resize", fitGameContainer);
+window.addEventListener("orientationchange", fitGameContainer);
 window.addEventListener("DOMContentLoaded", () => {
     fitGameContainer();
     updateBoardBackground();
@@ -839,7 +842,7 @@ function handleControlCommand(payload) {
                     setTimeout(() => {
                         const span = item.element.querySelector('.letter-char');
                         if (span) span.classList.remove('letter-reveal-animation');
-                    }, 500);
+                    }, 750);
                 }
             }, delay);
             delay += 1000;
@@ -951,7 +954,7 @@ function handleControlCommand(payload) {
                 setTimeout(() => {
                     const span = targetItem.element.querySelector('.letter-char');
                     if (span) span.classList.remove('letter-reveal-animation');
-                }, 500);
+                }, 750);
             }
         });
     }
