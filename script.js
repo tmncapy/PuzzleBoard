@@ -57,14 +57,19 @@ try {
 // Fallback local BroadcastChannel for tab-to-tab communication without external server dependency
 const localBC = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel('crossword_broadcast_room') : null;
 
-// Auto-scale board to fit preview / window size
+// Giữ nguyên kích thước giao diện 1920x1080 gốc như trước (không tự động co nhỏ tỷ lệ)
 function fitGameContainer() {
     const container = document.getElementById("game-container");
     if (!container) return;
-    const scaleX = window.innerWidth / 1920;
-    const scaleY = window.innerHeight / 1080;
-    const scale = Math.min(scaleX, scaleY, 1);
-    container.style.transform = `scale(${scale})`;
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('autoscale') === '1' || urlParams.get('autoscale') === 'true') {
+        const scaleX = window.innerWidth / 1920;
+        const scaleY = window.innerHeight / 1080;
+        const scale = Math.min(scaleX, scaleY);
+        container.style.transform = `scale(${scale})`;
+    } else {
+        container.style.transform = "none";
+    }
 }
 window.addEventListener("resize", fitGameContainer);
 window.addEventListener("DOMContentLoaded", () => {
