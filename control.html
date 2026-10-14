@@ -506,14 +506,15 @@
         }
         .player-score-btns-row2 {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 2px;
         }
         .player-score-btns-row1 button, .player-score-btns-row2 button {
             padding: 2px 0;
-            font-size: 9px;
+            font-size: 8.5px;
             font-weight: 800;
             border-radius: 2px;
+            white-space: nowrap;
         }
 
         .player-ctrl-box {
@@ -1255,8 +1256,9 @@
                                 <button type="button" class="btn-tossup" onclick="modifyScore(1, 1000)">+1k</button>
                             </div>
                             <div class="player-score-btns-row2">
-                                <button type="button" style="background: #4f46e5; color: white; border-color: #6366f1;" onclick="modifyScore(1, 'x2')">x2</button>
-                                <button type="button" class="btn-reveal" onclick="modifyScore(1, '0')">Mất(0)</button>
+                                <button type="button" style="background: #4f46e5; color: white; border-color: #6366f1;" onclick="modifyScore(1, 'x2')" title="Nhân đôi điểm">x2</button>
+                                <button type="button" style="background: #0284c7; color: white; border-color: #0ea5e9;" onclick="modifyScore(1, ':2')" title="Chia đôi điểm">:2</button>
+                                <button type="button" class="btn-reveal" onclick="modifyScore(1, '0')" title="Về 0 điểm">Mất(0)</button>
                             </div>
                         </div>
 
@@ -1275,8 +1277,9 @@
                                 <button type="button" class="btn-tossup" onclick="modifyScore(2, 1000)">+1k</button>
                             </div>
                             <div class="player-score-btns-row2">
-                                <button type="button" style="background: #4f46e5; color: white; border-color: #6366f1;" onclick="modifyScore(2, 'x2')">x2</button>
-                                <button type="button" class="btn-reveal" onclick="modifyScore(2, '0')">Mất(0)</button>
+                                <button type="button" style="background: #4f46e5; color: white; border-color: #6366f1;" onclick="modifyScore(2, 'x2')" title="Nhân đôi điểm">x2</button>
+                                <button type="button" style="background: #0284c7; color: white; border-color: #0ea5e9;" onclick="modifyScore(2, ':2')" title="Chia đôi điểm">:2</button>
+                                <button type="button" class="btn-reveal" onclick="modifyScore(2, '0')" title="Về 0 điểm">Mất(0)</button>
                             </div>
                         </div>
 
@@ -1295,8 +1298,9 @@
                                 <button type="button" class="btn-tossup" onclick="modifyScore(3, 1000)">+1k</button>
                             </div>
                             <div class="player-score-btns-row2">
-                                <button type="button" style="background: #4f46e5; color: white; border-color: #6366f1;" onclick="modifyScore(3, 'x2')">x2</button>
-                                <button type="button" class="btn-reveal" onclick="modifyScore(3, '0')">Mất(0)</button>
+                                <button type="button" style="background: #4f46e5; color: white; border-color: #6366f1;" onclick="modifyScore(3, 'x2')" title="Nhân đôi điểm">x2</button>
+                                <button type="button" style="background: #0284c7; color: white; border-color: #0ea5e9;" onclick="modifyScore(3, ':2')" title="Chia đôi điểm">:2</button>
+                                <button type="button" class="btn-reveal" onclick="modifyScore(3, '0')" title="Về 0 điểm">Mất(0)</button>
                             </div>
                         </div>
                     </div>
@@ -1692,6 +1696,7 @@
             else if (action === 100) currentScore += 100;
             else if (action === 1000) currentScore += 1000;
             else if (action === 'x2') currentScore *= 2;
+            else if (action === ':2' || action === '/2' || action === 'div2') currentScore = Math.floor(currentScore / 2);
             else if (action === '0') currentScore = 0;
             scoreInput.value = currentScore;
             updateScoreboard();
