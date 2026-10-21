@@ -82,9 +82,10 @@ setTimeout(() => {
 const board = document.getElementById("board");
 
 // Khởi tạo các đối tượng âm thanh hệ thống chính
-const showSound = new Audio("reveal.mp3");
+const showSound = new Audio("Reveal_the_Letters.mp3");
 const revealSound = new Audio("ClearTossUp.mp3");
 const clearPuzzleSound = new Audio("ClearPuzzle.mp3");
+const lettersSolvedSound = new Audio("Letters_Solved.mp3");
 const tossupSound = new Audio("tossup.mp3");
 tossupSound.loop = true;
 const round30Sound = new Audio("30s.mp3");
@@ -203,6 +204,7 @@ function updateMuteState(muted) {
     showSound.muted = isMuted;
     revealSound.muted = isMuted;
     clearPuzzleSound.muted = isMuted;
+    lettersSolvedSound.muted = isMuted;
     tossupSound.muted = isMuted;
     round30Sound.muted = isMuted;
     correctSound.muted = isMuted;
@@ -210,6 +212,7 @@ function updateMuteState(muted) {
         showSound.volume = 0;
         revealSound.volume = 0;
         clearPuzzleSound.volume = 0;
+        lettersSolvedSound.volume = 0;
         tossupSound.volume = 0;
         round30Sound.volume = 0;
         correctSound.volume = 0;
@@ -223,6 +226,7 @@ function updateMuteState(muted) {
         showSound.volume = 1.0;
         revealSound.volume = 1.0;
         clearPuzzleSound.volume = 1.0;
+        lettersSolvedSound.volume = 1.0;
         tossupSound.volume = 1.0;
         round30Sound.volume = 1.0;
         correctSound.volume = 1.0;
@@ -243,6 +247,7 @@ function initAudioPermission() {
     if (showSound.paused && showSound.readyState === 0) showSound.load();
     if (revealSound.paused && revealSound.readyState === 0) revealSound.load();
     if (clearPuzzleSound.paused && clearPuzzleSound.readyState === 0) clearPuzzleSound.load();
+    if (lettersSolvedSound.paused && lettersSolvedSound.readyState === 0) lettersSolvedSound.load();
     if (tossupSound.paused && tossupSound.readyState === 0) tossupSound.load();
     if (round30Sound.paused && round30Sound.readyState === 0) round30Sound.load();
     if (correctSound.paused && correctSound.readyState === 0) correctSound.load();
@@ -250,7 +255,7 @@ function initAudioPermission() {
 
 function playDing(){
     if (isMuted) return;
-    const audio = new Audio("ding.mp3");
+    const audio = new Audio("A_Letter_gets_Highlighted.mp3");
     audio.play().then(() => { audio.onended = () => { audio.remove(); }; }).catch(e => console.log(e));
 }
 
@@ -1066,22 +1071,9 @@ function handleControlCommand(payload) {
         }
         clearAllTossupTimeouts();
         syncControlUI("UPDATE_CTRL_ACTIVE", null);
-        if ([9, 10, 11].includes(currentQuizIndex)) {
-            const bonusWinSound = new Audio("ClearBonus.mp3");
-            activeSFXList.push(bonusWinSound);
-            bonusWinSound.play().catch(e => console.log(e));
-            bonusWinSound.onended = () => {
-                activeSFXList = activeSFXList.filter(audio => audio !== bonusWinSound);
-                bonusWinSound.remove();
-            };
-        } else if ([2, 3, 4, 8].includes(currentQuizIndex)) {
-            clearPuzzleSound.currentTime = 0; clearPuzzleSound.play().catch(e => console.log(e));
-        } else if (currentQuizIndex === 12) {
-            correctSound.currentTime = 0;
-            correctSound.play().catch(e => console.log(e));
-        } else {
-            revealSound.currentTime = 0; revealSound.play().catch(e => console.log(e));
-        }
+        initAudioPermission();
+        lettersSolvedSound.currentTime = 0;
+        lettersSolvedSound.play().catch(e => console.log(e));
 
         if (lightGreen) {
             lightGreen.style.display = "block";
