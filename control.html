@@ -766,13 +766,13 @@
             font-size: 4.68cqw;
         }
 
-        /* Animation phóng to chữ cái khi mở ô (Zoom In + Overshoot 0.5s) */
+        /* Animation phóng to chữ cái khi mở ô (Zoom In + Overshoot 0.55s: 0->130% 0.4s, 130%->100% 0.15s) */
         @keyframes letterZoomReveal {
             0% {
                 transform: scale(0);
             }
-            50% {
-                transform: scale(1.1);
+            72.73% {
+                transform: scale(1.3);
             }
             100% {
                 transform: scale(1);
@@ -780,7 +780,7 @@
         }
 
         .letter-reveal-animation {
-            animation: letterZoomReveal 0.75s ease-out both;
+            animation: letterZoomReveal 0.55s ease-out both;
             transform-origin: center center;
             will-change: transform;
             display: inline-block;
@@ -1986,7 +1986,7 @@
                     setTimeout(() => {
                         const span = cell.querySelector('.letter-reveal-animation');
                         if (span) span.classList.remove('letter-reveal-animation');
-                    }, 750);
+                    }, 550);
                 }
             } else if (isMarked) {
                 cell.classList.add("is-marked");
@@ -2186,18 +2186,28 @@
             renderControlBoard();
         }
 
+        function resetAlphabetAndChildBoxes() {
+            document.querySelectorAll('.btn-letter').forEach(b => b.disabled = false);
+            const numInput = document.getElementById("numCells");
+            if (numInput) numInput.value = "";
+            const childBoxes = document.getElementById("childTextBoxes");
+            if (childBoxes) childBoxes.innerHTML = "";
+            const extraInputs = document.querySelectorAll(".extra-letter-input");
+            extraInputs.forEach(inp => inp.value = "");
+        }
+
         function controlResetBoardLocally() {
             controlRevealedStates = new Array(52).fill(false);
             controlMarkedStates = new Array(52).fill(false);
             renderControlBoard();
-            document.querySelectorAll('.btn-letter').forEach(b => b.disabled = false);
+            resetAlphabetAndChildBoxes();
         }
 
         function controlShowBoardLocally() {
             controlRevealedStates = new Array(52).fill(false);
             controlMarkedStates = new Array(52).fill(false);
             renderControlBoard();
-            document.querySelectorAll('.btn-letter').forEach(b => b.disabled = false);
+            resetAlphabetAndChildBoxes();
         }
 
         function populateManualTextToControlGrid(lines) {
@@ -2310,7 +2320,7 @@
             controlMarkedStates[randomIndex] = false;
             updateControlBoardCell(randomIndex, true);
             updateControlBoardStats();
-            sendCmd("REVEAL_CELL", randomIndex);
+            sendCmd("REVEAL_CELL", { index: randomIndex, playSound: true });
 
             if (isTossupRunning) {
                 tossupTimeout = setTimeout(controlRevealRandomCell, getLetterRevealDelay());
@@ -2397,6 +2407,7 @@
             controlRevealedStates = new Array(52).fill(false);
             controlMarkedStates = new Array(52).fill(false);
             renderControlBoard();
+            resetAlphabetAndChildBoxes();
 
             const badge = document.getElementById("round30SubBadgeCtrl");
             if (badge) badge.textContent = `Ô ${subIndex + 1}/${total}`;
@@ -2641,7 +2652,7 @@
                 const btn = document.getElementById(`btnQuiz${i}`);
                 if (btn) btn.classList.toggle("active", i === (quizIndex + 1));
             }
-            document.querySelectorAll('.btn-letter').forEach(b => b.disabled = false);
+            resetAlphabetAndChildBoxes();
 
             if (quizIndex === 12) {
                 document.getElementById("standardTossupSection").style.display = "none";
@@ -2684,10 +2695,9 @@
             clearControlBuzzer();
             setControlBuzzerOpen(false);
 
-            const targetQuizzes = [2, 3, 4, 8, 9, 10, 11];
             const alphabetSec = document.getElementById("alphabetSection");
             const extraLettersSec = document.getElementById("extraLettersSection");
-            if (alphabetSec) alphabetSec.style.display = targetQuizzes.includes(quizIndex) ? "block" : "none";
+            if (alphabetSec) alphabetSec.style.display = (quizIndex === 12) ? "none" : "block";
             if (extraLettersSec) extraLettersSec.style.display = [8, 9, 10, 11].includes(quizIndex) ? "inline-flex" : "none";
 
             selectPreviewQuiz(quizIndex);
@@ -2766,6 +2776,7 @@
             sendCmd("SHOW_MANUAL_TEXT", lines);
             clearControlBuzzer();
             populateManualTextToControlGrid(lines);
+            resetAlphabetAndChildBoxes();
         }
 
         // Alphabet buttons rendering
@@ -2905,8 +2916,10 @@
                     }
                     isRound30Running = false;
                 }
+            } else if (type === "RESET_ALPHABET") {
+                resetAlphabetAndChildBoxes();
             } else if (type === "FILL_POSITIONS") {
-                if (Array.isArray(data)) {
+                if (Array.isArray(data) && data.length > 0) {
                     const numInput = document.getElementById("numCells");
                     if (numInput) numInput.value = data.length;
                     generateChildTextBoxes(data);
@@ -2918,6 +2931,11 @@
                         }
                     });
                     updateControlBoardStats();
+                } else {
+                    const numInput = document.getElementById("numCells");
+                    if (numInput) numInput.value = "";
+                    const childBoxes = document.getElementById("childTextBoxes");
+                    if (childBoxes) childBoxes.innerHTML = "";
                 }
             }
         }

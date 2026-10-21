@@ -259,10 +259,14 @@ function playDing(){
     audio.play().then(() => { audio.onended = () => { audio.remove(); }; }).catch(e => console.log(e));
 }
 
-function playSecondDing(){
+function playOpenLetter() {
     if (isMuted) return;
-    const audio = new Audio("2nd_ding.wav");
+    const audio = new Audio("Open_a_Letter.mp3");
     audio.play().then(() => { audio.onended = () => { audio.remove(); }; }).catch(e => console.log(e));
+}
+
+function playSecondDing(){
+    playOpenLetter();
 }
 
 // Sửa hàm phát tiếng đoán sai để quản lý vòng đời audio tốt hơn
@@ -564,6 +568,8 @@ function loadQuiz(quizPayload) {
     }
 
     syncControlUI("UPDATE_QUIZ_ACTIVE", index);
+    syncControlUI("FILL_POSITIONS", []);
+    syncControlUI("RESET_ALPHABET", null);
 }
 
 function handleControlCommand(payload) {
@@ -810,6 +816,8 @@ function handleControlCommand(payload) {
         });
         allCells.forEach(item => { item.revealed = false; item.state = 0; });
         clearAllTossupTimeouts();
+        syncControlUI("FILL_POSITIONS", []);
+        syncControlUI("RESET_ALPHABET", null);
     }
     else if (type === "MARK_SEQ") {
         initAudioPermission();
@@ -847,7 +855,7 @@ function handleControlCommand(payload) {
                     setTimeout(() => {
                         const span = item.element.querySelector('.letter-char');
                         if (span) span.classList.remove('letter-reveal-animation');
-                    }, 750);
+                    }, 550);
                 }
             }, delay);
             delay += 1000;
@@ -921,24 +929,24 @@ function handleControlCommand(payload) {
         if (Array.isArray(data)) {
             data.forEach(d => {
                 let idx = -1;
-                let withSound = false;
+                let withSound = true;
                 if (typeof d === "number") idx = d;
                 else if (typeof d === "object" && d !== null) {
                     if (d.absoluteIndex !== undefined) idx = d.absoluteIndex - 1;
                     else if (d.index !== undefined) idx = d.index;
-                    if (d.playSound) withSound = true;
+                    if (d.playSound !== undefined) withSound = !!d.playSound;
                 }
                 if (idx >= 0 && idx < 52) itemsToReveal.push({ idx, withSound });
             });
         } else {
             let idx = -1;
-            let withSound = false;
+            let withSound = true;
             if (typeof data === "number") {
                 idx = data;
             } else if (typeof data === "object" && data !== null) {
                 if (data.absoluteIndex !== undefined) idx = data.absoluteIndex - 1;
                 else if (data.index !== undefined) idx = data.index;
-                if (data.playSound) withSound = true;
+                if (data.playSound !== undefined) withSound = !!data.playSound;
             }
             if (idx >= 0 && idx < 52) itemsToReveal.push({ idx, withSound });
         }
@@ -959,7 +967,7 @@ function handleControlCommand(payload) {
                 setTimeout(() => {
                     const span = targetItem.element.querySelector('.letter-char');
                     if (span) span.classList.remove('letter-reveal-animation');
-                }, 750);
+                }, 550);
             }
         });
     }
