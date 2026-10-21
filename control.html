@@ -1384,16 +1384,67 @@
     <script>
         // API probe logic
         let isServerApiAvailable = null;
+        let apiConsecutiveFails = 0;
+        let apiProbeTimeout = null;
+
         function getApiUrl(endpoint) {
             const clean = endpoint.replace(/^\/+/, '');
-            try { return new URL(clean, window.location.href).href; } catch(e) { return '/' + clean; }
+            const custom = localStorage.getItem('crossword_backend_url');
+            if (custom) {
+                return custom.replace(/\/+$/, '') + '/' + clean;
+            }
+            const segments = window.location.pathname.split('/').filter(Boolean);
+            let prefix = '';
+            if (segments.length > 0 && /^puzzleboard/i.test(segments[0])) {
+                prefix = '/' + segments[0];
+            }
+            return window.location.origin + prefix + '/' + clean;
         }
 
-        function probeServerApi() {
-            if (isServerApiAvailable !== null) return;
+        function scheduleApiProbe() {
+            if (apiProbeTimeout) return;
+            const custom = localStorage.getItem('crossword_backend_url');
+            if (!custom) return; // Do not repeatedly probe if on static hosting without custom backend
+            const delay = Math.min(30000, 3000 * Math.pow(2, Math.min(Math.max(0, apiConsecutiveFails - 2), 4)));
+            apiProbeTimeout = setTimeout(() => {
+                apiProbeTimeout = null;
+                probeServerApi(true);
+            }, delay);
+        }
+
+        function updateServerStatusBadge(isOnline, status = null) {
+            const dot = document.querySelector(".system-indicator-dot");
+            if (dot) {
+                if (isOnline) {
+                    dot.style.background = "#22c55e";
+                    dot.style.boxShadow = "0 0 6px #22c55e";
+                    dot.title = "Kết nối máy chủ API bình thường (200 OK)";
+                } else {
+                    dot.style.background = "#ef4444";
+                    dot.style.boxShadow = "0 0 6px #ef4444";
+                    dot.title = status ? `Lỗi kết nối máy chủ API (${status}). Đang dùng Supabase/BroadcastChannel` : "Không kết nối được máy chủ API (Static hosting). Đang dùng Supabase/BroadcastChannel";
+                }
+            }
+        }
+
+        function probeServerApi(force = false) {
+            if (!force && isServerApiAvailable !== null) return;
             fetch(getApiUrl('api/get-active-room'))
-                .then(r => { isServerApiAvailable = (r.ok && r.status === 200); })
-                .catch(() => { isServerApiAvailable = false; });
+                .then(r => { 
+                    if (r.ok && r.status === 200) {
+                        isServerApiAvailable = true;
+                        apiConsecutiveFails = 0;
+                        updateServerStatusBadge(true);
+                    } else {
+                        isServerApiAvailable = false;
+                        updateServerStatusBadge(false, r.status);
+                        if (r.status !== 404) scheduleApiProbe();
+                    }
+                })
+                .catch(() => { 
+                    isServerApiAvailable = false; 
+                    updateServerStatusBadge(false);
+                });
         }
         probeServerApi();
 
@@ -2143,9 +2194,10 @@
                 return;
             }
             matched.forEach((pos, delayIdx) => {
-                setTimeout(() => {
+                const tid = setTimeout(() => {
                     controlRevealCell(pos, true);
                 }, delayIdx * 250);
+                controlBoardTimeouts.push(tid);
             });
         }
 
@@ -2170,9 +2222,10 @@
                 return;
             }
             matched.forEach((pos, delayIdx) => {
-                setTimeout(() => {
+                const tid = setTimeout(() => {
                     controlRevealCell(pos, true);
                 }, delayIdx * 200);
+                controlBoardTimeouts.push(tid);
             });
         }
 
@@ -2186,8 +2239,24 @@
             renderControlBoard();
         }
 
+        let controlBoardTimeouts = [];
+        function clearAllControlTimeouts() {
+            if (typeof tossupTimeout !== "undefined" && tossupTimeout) {
+                clearTimeout(tossupTimeout);
+                tossupTimeout = null;
+            }
+            if (typeof isTossupRunning !== "undefined") {
+                isTossupRunning = false;
+            }
+            controlBoardTimeouts.forEach(id => clearTimeout(id));
+            controlBoardTimeouts = [];
+        }
+
         function resetAlphabetAndChildBoxes() {
-            document.querySelectorAll('.btn-letter').forEach(b => b.disabled = false);
+            document.querySelectorAll('.btn-letter').forEach(b => {
+                b.disabled = false;
+                b.classList.remove('active', 'used', 'selected');
+            });
             const numInput = document.getElementById("numCells");
             if (numInput) numInput.value = "";
             const childBoxes = document.getElementById("childTextBoxes");
@@ -2197,6 +2266,7 @@
         }
 
         function controlResetBoardLocally() {
+            clearAllControlTimeouts();
             controlRevealedStates = new Array(52).fill(false);
             controlMarkedStates = new Array(52).fill(false);
             renderControlBoard();
@@ -2204,6 +2274,7 @@
         }
 
         function controlShowBoardLocally() {
+            clearAllControlTimeouts();
             controlRevealedStates = new Array(52).fill(false);
             controlMarkedStates = new Array(52).fill(false);
             renderControlBoard();
@@ -2400,6 +2471,7 @@
         }
 
         function selectRound30Sub(subIndex) {
+            clearAllControlTimeouts();
             currentRound30SubIndex = subIndex;
             const total = round30SubPuzzles.length || 8;
             const subLetters = round30SubPuzzles[subIndex] || new Array(52).fill("");
@@ -2647,6 +2719,7 @@
         }
 
         function loadQuizFromExcel(quizIndex) {
+            clearAllControlTimeouts();
             currentControlQuizIndex = quizIndex;
             for (let i = 1; i <= 13; i++) {
                 const btn = document.getElementById(`btnQuiz${i}`);
@@ -2824,12 +2897,13 @@
                 positions.forEach((p, delayIdx) => {
                     const idx = p - 1;
                     if (idx >= 0 && idx < 52) {
-                        setTimeout(() => {
+                        const tid = setTimeout(() => {
                             controlRevealedStates[idx] = true;
                             controlMarkedStates[idx] = false;
                             updateControlBoardCell(idx, true);
                             updateControlBoardStats();
                         }, delayIdx * 1000);
+                        controlBoardTimeouts.push(tid);
                     }
                 });
             }
@@ -2864,13 +2938,15 @@
             };
 
             // 1. Post to Server API for cross-device sync
-            try {
-                fetch(getApiUrl('api/broadcast'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(fullMsg)
-                }).catch(() => {});
-            } catch(e) {}
+            if (isServerApiAvailable !== false) {
+                try {
+                    fetch(getApiUrl('api/broadcast'), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(fullMsg)
+                    }).catch(() => {});
+                } catch(e) {}
+            }
 
             // 2. Supabase Realtime
             if (channel) {

@@ -4,6 +4,10 @@ let isServerApiAvailable = null;
 
 function getApiUrl(endpoint) {
     const clean = endpoint.replace(/^\/+/, '');
+    const custom = localStorage.getItem('crossword_backend_url');
+    if (custom) {
+        return custom.replace(/\/+$/, '') + '/' + clean;
+    }
     try {
         return new URL(clean, window.location.href).href;
     } catch(e) {
@@ -439,13 +443,15 @@ function syncControlUI(type, data) {
     const msgObj = { event: 'display-to-control', payload: payload, ts: ts };
 
     // 1. Post to Server API for cross-device sync
-    try {
-        fetch(getApiUrl('api/broadcast'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(msgObj)
-        }).catch(() => {});
-    } catch(e) {}
+    if (isServerApiAvailable !== false) {
+        try {
+            fetch(getApiUrl('api/broadcast'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(msgObj)
+            }).catch(() => {});
+        } catch(e) {}
+    }
 
     // 2. Supabase Realtime
     if (channel) {
@@ -485,13 +491,24 @@ function clearOldBoardElements() {
     oldCells.forEach(c => c.remove());
 }
 
+let boardTimeoutIds = [];
+function clearAllBoardTimeouts() {
+    boardTimeoutIds.forEach(id => clearTimeout(id));
+    boardTimeoutIds = [];
+    clearAllTossupTimeouts();
+}
+
 function clearAllTossupTimeouts() {
     tossupTimeoutIds.forEach(id => clearTimeout(id));
     tossupTimeoutIds = [];
 }
 
 function loadQuiz(quizPayload) {
+    clearAllBoardTimeouts();
     hideAllLights(); 
+    clearBuzzerHighlights();
+    lastBuzzedPlayer = null;
+    lastBuzzedTime = 0;
 
     const index = Number(quizPayload.index);
     const letters = quizPayload.letters;
@@ -815,7 +832,7 @@ function handleControlCommand(payload) {
             cell.textContent = "";
         });
         allCells.forEach(item => { item.revealed = false; item.state = 0; });
-        clearAllTossupTimeouts();
+        clearAllBoardTimeouts();
         syncControlUI("FILL_POSITIONS", []);
         syncControlUI("RESET_ALPHABET", null);
     }
@@ -824,7 +841,7 @@ function handleControlCommand(payload) {
         let delay = 0;
         const seq = Array.isArray(data) ? data : [];
         seq.forEach(pos => {
-            setTimeout(() => {
+            const tid = setTimeout(() => {
                 let item = absoluteCells[pos - 1];
                 if (item && item.state === 0) {
                     item.element.style.background = 'url("highlight.png") center center no-repeat';
@@ -834,6 +851,7 @@ function handleControlCommand(payload) {
                     playDing();
                 }
             }, delay);
+            boardTimeoutIds.push(tid);
             delay += 1000;
         });
     }
@@ -842,7 +860,7 @@ function handleControlCommand(payload) {
         let delay = 0;
         const seq = Array.isArray(data) ? data : [];
         seq.forEach(pos => {
-            setTimeout(() => {
+            const tid = setTimeout(() => {
                 let item = absoluteCells[pos - 1];
                 if (item && (item.state === 1 || item.state === 0)) {
                     item.element.style.background = isWWFActiveForCurrentRound() ? 'url("obox_WWF.png") center center no-repeat' : 'url("occhu.png") center center no-repeat';
@@ -852,12 +870,14 @@ function handleControlCommand(payload) {
                     item.revealed = true;
                     item.state = 2;
                     playSecondDing();
-                    setTimeout(() => {
+                    const animTid = setTimeout(() => {
                         const span = item.element.querySelector('.letter-char');
                         if (span) span.classList.remove('letter-reveal-animation');
                     }, 550);
+                    boardTimeoutIds.push(animTid);
                 }
             }, delay);
+            boardTimeoutIds.push(tid);
             delay += 1000;
         });
     }
@@ -1028,11 +1048,12 @@ function handleControlCommand(payload) {
         fadeOutTossupMusic(300, true);
     }
     else if (type === "SOLVE_TOSSUP") {
-        clearAllTossupTimeouts();
+        clearAllBoardTimeouts();
         fadeOutTossupMusic(200, true);
         syncControlUI("UPDATE_CTRL_ACTIVE", null);
-        revealSound.currentTime = 0;
-        revealSound.play().catch(e => console.log(e));
+        initAudioPermission();
+        lettersSolvedSound.currentTime = 0;
+        lettersSolvedSound.play().catch(e => console.log(e));
         if (lightGreen) {
             lightGreen.style.display = "block";
         }
@@ -1060,7 +1081,7 @@ function handleControlCommand(payload) {
         }
 
         allCells.forEach((item, index) => {
-            setTimeout(() => {
+            const tid = setTimeout(() => {
                 if (isWWFActiveForCurrentRound()) {
                     item.element.style.background = item.wwfBg || 'url("defaultbox_WWF.png") center center no-repeat';
                 } else {
@@ -1071,6 +1092,7 @@ function handleControlCommand(payload) {
                 item.revealed = false;
                 item.state = 0;
             }, index * 10);
+            boardTimeoutIds.push(tid);
         });
     }
     else if (type === "REVEAL_ALL") {
@@ -1199,7 +1221,7 @@ function handlePlayerBuzz(playerNum) {
     }
 }
 
-let currentActiveRoomId = (typeof urlParams !== "undefined" && urlParams.get('roomid')) || localStorage.getItem('crossword_control_roomid') || '';
+let currentActiveRoomId = (typeof urlParams !== "undefined" && urlParams.get('roomid')) || localStorage.getItem('crossword_control_roomid') || '123456';
 let activeRoomSupabaseChannel = null;
 let activeRoomLocalBC = null;
 let activeRoomInterval = null;

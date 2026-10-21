@@ -21,15 +21,31 @@ app.use((req, res, next) => {
   next();
 });
 
-// Middleware to support hosting under subpaths like /PuzzleBoard-main (e.g. https://acestudio.mooo.com/PuzzleBoard-main/...)
+// Middleware to support hosting under any subpath (e.g. /PuzzleBoard, /puzzleboard, /PuzzleBoard-main, etc.)
 app.use((req, res, next) => {
-  const lower = req.url.toLowerCase();
-  if (lower.startsWith('/puzzleboard-main/')) {
-    req.url = req.url.slice('/puzzleboard-main'.length);
-    if (!req.url.startsWith('/')) req.url = '/' + req.url;
-  } else if (lower === '/puzzleboard-main') {
-    req.url = '/';
+  // 1. If any request path contains /api/, strip whatever subpath prefix precedes /api/
+  // Examples:
+  // - /PuzzleBoard/api/broadcast -> /api/broadcast
+  // - /puzzleboard/api/broadcast -> /api/broadcast
+  // - /PuzzleBoard-main/api/events?roomid=... -> /api/events?roomid=...
+  const apiMatch = req.url.match(/^(?:\/[^\/]+)*(\/api(?:\/.*|\?.*|$))/i);
+  if (apiMatch) {
+    req.url = apiMatch[1];
+    return next();
   }
+
+  // 2. Strip common project folder prefixes for static assets & pages
+  // Examples:
+  // - /PuzzleBoard/control.html -> /control.html
+  // - /PuzzleBoard/ -> /
+  // - /PuzzleBoard -> /
+  // - /PuzzleBoard-main/player.html -> /player.html
+  const prefixMatch = req.url.match(/^\/(?:puzzleboard(?:-main|-master)?)(?:\/(.*)|$)/i);
+  if (prefixMatch) {
+    req.url = '/' + (prefixMatch[1] || '');
+    return next();
+  }
+
   next();
 });
 

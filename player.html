@@ -523,6 +523,10 @@
 
         function getApiUrl(endpoint) {
             const clean = endpoint.replace(/^\/+/, '');
+            const custom = localStorage.getItem('crossword_backend_url');
+            if (custom) {
+                return custom.replace(/\/+$/, '') + '/' + clean;
+            }
             try {
                 return new URL(clean, window.location.href).href;
             } catch(e) {
@@ -1093,21 +1097,23 @@
             const msgObj = { event: 'player-buzz', payload: payload, ts: Date.now(), roomid: roomId };
 
             // 1. Post to Server API (Both /api/buzz and /api/broadcast for multi-device guarantee)
-            try {
-                fetch(getApiUrl('api/buzz'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ roomid: roomId, playerNum: PLAYER_NUM, ts: Date.now() })
-                }).catch(() => {});
-            } catch(e) {}
+            if (isServerApiAvailable !== false) {
+                try {
+                    fetch(getApiUrl('api/buzz'), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ roomid: roomId, playerNum: PLAYER_NUM, ts: Date.now() })
+                    }).catch(() => {});
+                } catch(e) {}
 
-            try {
-                fetch(getApiUrl('api/broadcast'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(msgObj)
-                }).catch(() => {});
-            } catch(e) {}
+                try {
+                    fetch(getApiUrl('api/broadcast'), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(msgObj)
+                    }).catch(() => {});
+                } catch(e) {}
+            }
 
             // 2. Send via Supabase Realtime (both room channel & global channel)
             if (channel) {
