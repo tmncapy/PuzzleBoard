@@ -1435,10 +1435,20 @@
                         isServerApiAvailable = true;
                         apiConsecutiveFails = 0;
                         updateServerStatusBadge(true);
+                        return r.json().catch(() => null);
                     } else {
                         isServerApiAvailable = false;
                         updateServerStatusBadge(false, r.status);
                         if (r.status !== 404) scheduleApiProbe();
+                        return null;
+                    }
+                })
+                .then(data => {
+                    // Active room sync if valid
+                    if (data && data.activeRoomId && !urlParams.get('roomid')) {
+                        roomId = data.activeRoomId;
+                        const inputR = document.getElementById("inputRoomId");
+                        if (inputR && document.activeElement !== inputR) inputR.value = roomId;
                     }
                 })
                 .catch(() => { 
@@ -2948,17 +2958,20 @@
                 } catch(e) {}
             }
 
-            // 2. Supabase Realtime
-            if (channel) {
-                try {
-                    channel.send({ type: 'broadcast', event: 'control-to-display', payload: payload, ...fullMsg }).catch(() => {});
-                } catch(e){}
-            }
-            if (globalChannel) {
-                try {
-                    globalChannel.send({ type: 'broadcast', event: 'control-to-display', payload: payload, ...fullMsg }).catch(() => {});
-                } catch(e){}
-            }
+            // 2. Supabase Realtime (with robust send / retry for cross-browser sync)
+            [channel, globalChannel].forEach(ch => {
+                if (ch) {
+                    try {
+                        if (ch.state === 'joined') {
+                            ch.send({ type: 'broadcast', event: 'control-to-display', payload: payload, ...fullMsg });
+                        } else {
+                            ch.send({ type: 'broadcast', event: 'control-to-display', payload: payload, ...fullMsg }).catch(() => {
+                                setTimeout(() => { try { ch.send({ type: 'broadcast', event: 'control-to-display', payload: payload, ...fullMsg }); } catch(e){} }, 400);
+                            });
+                        }
+                    } catch(e) {}
+                }
+            });
 
             // 3. BroadcastChannel
             if (roomBC) {

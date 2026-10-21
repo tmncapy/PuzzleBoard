@@ -527,11 +527,12 @@
             if (custom) {
                 return custom.replace(/\/+$/, '') + '/' + clean;
             }
-            try {
-                return new URL(clean, window.location.href).href;
-            } catch(e) {
-                return '/' + clean;
+            const segments = window.location.pathname.split('/').filter(Boolean);
+            let prefix = '';
+            if (segments.length > 0 && /^puzzleboard/i.test(segments[0])) {
+                prefix = '/' + segments[0];
             }
+            return window.location.origin + prefix + '/' + clean;
         }
 
         function probePlayerApi() {
@@ -540,8 +541,16 @@
                 .then(r => {
                     if (r.ok && r.status === 200) {
                         isServerApiAvailable = true;
+                        return r.json().catch(() => null);
                     } else {
                         isServerApiAvailable = false;
+                        return null;
+                    }
+                })
+                .then(data => {
+                    if (data && data.activeRoomId && !roomId) {
+                        roomId = data.activeRoomId;
+                        initPlayerSupabase(roomId);
                     }
                 })
                 .catch(() => {

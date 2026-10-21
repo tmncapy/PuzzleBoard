@@ -60,6 +60,12 @@
             if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) { e.preventDefault(); return false; }
             if (e.ctrlKey && e.key === 'U') { e.preventDefault(); return false; }
         });
+
+        window.addEventListener('unhandledrejection', function (e) {
+            if (!e.reason || e.reason === undefined) {
+                e.preventDefault();
+            }
+        });
     </script>
 
     <script src="script.js"></script>

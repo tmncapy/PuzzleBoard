@@ -8,11 +8,12 @@ function getApiUrl(endpoint) {
     if (custom) {
         return custom.replace(/\/+$/, '') + '/' + clean;
     }
-    try {
-        return new URL(clean, window.location.href).href;
-    } catch(e) {
-        return '/' + clean;
+    const segments = window.location.pathname.split('/').filter(Boolean);
+    let prefix = '';
+    if (segments.length > 0 && /^puzzleboard/i.test(segments[0])) {
+        prefix = '/' + segments[0];
     }
+    return window.location.origin + prefix + '/' + clean;
 }
 
 function probeScriptApi() {
@@ -21,8 +22,15 @@ function probeScriptApi() {
         .then(r => {
             if (r.ok && r.status === 200) {
                 isServerApiAvailable = true;
+                return r.json().catch(() => null);
             } else {
                 isServerApiAvailable = false;
+                return null;
+            }
+        })
+        .then(data => {
+            if (data && data.activeRoomId && currentActiveRoomId !== data.activeRoomId) {
+                setupActiveRoomSync(data.activeRoomId);
             }
         })
         .catch(() => {
@@ -453,17 +461,20 @@ function syncControlUI(type, data) {
         } catch(e) {}
     }
 
-    // 2. Supabase Realtime
-    if (channel) {
-        try {
-            channel.send({ type: 'broadcast', event: 'display-to-control', payload: payload });
-        } catch (e) {}
-    }
-    if (typeof activeRoomSupabaseChannel !== "undefined" && activeRoomSupabaseChannel) {
-        try {
-            activeRoomSupabaseChannel.send({ type: 'broadcast', event: 'display-to-control', payload: payload });
-        } catch (e) {}
-    }
+    // 2. Supabase Realtime (with robust send / retry for cross-browser sync)
+    [channel, typeof activeRoomSupabaseChannel !== "undefined" ? activeRoomSupabaseChannel : null].forEach(ch => {
+        if (ch) {
+            try {
+                if (ch.state === 'joined') {
+                    ch.send({ type: 'broadcast', event: 'display-to-control', payload: payload });
+                } else {
+                    ch.send({ type: 'broadcast', event: 'display-to-control', payload: payload }).catch(() => {
+                        setTimeout(() => { try { ch.send({ type: 'broadcast', event: 'display-to-control', payload: payload }); } catch(e){} }, 400);
+                    });
+                }
+            } catch (e) {}
+        }
+    });
 
     // 3. Local BroadcastChannel
     if (localBC) {
