@@ -7,6 +7,9 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="sync-bridge.js"></script>
     <style>
         /* Tải font SVN-Gilroy cho scoreboard */
         @font-face {
@@ -464,6 +467,21 @@
                 sbChannel.subscribe();
             }
         } catch(e) {}
+
+        // --- 5. UNIVERSAL MULTI-TRANSPORT SYNC (Socket.IO + WebRTC) ---
+        if (window.GameSync) {
+            window.GameSync.init({
+                role: 'scoreboard',
+                roomId: roomId,
+                onMessage: (msg) => {
+                    if (msg.event === 'control-to-display' && msg.payload) {
+                        handleCommand(msg.payload);
+                    } else if (msg.event === 'player-buzz' && msg.payload && msg.payload.playerNum) {
+                        handleBuzzerEvent(msg.payload.playerNum);
+                    }
+                }
+            });
+        }
     </script>
 </body>
 </html>

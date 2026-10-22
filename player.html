@@ -8,6 +8,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Quicksand:wght@700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="sync-bridge.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -639,6 +642,21 @@
 
             initPlayerSupabase();
 
+            // Universal Multi-Transport Bridge (Socket.IO + WebRTC + SSE + BroadcastChannel)
+            if (window.GameSync) {
+                window.GameSync.init({
+                    role: 'player',
+                    roomId: rId || roomId || '123456',
+                    onMessage: (msg) => {
+                        if (msg.event === 'player-buzz' && msg.payload && msg.payload.playerNum) {
+                            handleIncomingBuzz(msg.payload.playerNum);
+                        } else if (msg.event === 'control-to-display' && msg.payload) {
+                            handleIncomingControl(msg.payload);
+                        }
+                    }
+                });
+            }
+
             if (roleParam >= 1 && roleParam <= 3) {
                 selectRole(roleParam);
             } else {
@@ -1105,8 +1123,13 @@
             const payload = { playerNum: PLAYER_NUM, ts: Date.now() };
             const msgObj = { event: 'player-buzz', payload: payload, ts: Date.now(), roomid: roomId };
 
+            // Universal Multi-Transport Broadcast (Socket.IO + WebRTC + SSE + REST + BroadcastChannel)
+            if (window.GameSync) {
+                try { window.GameSync.send('player-buzz', payload); } catch(e){}
+            }
+
             // 1. Post to Server API (Both /api/buzz and /api/broadcast for multi-device guarantee)
-            if (isServerApiAvailable !== false) {
+            if (isServerApiAvailable === true) {
                 try {
                     fetch(getApiUrl('api/buzz'), {
                         method: 'POST',

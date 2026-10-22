@@ -1,11 +1,21 @@
 import express from 'express';
+import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { Server as SocketIOServer } from 'socket.io';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+const server = http.createServer(app);
+const io = new SocketIOServer(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+  },
+  transports: ['websocket', 'polling']
+});
 const PORT = 3000;
 
 app.use(express.json());
@@ -49,6 +59,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// Canonical Room ID normalizer: strips prefixes like crossword_broadcast_room_
+export function normalizeRoomId(rawId) {
+  if (!rawId) return '123456';
+  const str = String(rawId).trim();
+  const m = str.match(/^(?:crossword_broadcast_room_)?(.+)$/i);
+  return m ? m[1] : str;
+}
+
 // Room configurations and real-time state tracking
 const sseClients = new Set();
 let activeRoomId = '123456';
@@ -58,7 +76,7 @@ const roomConfigs = new Map([
 ]);
 
 function getRoomConfig(roomid) {
-  const rid = roomid || activeRoomId || 'default';
+  const rid = normalizeRoomId(roomid || activeRoomId || 'default');
   if (!roomConfigs.has(rid)) {
     roomConfigs.set(rid, { pass: '8888', buzzerOpen: false, latestWinner: null, latestBuzzTs: 0 });
   }
@@ -322,8 +340,75 @@ app.post('/api/broadcast', (req, res) => {
     }
   }
 
-  const receivers = Array.from(sseClients).filter(c => c.roomid === targetRoom || c.roomid === 'default' || targetRoom === 'default').length;
+  // Also broadcast via Socket.IO with canonical room resolution
+  const cleanTargetRoom = normalizeRoomId(targetRoom);
+  const socketData = { event, payload, ts: ts || Date.now(), id, roomid: cleanTargetRoom };
+  io.to(cleanTargetRoom).emit(event || 'control-command', socketData);
+  io.to('crossword_broadcast_room_' + cleanTargetRoom).emit(event || 'control-command', socketData);
+  io.to('default').emit(event || 'control-command', socketData);
+  io.emit('broadcast', socketData);
+
+  const receivers = Array.from(sseClients).filter(c => normalizeRoomId(c.roomid) === cleanTargetRoom || c.roomid === 'default' || cleanTargetRoom === 'default').length;
   res.json({ ok: true, receivers: receivers });
+});
+
+// Socket.IO real-time connection handler with dual room support
+io.on('connection', (socket) => {
+  const rawRid = socket.handshake.query.roomid || '123456';
+  const cleanRid = normalizeRoomId(rawRid);
+  socket.join(cleanRid);
+  socket.join('crossword_broadcast_room_' + cleanRid);
+  socket.join('default');
+
+  socket.on('join-room', (rid) => {
+    if (rid) {
+      const cRid = normalizeRoomId(rid);
+      socket.join(cRid);
+      socket.join('crossword_broadcast_room_' + cRid);
+    }
+  });
+
+  socket.on('control-command', (data) => {
+    const targetRoom = normalizeRoomId(data.roomid || data.roomId || '123456');
+    data.roomid = targetRoom;
+    io.to(targetRoom).emit('control-command', data);
+    io.to('crossword_broadcast_room_' + targetRoom).emit('control-command', data);
+    io.to('default').emit('control-command', data);
+    socket.broadcast.emit('control-command', data);
+  });
+
+  socket.on('display-message', (data) => {
+    const targetRoom = normalizeRoomId(data.roomid || data.roomId || '123456');
+    data.roomid = targetRoom;
+    io.to(targetRoom).emit('display-message', data);
+    io.to('crossword_broadcast_room_' + targetRoom).emit('display-message', data);
+    io.to('default').emit('display-message', data);
+    socket.broadcast.emit('display-message', data);
+  });
+
+  socket.on('player-buzz', (data) => {
+    const targetRoom = normalizeRoomId(data.roomid || data.roomId || '123456');
+    const config = getRoomConfig(targetRoom);
+    const pNum = parseInt(data.playerNum) || 1;
+    const now = Date.now();
+    let won = false;
+    if (!config.latestWinner || (now - config.latestBuzzTs > 8000)) {
+      config.latestWinner = pNum;
+      config.latestBuzzTs = now;
+      config.buzzerOpen = false;
+      won = true;
+    }
+    const buzzPayload = {
+      event: 'player-buzz',
+      payload: { playerNum: config.latestWinner, ts: config.latestBuzzTs, won },
+      ts: config.latestBuzzTs,
+      roomid: targetRoom
+    };
+    io.to(targetRoom).emit('player-buzz', buzzPayload);
+    io.to('crossword_broadcast_room_' + targetRoom).emit('player-buzz', buzzPayload);
+    io.to('default').emit('player-buzz', buzzPayload);
+    socket.broadcast.emit('player-buzz', buzzPayload);
+  });
 });
 
 // Serve all static assets from the current directory
@@ -366,7 +451,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on http://0.0.0.0:${PORT}`);
 });
 

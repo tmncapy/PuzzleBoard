@@ -6,6 +6,9 @@
     <title>Bảng Điều Khiển Ô Chữ (Kỹ Thuật) - Broadcast Control System</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="sync-bridge.js"></script>
     <script src="quiz.js"></script>
     <style>
         *, *::before, *::after {
@@ -1530,8 +1533,17 @@
             const inputD = document.getElementById("inputDomain");
             const inputR = document.getElementById("inputRoomId");
             const inputP = document.getElementById("inputRoomPass");
-            if (inputD && inputD.value.trim()) localStorage.setItem('crossword_control_domain', inputD.value.trim());
-            if (inputR && inputR.value.trim()) roomId = inputR.value.trim();
+            if (inputD && inputD.value.trim()) {
+                const rawDomain = inputD.value.trim();
+                localStorage.setItem('crossword_control_domain', rawDomain);
+                if (/^https?:\/\//i.test(rawDomain) || /:\d+/.test(rawDomain)) {
+                    localStorage.setItem('crossword_backend_url', rawDomain.replace(/\/+$/, ''));
+                }
+            }
+            if (inputR && inputR.value.trim()) {
+                roomId = typeof normalizeRoomId === 'function' ? normalizeRoomId(inputR.value.trim()) : inputR.value.trim().replace(/^crossword_broadcast_room_/i, '');
+                inputR.value = roomId;
+            }
             if (inputP) roomPass = inputP.value.trim();
 
             localStorage.setItem('crossword_control_roomid', roomId);
@@ -1541,6 +1553,19 @@
             updatePlayerUrlDisplay();
             if (typeof initControlSupabase === "function") initControlSupabase(roomId);
             if (typeof initControlBC === "function") initControlBC(roomId);
+            if (window.GameSync) {
+                window.GameSync.init({
+                    role: 'control',
+                    roomId: roomId,
+                    onMessage: (msg) => {
+                        if (msg.event === 'player-buzz' && msg.payload) {
+                            handlePlayerBuzz(msg.payload.playerNum);
+                        } else if (msg.event === 'display-to-control' && msg.payload) {
+                            handleDisplayMessageWrapper(msg.payload);
+                        }
+                    }
+                });
+            }
 
             if (showNotice) {
                 showCustomAlert(`✅ Đã lưu cài đặt phòng!\n• Domain: ${getBaseUrl()}\n• Mã phòng: ${roomId}\n• Pass: ${roomPass}`);
@@ -1628,6 +1653,21 @@
             } catch(e) {}
         }
         initControlSupabase(roomId);
+
+        // Universal Multi-Transport Bridge (Socket.IO + WebRTC + Supabase + SSE + BroadcastChannel)
+        if (window.GameSync) {
+            window.GameSync.init({
+                role: 'control',
+                roomId: roomId,
+                onMessage: (msg) => {
+                    if (msg.event === 'player-buzz' && msg.payload) {
+                        handlePlayerBuzz(msg.payload.playerNum);
+                    } else if (msg.event === 'display-to-control' && msg.payload) {
+                        handleDisplayMessageWrapper(msg.payload);
+                    }
+                }
+            });
+        }
 
         let localBC = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel('crossword_broadcast_room') : null;
         let roomBC = null;
@@ -2947,8 +2987,13 @@
                 msgId: 'cmd_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) 
             };
 
-            // 1. Post to Server API for cross-device sync
-            if (isServerApiAvailable !== false) {
+            // Universal Multi-Transport Broadcast (Socket.IO + WebRTC + SSE + REST + BroadcastChannel)
+            if (window.GameSync) {
+                try { window.GameSync.send('control-to-display', payload); } catch(e){}
+            }
+
+            // 1. Post to Server API for cross-device sync (only if server confirmed available)
+            if (isServerApiAvailable === true) {
                 try {
                     fetch(getApiUrl('api/broadcast'), {
                         method: 'POST',

@@ -450,8 +450,13 @@ function syncControlUI(type, data) {
     const ts = Date.now();
     const msgObj = { event: 'display-to-control', payload: payload, ts: ts };
 
-    // 1. Post to Server API for cross-device sync
-    if (isServerApiAvailable !== false) {
+    // Universal Multi-Transport Broadcast (Socket.IO + WebRTC + SSE + REST + BroadcastChannel)
+    if (window.GameSync) {
+        try { window.GameSync.send('display-to-control', payload); } catch(e){}
+    }
+
+    // 1. Post to Server API for cross-device sync (only if server confirmed available)
+    if (isServerApiAvailable === true) {
         try {
             fetch(getApiUrl('api/broadcast'), {
                 method: 'POST',
@@ -1259,6 +1264,21 @@ function setupActiveRoomSync(roomId) {
     if (activeRoomInterval) {
         clearInterval(activeRoomInterval);
         activeRoomInterval = null;
+    }
+
+    // Universal Multi-Transport Bridge (Socket.IO + WebRTC + SSE + BroadcastChannel)
+    if (window.GameSync) {
+        window.GameSync.init({
+            role: 'display',
+            roomId: roomId,
+            onMessage: (msg) => {
+                if (msg.event === 'control-to-display' && msg.payload) {
+                    handleControlCommandWrapper(msg.payload, msg.ts, msg.msgId);
+                } else if (msg.event === 'player-buzz' && msg.payload && msg.payload.playerNum) {
+                    handlePlayerBuzz(msg.payload.playerNum);
+                }
+            }
+        });
     }
 
     // Re-bind SSE to active room
