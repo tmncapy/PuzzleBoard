@@ -411,8 +411,15 @@ io.on('connection', (socket) => {
   });
 });
 
-// Serve all static assets from the current directory
-app.use(express.static(__dirname));
+// Serve all static assets from the current directory with aggressive media caching
+app.use(express.static(__dirname, {
+  maxAge: '7d',
+  setHeaders: (res, filePath) => {
+    if (/\.(png|jpg|jpeg|gif|webp|svg|mp3|wav|ogg|ttf|otf|woff|woff2)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+    }
+  }
+}));
 
 // Route shortcuts
 app.get('/control', (req, res) => {

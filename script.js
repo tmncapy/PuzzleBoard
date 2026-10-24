@@ -93,20 +93,86 @@ setTimeout(() => {
 
 const board = document.getElementById("board");
 
-// Khởi tạo các đối tượng âm thanh hệ thống chính
+// Khởi tạo các đối tượng âm thanh hệ thống chính với preload tự động
 const showSound = new Audio("Reveal_the_Letters.mp3");
+showSound.preload = "auto";
 const revealSound = new Audio("ClearTossUp.mp3");
+revealSound.preload = "auto";
 const clearPuzzleSound = new Audio("ClearPuzzle.mp3");
+clearPuzzleSound.preload = "auto";
 const lettersSolvedSound = new Audio("Letters_Solved.mp3");
+lettersSolvedSound.preload = "auto";
 const tossupSound = new Audio("tossup.mp3");
+tossupSound.preload = "auto";
 tossupSound.loop = true;
 const round30Sound = new Audio("30s.mp3");
+round30Sound.preload = "auto";
 round30Sound.loop = false;
 round30Sound.addEventListener('ended', () => {
     round30Sound.pause();
     round30Sound.currentTime = 0;
 });
 const correctSound = new Audio("Correct.mp3");
+correctSound.preload = "auto";
+
+// --- AUDIO POOL & PRELOAD MANAGER FOR 0MS LATENCY ---
+const audioPool = {};
+function getPooledAudio(src) {
+    if (!audioPool[src]) {
+        audioPool[src] = [];
+    }
+    const pool = audioPool[src];
+    for (let i = 0; i < pool.length; i++) {
+        if (pool[i].paused || pool[i].ended) {
+            pool[i].currentTime = 0;
+            return pool[i];
+        }
+    }
+    const a = new Audio(src);
+    a.preload = "auto";
+    if (pool.length < 5) pool.push(a);
+    return a;
+}
+
+function playFastSound(src) {
+    if (isMuted) return;
+    try {
+        const audio = getPooledAudio(src);
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
+    } catch(e) {}
+}
+
+const CRITICAL_SFX = [
+    "A_Letter_gets_Highlighted.mp3",
+    "Open_a_Letter.mp3",
+    "wrong.mp3",
+    "Correct.mp3",
+    "ding.mp3",
+    "ding.wav",
+    "ClearPuzzle.mp3",
+    "ClearTossUp.mp3",
+    "Letters_Solved.mp3",
+    "Reveal_the_Letters.mp3",
+    "10s.mp3",
+    "30s.mp3"
+];
+
+function preloadMediaBuffers() {
+    CRITICAL_SFX.forEach(src => {
+        try {
+            const a = getPooledAudio(src);
+            a.load();
+        } catch(e) {}
+    });
+    const criticalImages = ["bangochu.png", "defaultbox.png", "thumbnail.png"];
+    criticalImages.forEach(src => {
+        const img = new Image();
+        img.src = src;
+    });
+}
+window.addEventListener('DOMContentLoaded', preloadMediaBuffers);
+setTimeout(preloadMediaBuffers, 100);
 
 // Lấy tham chiếu tới các đèn hiệu ứng overlay
 const lightWhite = document.getElementById("light-white");
@@ -267,35 +333,29 @@ function initAudioPermission() {
 
 function playDing(){
     if (isMuted) return;
-    const audio = new Audio("A_Letter_gets_Highlighted.mp3");
-    audio.play().then(() => { audio.onended = () => { audio.remove(); }; }).catch(e => console.log(e));
+    playFastSound("A_Letter_gets_Highlighted.mp3");
 }
 
 function playOpenLetter() {
     if (isMuted) return;
-    const audio = new Audio("Open_a_Letter.mp3");
-    audio.play().then(() => { audio.onended = () => { audio.remove(); }; }).catch(e => console.log(e));
+    playFastSound("Open_a_Letter.mp3");
 }
 
 function playSecondDing(){
     playOpenLetter();
 }
 
-// Sửa hàm phát tiếng đoán sai để quản lý vòng đời audio tốt hơn
+// Sửa hàm phát tiếng đoán sai với 0ms latency
 function playWrong() {
     if (isMuted) return;
     initAudioPermission();
-    const audio = new Audio("wrong.mp3");
-    audio.play().then(() => { 
-        audio.onended = () => { audio.remove(); }; 
-    }).catch(e => console.log(e));
+    playFastSound("wrong.mp3");
 }
 
 function playTimerSound(seconds) {
     if (isMuted) return;
     const filename = seconds === 30 ? "30s.mp3" : "10s.mp3";
-    const audio = new Audio(filename);
-    audio.play().catch(e => console.log(e));
+    playFastSound(filename);
 }
 
 let fadeInterval = null;
@@ -1227,13 +1287,9 @@ function handlePlayerBuzz(playerNum) {
     if (pBox) {
         pBox.classList.add('buzzed-active');
     }
-    // Play ding.wav (or ding.mp3 as fallback)
+    // Play instant ding with zero latency audio pool
     if (!isMuted) {
-        const audio = new Audio("ding.wav");
-        audio.play().catch(() => {
-            const fallback = new Audio("ding.mp3");
-            fallback.play().catch(e => console.log(e));
-        });
+        playFastSound("ding.mp3");
     }
 }
 

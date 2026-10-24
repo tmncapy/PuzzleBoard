@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Quicksand:wght@700&display=swap" rel="stylesheet">
+    <link rel="preload" as="audio" href="ding.mp3">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -1076,10 +1077,25 @@
                 });
         }, 1500);
 
+        let localDingAudio = null;
+        function initLocalDingAudio() {
+            if (!localDingAudio) {
+                try {
+                    localDingAudio = new Audio("ding.mp3");
+                    localDingAudio.preload = "auto";
+                    localDingAudio.load();
+                } catch(e) {}
+            }
+        }
+        window.addEventListener('DOMContentLoaded', initLocalDingAudio);
+
         function playLocalDing() {
             try {
-                const snd = new Audio("ding.mp3");
-                snd.play().catch(err => console.log(err));
+                if (!localDingAudio) initLocalDingAudio();
+                if (localDingAudio) {
+                    localDingAudio.currentTime = 0;
+                    localDingAudio.play().catch(() => {});
+                }
             } catch(e) {}
         }
 
