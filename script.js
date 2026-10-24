@@ -191,6 +191,7 @@ const lightGreen = document.getElementById("light-green");
 const lightRed = document.getElementById("light-red");
 
 let activeSFXList = [];
+let currentDisplaySoundboardAudio = null;
 let tossupTimeoutIds = [];
 let allCells = [];
 let absoluteCells = new Array(52).fill(null);
@@ -861,8 +862,41 @@ function handleControlCommand(payload) {
         tossupSound.pause(); showSound.pause(); revealSound.pause(); clearPuzzleSound.pause();
         tossupSound.currentTime = 0; showSound.currentTime = 0; revealSound.currentTime = 0; clearPuzzleSound.currentTime = 0;
         tossupSound.volume = 1.0;
+        if (currentDisplaySoundboardAudio) {
+            try { currentDisplaySoundboardAudio.pause(); currentDisplaySoundboardAudio.currentTime = 0; currentDisplaySoundboardAudio.remove(); } catch(e){}
+            currentDisplaySoundboardAudio = null;
+        }
         activeSFXList.forEach(audio => { try { audio.pause(); audio.currentTime = 0; audio.remove(); } catch (e) {} });
         activeSFXList = [];
+    }
+    else if (type === "PLAY_SOUNDBOARD") {
+        initAudioPermission();
+        if (currentDisplaySoundboardAudio) {
+            try { currentDisplaySoundboardAudio.pause(); currentDisplaySoundboardAudio.currentTime = 0; currentDisplaySoundboardAudio.remove(); } catch(e){}
+            currentDisplaySoundboardAudio = null;
+        }
+        const file = (data && data.file) ? data.file : (typeof data === 'string' ? data : null);
+        if (!isMuted && file) {
+            const sfxAudio = new Audio(file);
+            currentDisplaySoundboardAudio = sfxAudio;
+            activeSFXList.push(sfxAudio);
+            sfxAudio.play().catch(e => console.log('[Display Soundboard] play error:', e));
+            sfxAudio.onended = () => {
+                if (currentDisplaySoundboardAudio === sfxAudio) currentDisplaySoundboardAudio = null;
+                activeSFXList = activeSFXList.filter(audio => audio !== sfxAudio);
+                sfxAudio.remove();
+            };
+            sfxAudio.onerror = (e) => {
+                console.warn('[Display Soundboard] file error:', file);
+                if (currentDisplaySoundboardAudio === sfxAudio) currentDisplaySoundboardAudio = null;
+            };
+        }
+    }
+    else if (type === "STOP_SOUNDBOARD") {
+        if (currentDisplaySoundboardAudio) {
+            try { currentDisplaySoundboardAudio.pause(); currentDisplaySoundboardAudio.currentTime = 0; currentDisplaySoundboardAudio.remove(); } catch(e){}
+            currentDisplaySoundboardAudio = null;
+        }
     }
     else if (type === "GUESS_LETTER" || type === "CHOOSE_LETTER") {
         initAudioPermission();
