@@ -4,7 +4,18 @@ let isServerApiAvailable = null;
 
 function getApiUrl(endpoint) {
     const clean = endpoint.replace(/^\/+/, '');
-    const custom = localStorage.getItem('crossword_backend_url');
+    let custom = localStorage.getItem('crossword_backend_url');
+    if (custom) {
+        try {
+            const u = new URL(custom);
+            if (u.hostname !== window.location.hostname && u.hostname.includes('github.io') && !window.location.hostname.includes('github.io')) {
+                localStorage.removeItem('crossword_backend_url');
+                custom = null;
+            }
+        } catch(e) {
+            custom = null;
+        }
+    }
     if (custom) {
         return custom.replace(/\/+$/, '') + '/' + clean;
     }

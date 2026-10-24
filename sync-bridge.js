@@ -27,7 +27,18 @@
     // Unified API URL resolver
     function getApiUrl(endpoint) {
         const clean = endpoint.replace(/^\/+/, '');
-        const custom = localStorage.getItem('crossword_backend_url');
+        let custom = localStorage.getItem('crossword_backend_url');
+        if (custom) {
+            try {
+                const u = new URL(custom);
+                if (u.hostname !== window.location.hostname && u.hostname.includes('github.io') && !window.location.hostname.includes('github.io')) {
+                    localStorage.removeItem('crossword_backend_url');
+                    custom = null;
+                }
+            } catch(e) {
+                custom = null;
+            }
+        }
         if (custom) {
             return custom.replace(/\/+$/, '') + '/' + clean;
         }
@@ -101,10 +112,21 @@
                 return;
             }
 
-            const customBackend = localStorage.getItem('crossword_backend_url');
+            let customBackend = localStorage.getItem('crossword_backend_url');
+            if (customBackend) {
+                try {
+                    const u = new URL(customBackend);
+                    if (u.hostname !== window.location.hostname && u.hostname.includes('github.io') && !window.location.hostname.includes('github.io')) {
+                        localStorage.removeItem('crossword_backend_url');
+                        customBackend = null;
+                    }
+                } catch(e) {
+                    customBackend = null;
+                }
+            }
             const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-            // If a custom backend is configured or running locally, connect directly
+            // If a valid custom backend is configured or running locally, connect directly
             if (customBackend || isLocal) {
                 const socketUrl = customBackend || window.location.origin;
                 this.connectSocketIO(socketUrl);

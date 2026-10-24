@@ -973,6 +973,7 @@
                     📡 ĐỒNG BỘ:
                 </span>
                 <input id="inputDomain" class="tech-input" type="text" placeholder="Domain host" oninput="updatePlayerUrlDisplay()" style="flex: 1.5; min-width: 120px; padding: 2px 5px; font-size: 11px;" title="Domain hoặc Host">
+                <button type="button" class="btn-main" onclick="resetDomainToCurrent(true)" style="font-size: 10px; padding: 3px 6px; background: #0891b2; border-color: #06b6d4;" title="Tự động lấy link URL hiện tại">🔄 Auto</button>
                 <input id="inputRoomId" class="tech-input" type="text" placeholder="Phòng" style="width: 75px; color: #fbbf24; font-weight: bold; padding: 2px 5px; font-size: 11px;" oninput="updatePlayerUrlDisplay()" title="Mã phòng">
                 <input id="inputRoomPass" class="tech-input" type="text" placeholder="Pass" style="width: 60px; color: #f87171; font-weight: bold; padding: 2px 5px; font-size: 11px;" oninput="updatePlayerUrlDisplay()" title="Mật khẩu phòng">
                 <button type="button" class="btn-main" onclick="saveRoomCredentials(true)" style="font-size: 10px; padding: 3px 7px;">💾 Lưu</button>
@@ -1393,7 +1394,18 @@
 
         function getApiUrl(endpoint) {
             const clean = endpoint.replace(/^\/+/, '');
-            const custom = localStorage.getItem('crossword_backend_url');
+            let custom = localStorage.getItem('crossword_backend_url');
+            if (custom) {
+                try {
+                    const u = new URL(custom);
+                    if (u.hostname !== window.location.hostname && u.hostname.includes('github.io') && !window.location.hostname.includes('github.io')) {
+                        localStorage.removeItem('crossword_backend_url');
+                        custom = null;
+                    }
+                } catch(e) {
+                    custom = null;
+                }
+            }
             if (custom) {
                 return custom.replace(/\/+$/, '') + '/' + clean;
             }
@@ -1476,16 +1488,49 @@
             }).catch(() => {});
         }
 
+        function detectCurrentBaseUrl() {
+            const origin = window.location.origin;
+            let path = window.location.pathname;
+            path = path.replace(/\/[^\/]*\.html$/i, '').replace(/\/control\/?$/i, '').replace(/\/+$/, '');
+            return origin + path;
+        }
+
         function getBaseUrl() {
             const inputD = document.getElementById("inputDomain");
             let custom = inputD ? inputD.value.trim() : '';
             if (!custom) custom = localStorage.getItem('crossword_control_domain') || '';
-            if (custom && (custom.includes('localhost') || custom.includes('127.0.0.1')) && !window.location.hostname.includes('localhost')) {
-                localStorage.removeItem('crossword_control_domain');
-                custom = '';
+            
+            // Tự động xóa domain cũ nếu người dùng chuyển host (ví dụ chuyển từ github.io sang render.com)
+            if (custom) {
+                try {
+                    const customUrl = new URL(custom.startsWith('http') ? custom : 'https://' + custom);
+                    if (customUrl.hostname !== window.location.hostname) {
+                        localStorage.removeItem('crossword_control_domain');
+                        localStorage.removeItem('crossword_backend_url');
+                        custom = '';
+                    }
+                } catch(e) {
+                    custom = '';
+                }
             }
+
             if (custom) return custom.replace(/\/+$/, '');
-            return 'https://ttccoy22.github.io/PuzzleBoard-main';
+            return detectCurrentBaseUrl();
+        }
+
+        function resetDomainToCurrent(showNotice = true) {
+            localStorage.removeItem('crossword_control_domain');
+            localStorage.removeItem('crossword_backend_url');
+            const detected = detectCurrentBaseUrl();
+            const inputD = document.getElementById("inputDomain");
+            if (inputD) inputD.value = detected;
+            updatePlayerUrlDisplay();
+            if (window.GameSync) {
+                window.GameSync.init({ role: 'control', roomId: roomId });
+            }
+            if (showNotice) {
+                showCustomAlert(`🔄 Đã tự động cập nhật domain theo link hiện tại:\n${detected}`);
+            }
         }
 
         function getPlayerUrl(role = 0) {
