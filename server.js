@@ -1,5 +1,6 @@
 import express from 'express';
 import http from 'http';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Server as SocketIOServer } from 'socket.io';
@@ -82,6 +83,18 @@ function getRoomConfig(roomid) {
   }
   return roomConfigs.get(rid);
 }
+
+// Soundboard MP3 dynamic file scanner
+app.get('/api/soundboard-files', (req, res) => {
+  try {
+    const files = fs.readdirSync(__dirname)
+      .filter(f => /\.mp3$/i.test(f))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+    res.json({ success: true, files });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message, files: [] });
+  }
+});
 
 app.get('/api/get-active-room', (req, res) => {
   const currentRid = activeRoomId || '123456';

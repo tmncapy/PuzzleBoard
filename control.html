@@ -929,11 +929,26 @@
         }
 
         /* Soundboard Panel Styles */
-        .soundboard-grid {
+        .soundboard-scroll-container {
+            max-height: 250px;
+            overflow-y: auto;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 3px;
-            margin-bottom: 3px;
+            padding-right: 2px;
+        }
+        .soundboard-scroll-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        .soundboard-scroll-container::-webkit-scrollbar-track {
+            background: #090c14;
+        }
+        .soundboard-scroll-container::-webkit-scrollbar-thumb {
+            background: #233149;
+            border-radius: 2px;
+        }
+        .soundboard-scroll-container::-webkit-scrollbar-thumb:hover {
+            background: #38bdf8;
         }
         .btn-soundboard {
             background: #131b29;
@@ -1420,55 +1435,22 @@
                 </div>
             </div>
 
-            <!-- SOUNDBOARD HIỆU ỨNG ÂM THANH CHƯƠNG TRÌNH -->
+            <!-- SOUNDBOARD HIỆU ỨNG ÂM THANH CHƯƠNG TRÌNH (TỰ ĐỘNG BỔ SUNG FILE MP3) -->
             <div class="console-panel" id="soundboardSection">
                 <div class="console-panel-header" style="background: #10192a;">
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <h2 class="console-panel-title">🎛️ SOUNDBOARD</h2>
+                        <span id="soundboardCountBadge" style="padding: 1px 5px; border-radius: 2px; font-size: 9px; font-weight: 800; background: #070a10; color: #38bdf8; border: 1px solid #233149;">0 bài</span>
                         <span id="soundboardStatusBadge" style="padding: 1px 6px; border-radius: 2px; font-size: 9px; font-weight: 800; background: #070a10; color: #94a3b8; border: 1px solid #233149;">SẴN SÀNG</span>
                     </div>
-                    <button type="button" class="btn-emergency-stop" style="padding: 2px 6px; font-size: 9px;" onclick="stopSoundboard(true)" title="Dừng âm thanh Soundboard ngay lập tức">⏹️ Dừng Nhạc</button>
-                </div>
-                <div class="console-panel-body">
-                    <div class="soundboard-grid">
-                        <button type="button" class="btn-soundboard" id="btnSound_spin" onclick="playSoundboard('Spin')" title="Phát spin.mp3">
-                            <span class="sb-icon">🎡</span>
-                            <span class="sb-name">Spin</span>
-                            <span class="sb-file">spin.mp3</span>
-                            <span class="sb-state"></span>
-                        </button>
-                        <button type="button" class="btn-soundboard" id="btnSound_10s" onclick="playSoundboard('10s')" title="Phát 10s.mp3">
-                            <span class="sb-icon">⏱️</span>
-                            <span class="sb-name">10s</span>
-                            <span class="sb-file">10s.mp3</span>
-                            <span class="sb-state"></span>
-                        </button>
-                        <button type="button" class="btn-soundboard" id="btnSound_30s" onclick="playSoundboard('30s')" title="Phát 30s.mp3">
-                            <span class="sb-icon">⌛</span>
-                            <span class="sb-name">30s</span>
-                            <span class="sb-file">30s.mp3</span>
-                            <span class="sb-state"></span>
-                        </button>
+                    <div style="display: flex; align-items: center; gap: 3px;">
+                        <button type="button" class="btn-main" style="padding: 2px 5px; font-size: 9px; background: #0284c7; border-color: #0ea5e9;" onclick="refreshSoundboardFiles(true)" title="Quét lại toàn bộ file MP3 trong thư mục dự án">🔄 Quét</button>
+                        <button type="button" class="btn-emergency-stop" style="padding: 2px 6px; font-size: 9px;" onclick="stopSoundboard(true)" title="Dừng âm thanh Soundboard ngay lập tức">⏹️ Dừng Nhạc</button>
                     </div>
-                    <div class="soundboard-grid" style="margin-bottom: 0;">
-                        <button type="button" class="btn-soundboard" id="btnSound_finalspin" onclick="playSoundboard('Finalspin cue')" title="Phát finalspin.mp3">
-                            <span class="sb-icon">🔔</span>
-                            <span class="sb-name">Finalspin cue</span>
-                            <span class="sb-file">finalspin.mp3</span>
-                            <span class="sb-state"></span>
-                        </button>
-                        <button type="button" class="btn-soundboard" id="btnSound_intro" onclick="playSoundboard('Intro')" title="Phát FULL_CLEAN_OPENING_TITLES~1.mp3">
-                            <span class="sb-icon">🎵</span>
-                            <span class="sb-name">Intro</span>
-                            <span class="sb-file">FULL_CLEAN_OPENING_TITLES~1.mp3</span>
-                            <span class="sb-state"></span>
-                        </button>
-                        <button type="button" class="btn-soundboard" id="btnSound_host" onclick="playSoundboard('Host entrance')" title="Phát Host_Entrance.mp3">
-                            <span class="sb-icon">🎤</span>
-                            <span class="sb-name">Host entrance</span>
-                            <span class="sb-file">Host_Entrance.mp3</span>
-                            <span class="sb-state"></span>
-                        </button>
+                </div>
+                <div class="console-panel-body" style="padding: 4px;">
+                    <div class="soundboard-scroll-container" id="soundboardButtonsContainer">
+                        <!-- Danh sách nút âm thanh MP3 được tự động nạp tại đây -->
                     </div>
                 </div>
             </div>
@@ -3320,18 +3302,107 @@
             sendCmd("SET_WWF_MODE", { enabled: isWWFMode });
         }
 
-        // --- SOUNDBOARD AUDIO CONTROLLER ---
-        const SOUNDBOARD_BUTTONS = [
-            { id: 'spin', name: 'Spin', file: 'spin.mp3', icon: '🎡' },
-            { id: '10s', name: '10s', file: '10s.mp3', icon: '⏱️' },
-            { id: '30s', name: '30s', file: '30s.mp3', icon: '⌛' },
-            { id: 'finalspin', name: 'Finalspin cue', file: 'finalspin.mp3', icon: '🔔' },
-            { id: 'intro', name: 'Intro', file: 'FULL_CLEAN_OPENING_TITLES~1.mp3', icon: '🎵' },
-            { id: 'host', name: 'Host entrance', file: 'Host_Entrance.mp3', icon: '🎤' }
+        // --- SOUNDBOARD AUDIO CONTROLLER (DYNAMIC MP3 SCANNER) ---
+        const KNOWN_PROJECT_MP3S = [
+            "spin.mp3",
+            "10s.mp3",
+            "30s.mp3",
+            "final spin.mp3",
+            "finalspin.mp3",
+            "FULL_CLEAN_OPENING_TITLES~1.mp3",
+            "Host_Entrance.mp3",
+            "BonusPuzzle.mp3",
+            "ClearPuzzle.mp3",
+            "ClearTossUp.mp3",
+            "Correct.mp3",
+            "ding.mp3",
+            "final.mp3",
+            "horn.mp3",
+            "Letters_Solved.mp3",
+            "mystery.mp3",
+            "Open_a_Letter.mp3",
+            "red.mp3",
+            "reveal.mp3",
+            "Reveal_the_Letters.mp3",
+            "showpuzzle2.mp3",
+            "SpinFinal.mp3",
+            "tosssound.mp3",
+            "tossup.mp3",
+            "TossUpStart.mp3",
+            "wrong.mp3",
+            "bankrupt.mp3",
+            "A_Letter_gets_Highlighted.mp3"
         ];
 
+        let currentSoundboardList = [];
         let activeSoundboardAudio = null;
-        let activeSoundboardBtnId = null;
+        let activeSoundboardFile = null;
+
+        function getSoundboardIcon(filename) {
+            const f = filename.toLowerCase();
+            if (f.includes('spin')) return '🎡';
+            if (f.includes('10s') || f.includes('30s') || f.includes('timer')) return '⏱️';
+            if (f.includes('final') || f.includes('cue') || f.includes('bell')) return '🔔';
+            if (f.includes('host') || f.includes('entrance') || f.includes('mc')) return '🎤';
+            if (f.includes('intro') || f.includes('title') || f.includes('opening')) return '🎵';
+            if (f.includes('ding') || f.includes('correct')) return '🔔';
+            if (f.includes('wrong') || f.includes('bankrupt') || f.includes('red')) return '❌';
+            if (f.includes('reveal') || f.includes('letter') || f.includes('highlight')) return '🔤';
+            if (f.includes('toss') || f.includes('puzzle') || f.includes('mystery')) return '💡';
+            return '🎶';
+        }
+
+        function getSoundboardId(filename) {
+            return 'btnSb_' + encodeURIComponent(filename).replace(/%/g, '_').replace(/[^a-zA-Z0-9_-]/g, '_');
+        }
+
+        function renderSoundboardButtons(fileList) {
+            const container = document.getElementById('soundboardButtonsContainer');
+            if (!container) return;
+
+            // Deduplicate case-insensitively while preserving exact filename
+            const uniqueFiles = [];
+            const seen = new Set();
+            fileList.forEach(f => {
+                if (!f || !/\.mp3$/i.test(f.trim())) return;
+                const clean = f.trim();
+                const key = clean.toLowerCase();
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    uniqueFiles.push(clean);
+                }
+            });
+
+            currentSoundboardList = uniqueFiles;
+
+            const countBadge = document.getElementById('soundboardCountBadge');
+            if (countBadge) {
+                countBadge.textContent = `${uniqueFiles.length} bài`;
+            }
+
+            container.innerHTML = '';
+            uniqueFiles.forEach(file => {
+                const displayName = file.replace(/\.mp3$/i, '');
+                const btnId = getSoundboardId(file);
+                const icon = getSoundboardIcon(file);
+                const isCurrentlyPlaying = (activeSoundboardFile === file && activeSoundboardAudio && !activeSoundboardAudio.paused);
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn-soundboard' + (isCurrentlyPlaying ? ' sb-playing' : '');
+                btn.id = btnId;
+                btn.title = `Phát: ${file}`;
+                btn.onclick = () => playSoundboardFile(file);
+
+                btn.innerHTML = `
+                    <span class="sb-icon">${icon}</span>
+                    <span class="sb-name" title="${displayName}">${displayName}</span>
+                    <span class="sb-file" title="${file}">${file}</span>
+                    <span class="sb-state">${isCurrentlyPlaying ? '🔊 ĐANG PHÁT' : ''}</span>
+                `;
+                container.appendChild(btn);
+            });
+        }
 
         function stopSoundboard(notifyDisplay = true) {
             if (activeSoundboardAudio) {
@@ -3341,15 +3412,13 @@
                 } catch(e) {}
                 activeSoundboardAudio = null;
             }
-            activeSoundboardBtnId = null;
+            activeSoundboardFile = null;
 
-            SOUNDBOARD_BUTTONS.forEach(btn => {
-                const el = document.getElementById('btnSound_' + btn.id);
-                if (el) {
-                    el.classList.remove('sb-playing');
-                    const stateEl = el.querySelector('.sb-state');
-                    if (stateEl) stateEl.textContent = '';
-                }
+            // Reset all soundboard buttons visual state
+            document.querySelectorAll('.btn-soundboard').forEach(el => {
+                el.classList.remove('sb-playing');
+                const stateEl = el.querySelector('.sb-state');
+                if (stateEl) stateEl.textContent = '';
             });
 
             const badge = document.getElementById('soundboardStatusBadge');
@@ -3364,26 +3433,27 @@
             }
         }
 
-        function playSoundboard(buttonName) {
-            const item = SOUNDBOARD_BUTTONS.find(b => b.name === buttonName || b.id === buttonName || b.name.toLowerCase() === buttonName.toLowerCase());
-            if (!item) return;
+        function playSoundboardFile(file) {
+            if (!file) return;
 
-            // Toggle: nếu nhấn lại nút đang phát -> dừng âm thanh và kết thúc
-            if (activeSoundboardBtnId === item.id && activeSoundboardAudio && !activeSoundboardAudio.paused) {
+            // Toggle behavior: Nếu nhấn lại nút đang phát -> dừng âm thanh và kết thúc
+            if (activeSoundboardFile === file && activeSoundboardAudio && !activeSoundboardAudio.paused) {
                 stopSoundboard(true);
                 return;
             }
 
-            // Dừng âm thanh đang phát trước khi phát âm thanh mới (không chồng lấn)
+            // Dừng âm thanh đang phát trước khi phát âm thanh mới (không chồng lấn nhạc)
             stopSoundboard(false);
 
-            const audioUrl = getApiUrl(item.file);
+            const displayName = file.replace(/\.mp3$/i, '');
+            const audioUrl = getApiUrl(file);
             const audio = new Audio(audioUrl);
             audio.preload = 'auto';
             activeSoundboardAudio = audio;
-            activeSoundboardBtnId = item.id;
+            activeSoundboardFile = file;
 
-            const el = document.getElementById('btnSound_' + item.id);
+            const btnId = getSoundboardId(file);
+            const el = document.getElementById(btnId);
             if (el) {
                 el.classList.add('sb-playing');
                 const stateEl = el.querySelector('.sb-state');
@@ -3392,37 +3462,74 @@
 
             const badge = document.getElementById('soundboardStatusBadge');
             if (badge) {
-                badge.textContent = `▶ ${item.name.toUpperCase()}`;
+                badge.textContent = `▶ ${displayName.toUpperCase()}`;
                 badge.style.color = '#38bdf8';
                 badge.style.borderColor = '#0284c7';
             }
 
             audio.onended = () => {
-                if (activeSoundboardBtnId === item.id) {
+                if (activeSoundboardFile === file) {
                     stopSoundboard(false);
                 }
             };
 
             audio.onerror = (e) => {
-                console.error(`[Soundboard] Không thể tải file: ${item.file}`, e);
+                console.error(`[Soundboard] Không thể tải file: ${file}`, e);
                 stopSoundboard(false);
-                showCustomAlert(`⚠️ Không tìm thấy hoặc lỗi khi tải file âm thanh:\n"${item.file}"\nVui lòng kiểm tra lại file trong thư mục dự án.`);
+                showCustomAlert(`⚠️ Không tìm thấy hoặc lỗi khi tải file âm thanh:\n"${file}"\nVui lòng kiểm tra lại file trong thư mục dự án.`);
             };
 
             audio.play().catch(err => {
-                console.warn(`[Soundboard] Lỗi phát âm thanh cho ${item.file}:`, err);
+                console.warn(`[Soundboard] Lỗi phát âm thanh cho ${file}:`, err);
                 stopSoundboard(false);
                 if (err.name === 'NotAllowedError') {
                     showCustomAlert(`⚠️ Trình duyệt chặn tự động phát âm thanh. Vui lòng bấm chuột tương tác trên trang trước.`);
                 } else {
-                    showCustomAlert(`⚠️ Không thể phát file âm thanh "${item.file}": ${err.message || 'Lỗi không xác định'}`);
+                    showCustomAlert(`⚠️ Không thể phát file âm thanh "${file}": ${err.message || 'Lỗi không xác định'}`);
                 }
             });
 
             // Đồng bộ sang màn hình hiển thị (OBS / Khán giả)
             if (typeof sendCmd === 'function') {
-                sendCmd('PLAY_SOUNDBOARD', { button: item.name, file: item.file });
+                sendCmd('PLAY_SOUNDBOARD', { button: displayName, file: file });
             }
+        }
+
+        function playSoundboard(nameOrFile) {
+            if (/\.mp3$/i.test(nameOrFile)) {
+                playSoundboardFile(nameOrFile);
+                return;
+            }
+            const match = currentSoundboardList.find(f => f.replace(/\.mp3$/i, '').toLowerCase() === nameOrFile.toLowerCase() || f.toLowerCase() === nameOrFile.toLowerCase() + '.mp3');
+            if (match) {
+                playSoundboardFile(match);
+            } else {
+                playSoundboardFile(nameOrFile + '.mp3');
+            }
+        }
+
+        function refreshSoundboardFiles(userInitiated = false) {
+            fetch(getApiUrl('api/soundboard-files'))
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.success && Array.isArray(data.files)) {
+                        const merged = [...data.files];
+                        KNOWN_PROJECT_MP3S.forEach(f => {
+                            if (!merged.some(m => m.toLowerCase() === f.toLowerCase())) {
+                                merged.push(f);
+                            }
+                        });
+                        renderSoundboardButtons(merged);
+                        if (userInitiated) {
+                            showCustomAlert(`✅ Đã quét và cập nhật ${merged.length} file âm thanh MP3!`);
+                        }
+                    } else {
+                        renderSoundboardButtons(KNOWN_PROJECT_MP3S);
+                    }
+                })
+                .catch(() => {
+                    renderSoundboardButtons(KNOWN_PROJECT_MP3S);
+                });
         }
 
         // Initialize on DOM load
@@ -3433,6 +3540,8 @@
             renderTossupSpeedUI();
             renderRound30SpeedUI();
             sendCmd("SET_WWF_MODE", { enabled: isWWFMode });
+            refreshSoundboardFiles(false);
+            setInterval(() => refreshSoundboardFiles(false), 15000);
 
             fetch('data.xlsx')
                 .then(r => r.arrayBuffer())
