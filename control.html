@@ -512,12 +512,18 @@
             gap: 4px;
             margin-bottom: 4px;
         }
+        .player-score-btns-deduct {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4px;
+            margin-bottom: 4px;
+        }
         .player-score-btns-row2 {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 4px;
         }
-        .player-score-btns-row1 button, .player-score-btns-row2 button {
+        .player-score-btns-row1 button, .player-score-btns-deduct button, .player-score-btns-row2 button {
             padding: 5px 0;
             font-size: 10.5px;
             font-weight: 800;
@@ -527,12 +533,22 @@
             cursor: pointer;
             transition: all 0.12s ease;
         }
-        .player-score-btns-row1 button:hover, .player-score-btns-row2 button:hover {
+        .player-score-btns-row1 button:hover, .player-score-btns-deduct button:hover, .player-score-btns-row2 button:hover {
             transform: translateY(-1px);
             filter: brightness(1.2);
         }
-        .player-score-btns-row1 button:active, .player-score-btns-row2 button:active {
+        .player-score-btns-row1 button:active, .player-score-btns-deduct button:active, .player-score-btns-row2 button:active {
             transform: translateY(0);
+        }
+        .btn-deduct {
+            background: #991b1b !important;
+            color: #ffffff !important;
+            border: 1px solid #ef4444 !important;
+            box-shadow: 0 1px 3px rgba(239, 68, 68, 0.25);
+        }
+        .btn-deduct:hover {
+            background: #b91c1c !important;
+            border-color: #f87171 !important;
         }
 
         .player-ctrl-box {
@@ -1375,6 +1391,10 @@
                                 <button type="button" class="btn-main" onclick="modifyScore(1, 100)">+100</button>
                                 <button type="button" class="btn-tossup" onclick="modifyScore(1, 1000)">+1k</button>
                             </div>
+                            <div class="player-score-btns-deduct">
+                                <button type="button" class="btn-deduct" onclick="modifyScore(1, -50)" title="Trừ 50 điểm">-50</button>
+                                <button type="button" class="btn-deduct" onclick="modifyScore(1, -100)" title="Trừ 100 điểm">-100</button>
+                            </div>
                             <div class="player-score-btns-row2">
                                 <button type="button" style="background: #4f46e5; color: white; border-color: #6366f1;" onclick="modifyScore(1, 'x2')" title="Nhân đôi điểm">x2</button>
                                 <button type="button" style="background: #0284c7; color: white; border-color: #0ea5e9;" onclick="modifyScore(1, '÷2')" title="Chia đôi số điểm hiện tại (/2)">÷2</button>
@@ -1396,6 +1416,10 @@
                                 <button type="button" class="btn-main" onclick="modifyScore(2, 100)">+100</button>
                                 <button type="button" class="btn-tossup" onclick="modifyScore(2, 1000)">+1k</button>
                             </div>
+                            <div class="player-score-btns-deduct">
+                                <button type="button" class="btn-deduct" onclick="modifyScore(2, -50)" title="Trừ 50 điểm">-50</button>
+                                <button type="button" class="btn-deduct" onclick="modifyScore(2, -100)" title="Trừ 100 điểm">-100</button>
+                            </div>
                             <div class="player-score-btns-row2">
                                 <button type="button" style="background: #4f46e5; color: white; border-color: #6366f1;" onclick="modifyScore(2, 'x2')" title="Nhân đôi điểm">x2</button>
                                 <button type="button" style="background: #0284c7; color: white; border-color: #0ea5e9;" onclick="modifyScore(2, '÷2')" title="Chia đôi số điểm hiện tại (/2)">÷2</button>
@@ -1416,6 +1440,10 @@
                                 <button type="button" class="btn-main" onclick="modifyScore(3, 50)">+50</button>
                                 <button type="button" class="btn-main" onclick="modifyScore(3, 100)">+100</button>
                                 <button type="button" class="btn-tossup" onclick="modifyScore(3, 1000)">+1k</button>
+                            </div>
+                            <div class="player-score-btns-deduct">
+                                <button type="button" class="btn-deduct" onclick="modifyScore(3, -50)" title="Trừ 50 điểm">-50</button>
+                                <button type="button" class="btn-deduct" onclick="modifyScore(3, -100)" title="Trừ 100 điểm">-100</button>
                             </div>
                             <div class="player-score-btns-row2">
                                 <button type="button" style="background: #4f46e5; color: white; border-color: #6366f1;" onclick="modifyScore(3, 'x2')" title="Nhân đôi điểm">x2</button>
@@ -1975,8 +2003,12 @@
             const scoreInput = document.getElementById(`pScore${playerNum}`);
             let currentScore = parseInt(scoreInput.value) || 0;
             if (action === 50) currentScore += 50;
+            else if (action === -50) currentScore -= 50;
             else if (action === 100) currentScore += 100;
+            else if (action === -100) currentScore -= 100;
             else if (action === 1000) currentScore += 1000;
+            else if (action === -1000) currentScore -= 1000;
+            else if (typeof action === 'number') currentScore += action;
             else if (action === 'x2') currentScore *= 2;
             else if (action === ':2' || action === '÷2' || action === '/2' || action === 'div2' || action === 'chia_doi') currentScore = Math.floor(currentScore / 2);
             else if (action === '0') currentScore = 0;
