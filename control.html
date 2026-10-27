@@ -2029,6 +2029,20 @@
             const box = document.getElementById("controlBuzzerBox");
             if (box) box.style.display = "none";
             sendCmd("UPDATE_CTRL_ACTIVE", null);
+            sendCmd("CLEAR_BUZZER", {});
+            try {
+                localStorage.removeItem('tossup-buzzer-winner_' + roomId);
+                localStorage.removeItem('tossup-buzzer-winner');
+            } catch(e){}
+            fetch(getApiUrl('api/reset-buzz'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomid: roomId })
+            }).catch(() => {});
+            if (currentControlQuizIndex === 12) {
+                setControlBuzzerOpen(true);
+                sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
+            }
         }
 
         // ==========================================
@@ -2576,7 +2590,7 @@
         function clickPauseTossup() {
             isTossupRunning = false;
             clearTimeout(tossupTimeout);
-            setControlBuzzerOpen(false);
+            setControlBuzzerOpen(true);
             sendCmd("PAUSE_TOSSUP");
         }
 
@@ -2718,8 +2732,13 @@
             if (ansText) ansText.textContent = extractAnswerFromLetters(subLetters) || "(Trống)";
 
             renderRound30SubButtons();
-            sendCmd('LOAD_QUIZ', { index: 12, letters: subLetters });
+            sendCmd('LOAD_QUIZ', { index: 12, letters: subLetters, isFortuneFrenzy: true });
             sendCmd('UPDATE_ROUND30_TIMER', { seconds: Math.ceil(round30Seconds), visible: true, subTitle: `Ô CHỮ ${subIndex + 1}/${total}` });
+
+            // Ở vòng Fortune Frenzy luôn luôn mở chuông bất cứ lúc nào
+            clearControlBuzzer();
+            setControlBuzzerOpen(true);
+            sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
 
             if (isRound30Running && round30Seconds > 0) {
                 isTossupRunning = true;
@@ -2743,6 +2762,7 @@
             isTossupRunning = true;
             sendCmd('START_ROUND30');
             setControlBuzzerOpen(true);
+            sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
 
             round30TimerInterval = setInterval(() => {
                 round30Seconds -= 0.1;
@@ -2753,7 +2773,8 @@
                     isRound30Running = false;
                     isTossupRunning = false;
                     clearTimeout(tossupTimeout);
-                    setControlBuzzerOpen(false);
+                    setControlBuzzerOpen(true);
+                    sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
                     updateRound30TimerUI();
                     showCustomAlert("HẾT GIỜ 30 GIÂY!");
                     return;
@@ -2785,7 +2806,7 @@
                 if (round30TimerInterval) { clearInterval(round30TimerInterval); round30TimerInterval = null; }
                 clearTimeout(tossupTimeout);
                 sendCmd('PAUSE_ROUND30_MUSIC');
-                setControlBuzzerOpen(false);
+                setControlBuzzerOpen(true);
             } else if (round30Seconds > 0) {
                 isRound30Running = true;
                 isTossupRunning = true;
@@ -2801,7 +2822,8 @@
                         isRound30Running = false;
                         isTossupRunning = false;
                         clearTimeout(tossupTimeout);
-                        setControlBuzzerOpen(false);
+                        setControlBuzzerOpen(true);
+                        sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
                         updateRound30TimerUI();
                         return;
                     }
@@ -2813,20 +2835,22 @@
 
         function revealRound30Answer() {
             if (!isRound30Running) { isTossupRunning = false; clearTimeout(tossupTimeout); }
-            setControlBuzzerOpen(false);
             round30SolvedStatus[currentRound30SubIndex] = true;
             renderRound30SubButtons();
             controlRevealAllLocally();
-            sendCmd('REVEAL_ALL');
+            sendCmd('REVEAL_ALL', { isFortuneFrenzy: true });
             clearControlBuzzer();
+            setControlBuzzerOpen(true);
+            sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
         }
 
         function nextRound30Puzzle() {
             clearControlBuzzer();
-            setControlBuzzerOpen(true);
             const total = round30SubPuzzles.length || 8;
             currentRound30SubIndex = (currentRound30SubIndex + 1) % total;
             selectRound30Sub(currentRound30SubIndex);
+            setControlBuzzerOpen(true);
+            sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
         }
 
         function resetRound30Timer() {
@@ -2841,7 +2865,8 @@
             selectRound30Sub(0);
             controlResetBoardLocally();
             clearControlBuzzer();
-            setControlBuzzerOpen(false);
+            setControlBuzzerOpen(true);
+            sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
             sendCmd('STOP_ROUND30_MUSIC');
             sendCmd('UPDATE_ROUND30_TIMER', { seconds: 30, visible: true, subTitle: `Ô CHỮ 1/${total}` });
         }
@@ -2853,18 +2878,18 @@
                 sendCmd('PLAY_SFX', 'FlashGreen.mp3');
                 revealRound30Answer();
                 clearControlBuzzer();
-                setControlBuzzerOpen(false);
+                setControlBuzzerOpen(true);
+                sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
             } else {
                 sendCmd('PLAY_SFX', 'wrong.mp3');
                 sendCmd('PLAY_SFX', 'FlashRed.mp3');
                 clearControlBuzzer();
+                setControlBuzzerOpen(true);
+                sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
                 if (isRound30Running && round30Seconds > 0) {
                     isTossupRunning = true;
                     clearTimeout(tossupTimeout);
                     tossupTimeout = setTimeout(controlRevealRandomCell, getLetterRevealDelay());
-                    setControlBuzzerOpen(true);
-                } else {
-                    setControlBuzzerOpen(false);
                 }
             }
         }
@@ -2970,7 +2995,8 @@
                 }
                 sendCmd('UPDATE_QUIZ_ACTIVE', 12);
                 clearControlBuzzer();
-                setControlBuzzerOpen(false);
+                setControlBuzzerOpen(true);
+                sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
                 selectPreviewQuiz(12);
                 return;
             }

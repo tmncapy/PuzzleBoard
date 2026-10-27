@@ -733,7 +733,17 @@
                         updateConnectionStatusUI(true);
 
                         if (msg.event === 'buzzer-state-update') {
-                            isBuzzerOpen = !!msg.isOpen;
+                            if (isFortuneFrenzyActive) {
+                                isBuzzerOpen = true;
+                            } else {
+                                isBuzzerOpen = !!msg.isOpen;
+                            }
+                            if (msg.latestWinner === null || msg.isOpen) {
+                                try {
+                                    localStorage.removeItem('tossup-buzzer-winner_' + roomId);
+                                    localStorage.removeItem('tossup-buzzer-winner');
+                                } catch(e){}
+                            }
                             try {
                                 localStorage.setItem('tossup-buzzer-open_' + roomId, isBuzzerOpen ? '1' : '0');
                             } catch(e){}
@@ -1031,17 +1041,58 @@
             syncBuzzerState();
         }
 
+        let isFortuneFrenzyActive = false;
+
         function handleIncomingControl(payload) {
             if (!payload) return;
             const type = payload.type || payload.action;
-            if (type === 'START_TOSSUP' || type === 'PLAY_TOSSUP' || type === 'START_ROUND30' || type === 'RESUME_ROUND30_MUSIC' || (type === 'SET_BUZZER_STATE' && payload.data && payload.data.state === 'OPEN')) {
+            const data = payload.data;
+
+            // Kiểm tra xem có đang ở vòng Fortune Frenzy (Đề 13 / Round index 12) hay không
+            if (type === 'UPDATE_QUIZ_ACTIVE') {
+                isFortuneFrenzyActive = (data === 12 || data === '12');
+            } else if (type === 'LOAD_QUIZ') {
+                if (data?.index === 12 || payload.index === 12 || data?.isFortuneFrenzy === true) {
+                    isFortuneFrenzyActive = true;
+                } else if (typeof data?.index === 'number') {
+                    isFortuneFrenzyActive = (data.index === 12);
+                }
+            } else if (type === 'START_ROUND30' || type === 'UPDATE_ROUND30_TIMER') {
+                isFortuneFrenzyActive = true;
+            } else if (type === 'START_TOSSUP' || type === 'PLAY_TOSSUP') {
+                isFortuneFrenzyActive = false;
+            }
+
+            // Ở vòng Fortune Frenzy, chuông luôn luôn mở bất cứ lúc nào!
+            if (isFortuneFrenzyActive) {
+                isBuzzerOpen = true;
+                try {
+                    localStorage.setItem('tossup-buzzer-open_' + roomId, '1');
+                    localStorage.removeItem('tossup-buzzer-winner_' + roomId);
+                    localStorage.removeItem('tossup-buzzer-winner');
+                } catch(e){}
+                syncBuzzerState();
+                return;
+            }
+
+            if (type === 'CLEAR_BUZZER') {
+                try {
+                    localStorage.removeItem('tossup-buzzer-winner_' + roomId);
+                    localStorage.removeItem('tossup-buzzer-winner');
+                } catch(e){}
+                isBuzzerOpen = true;
+                syncBuzzerState();
+                return;
+            }
+
+            if (type === 'START_TOSSUP' || type === 'PLAY_TOSSUP' || type === 'PAUSE_TOSSUP' || type === 'START_ROUND30' || type === 'RESUME_ROUND30_MUSIC' || type === 'PAUSE_ROUND30_MUSIC' || (type === 'SET_BUZZER_STATE' && data && data.state === 'OPEN')) {
                 isBuzzerOpen = true;
                 try {
                     localStorage.setItem('tossup-buzzer-open_' + roomId, '1');
                     localStorage.removeItem('tossup-buzzer-winner_' + roomId);
                 } catch(e){}
                 syncBuzzerState();
-            } else if (type === 'PAUSE_TOSSUP' || type === 'PAUSE_ROUND30_MUSIC' || type === 'REVEAL_ALL' || type === 'LOAD_QUIZ' || type === 'RESET_BOARD' || type === 'SHOW_MANUAL_TEXT' || type === 'PLAYER_BUZZ_WIN' || (type === 'SET_BUZZER_STATE' && payload.data && payload.data.state === 'LOCKED') || (type === 'UPDATE_ROUND30_TIMER' && (payload.data?.subTitle === 'TẠM DỪNG' || payload.data?.seconds === 0))) {
+            } else if (type === 'REVEAL_ALL' || type === 'LOAD_QUIZ' || type === 'RESET_BOARD' || type === 'SHOW_MANUAL_TEXT' || type === 'PLAYER_BUZZ_WIN' || (type === 'SET_BUZZER_STATE' && data && data.state === 'LOCKED')) {
                 isBuzzerOpen = false;
                 try {
                     localStorage.setItem('tossup-buzzer-open_' + roomId, '0');
@@ -1064,13 +1115,26 @@
                 })
                 .then(data => {
                     if (!data) return;
-                    if (typeof data.buzzerOpen === 'boolean') {
+                    if (data.isFortuneFrenzy) {
+                        isFortuneFrenzyActive = true;
+                    }
+                    if (isFortuneFrenzyActive) {
+                        isBuzzerOpen = true;
+                        if (!data.latestWinner) {
+                            try {
+                                localStorage.removeItem('tossup-buzzer-winner_' + roomId);
+                                localStorage.removeItem('tossup-buzzer-winner');
+                            } catch(e){}
+                        }
+                        syncBuzzerState();
+                    } else if (typeof data.buzzerOpen === 'boolean') {
                         if (isBuzzerOpen !== data.buzzerOpen) {
                             isBuzzerOpen = data.buzzerOpen;
                             try {
                                 localStorage.setItem('tossup-buzzer-open_' + roomId, isBuzzerOpen ? '1' : '0');
                                 if (isBuzzerOpen) {
                                     localStorage.removeItem('tossup-buzzer-winner_' + roomId);
+                                    localStorage.removeItem('tossup-buzzer-winner');
                                 }
                             } catch(e){}
                             syncBuzzerState();
@@ -1078,9 +1142,19 @@
                     }
                     if (data && data.latestWinner && data.latestBuzzTs) {
                         const currentWinner = localStorage.getItem('tossup-buzzer-winner_' + roomId);
-                        if (!currentWinner && Date.now() - data.latestBuzzTs < 12000) {
+                        const winDuration = isFortuneFrenzyActive ? 3000 : 12000;
+                        if (!currentWinner && Date.now() - data.latestBuzzTs < winDuration) {
                             handleIncomingBuzz(data.latestWinner);
                         }
+                    } else if (data && !data.latestWinner) {
+                        try {
+                            localStorage.removeItem('tossup-buzzer-winner_' + roomId);
+                            localStorage.removeItem('tossup-buzzer-winner');
+                        } catch(e){}
+                        if (isFortuneFrenzyActive) {
+                            isBuzzerOpen = true;
+                        }
+                        syncBuzzerState();
                     }
                 })
                 .catch(() => {

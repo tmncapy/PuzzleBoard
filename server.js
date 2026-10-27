@@ -111,7 +111,13 @@ app.get('/api/get-room-config', (req, res) => {
 app.get('/api/get-buzzer-state', (req, res) => {
   const roomid = req.query.roomid || activeRoomId || 'default';
   const config = getRoomConfig(roomid);
-  res.json({ roomid, buzzerOpen: !!config.buzzerOpen, latestWinner: config.latestWinner, latestBuzzTs: config.latestBuzzTs });
+  res.json({
+    roomid,
+    buzzerOpen: config.isFortuneFrenzy ? true : !!config.buzzerOpen,
+    latestWinner: config.latestWinner,
+    latestBuzzTs: config.latestBuzzTs,
+    isFortuneFrenzy: !!config.isFortuneFrenzy
+  });
 });
 
 app.get('/api/get-room-state', (req, res) => {
@@ -119,10 +125,11 @@ app.get('/api/get-room-state', (req, res) => {
   const config = getRoomConfig(roomid);
   res.json({
     roomid,
-    buzzerOpen: !!config.buzzerOpen,
+    buzzerOpen: config.isFortuneFrenzy ? true : !!config.buzzerOpen,
     latestWinner: config.latestWinner || null,
     latestBuzzTs: config.latestBuzzTs || 0,
-    pass: config.pass || ''
+    pass: config.pass || '',
+    isFortuneFrenzy: !!config.isFortuneFrenzy
   });
 });
 
@@ -180,11 +187,12 @@ app.post('/api/buzz', (req, res) => {
   const now = Date.now();
 
   let won = false;
-  // If buzzer is open or no winner yet within last 8 seconds
-  if (!config.latestWinner || (now - config.latestBuzzTs > 8000)) {
+  // If buzzer is open or no winner yet within last 8 seconds (or 1.5s in Fortune Frenzy)
+  const windowMs = config.isFortuneFrenzy ? 1500 : 8000;
+  if (!config.latestWinner || (now - config.latestBuzzTs > windowMs)) {
     config.latestWinner = pNum;
     config.latestBuzzTs = now;
-    config.buzzerOpen = false;
+    config.buzzerOpen = config.isFortuneFrenzy ? true : false;
     won = true;
   }
 
@@ -207,8 +215,8 @@ app.post('/api/buzz', (req, res) => {
     }
   }
 
-  // Also broadcast buzzer lock state to all players
-  const lockMsg = JSON.stringify({ event: 'buzzer-state-update', isOpen: false, roomid: targetRoom });
+  // Also broadcast buzzer lock state to all players (in Fortune Frenzy keep open)
+  const lockMsg = JSON.stringify({ event: 'buzzer-state-update', isOpen: config.isFortuneFrenzy ? true : false, roomid: targetRoom, latestWinner: config.latestWinner });
   for (const client of sseClients) {
     if (client.roomid === targetRoom || client.roomid === 'default' || targetRoom === 'default') {
       try {
@@ -227,6 +235,17 @@ app.post('/api/reset-buzz', (req, res) => {
   const config = getRoomConfig(targetRoom);
   config.latestWinner = null;
   config.latestBuzzTs = 0;
+  if (config.isFortuneFrenzy) {
+    config.buzzerOpen = true;
+  }
+  const resetMsg = JSON.stringify({ event: 'buzzer-state-update', isOpen: config.isFortuneFrenzy ? true : !!config.buzzerOpen, roomid: targetRoom, latestWinner: null });
+  for (const client of sseClients) {
+    if (client.roomid === targetRoom || client.roomid === 'default' || targetRoom === 'default') {
+      try {
+        client.write(`data: ${resetMsg}\n\n`);
+      } catch (err) {}
+    }
+  }
   res.json({ ok: true });
 });
 
@@ -327,17 +346,36 @@ app.post('/api/broadcast', (req, res) => {
   // Update room buzzer state based on command type
   const currentConfig = getRoomConfig(targetRoom);
   if (event === 'player-buzz') {
-    currentConfig.buzzerOpen = false;
+    if (!currentConfig.isFortuneFrenzy) {
+      currentConfig.buzzerOpen = false;
+    }
     currentConfig.latestWinner = payload?.playerNum ? parseInt(payload.playerNum) : 1;
     currentConfig.latestBuzzTs = Date.now();
   } else if (payload && payload.type) {
     const t = payload.type;
-    if (t === 'START_TOSSUP' || t === 'PLAY_TOSSUP' || t === 'START_ROUND30' || t === 'RESUME_ROUND30_MUSIC' || (t === 'SET_BUZZER_STATE' && payload.data && payload.data.state === 'OPEN')) {
+    const isFortuneFrenzyCmd = payload.isFortuneFrenzy || payload.data?.isFortuneFrenzy || payload.index === 12 || payload.data?.index === 12 || (t === 'UPDATE_QUIZ_ACTIVE' && (payload.data === 12 || payload.data === '12')) || t === 'START_ROUND30' || t === 'UPDATE_ROUND30_TIMER' || t === 'PAUSE_ROUND30_MUSIC' || t === 'RESUME_ROUND30_MUSIC' || t === 'STOP_ROUND30_MUSIC';
+
+    if (t === 'UPDATE_QUIZ_ACTIVE') {
+      currentConfig.isFortuneFrenzy = (payload.data === 12 || payload.data === '12');
+    } else if (isFortuneFrenzyCmd) {
+      currentConfig.isFortuneFrenzy = true;
+    }
+
+    if (currentConfig.isFortuneFrenzy) {
+      // Vòng Fortune Frenzy luôn luôn mở chuông bất cứ lúc nào!
       currentConfig.buzzerOpen = true;
-      currentConfig.latestWinner = null;
-      currentConfig.latestBuzzTs = 0;
-    } else if (t === 'PAUSE_TOSSUP' || t === 'PAUSE_ROUND30_MUSIC' || t === 'REVEAL_ALL' || t === 'LOAD_QUIZ' || t === 'RESET_BOARD' || t === 'PLAYER_BUZZ_WIN' || (t === 'SET_BUZZER_STATE' && payload.data && payload.data.state === 'LOCKED') || (t === 'UPDATE_ROUND30_TIMER' && (payload.data?.subTitle === 'TẠM DỪNG' || payload.data?.seconds === 0))) {
-      currentConfig.buzzerOpen = false;
+      if (t === 'LOAD_QUIZ' || t === 'CLEAR_BUZZER' || t === 'START_ROUND30' || t === 'PAUSE_ROUND30_MUSIC' || t === 'RESUME_ROUND30_MUSIC' || (t === 'SET_BUZZER_STATE' && payload.data?.state === 'OPEN')) {
+        currentConfig.latestWinner = null;
+        currentConfig.latestBuzzTs = 0;
+      }
+    } else {
+      if (t === 'START_TOSSUP' || t === 'PLAY_TOSSUP' || t === 'PAUSE_TOSSUP' || t === 'CLEAR_BUZZER' || (t === 'SET_BUZZER_STATE' && payload.data && payload.data.state === 'OPEN')) {
+        currentConfig.buzzerOpen = true;
+        currentConfig.latestWinner = null;
+        currentConfig.latestBuzzTs = 0;
+      } else if (t === 'REVEAL_ALL' || t === 'LOAD_QUIZ' || t === 'RESET_BOARD' || t === 'PLAYER_BUZZ_WIN' || (t === 'SET_BUZZER_STATE' && payload.data && payload.data.state === 'LOCKED')) {
+        currentConfig.buzzerOpen = false;
+      }
     }
   }
 
