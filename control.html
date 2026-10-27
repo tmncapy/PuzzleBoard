@@ -453,30 +453,31 @@
         .players-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 3px;
-            margin-bottom: 3px;
+            gap: 6px;
+            margin-bottom: 6px;
         }
 
         .player-ctrl-card {
             background: #0d121c;
             border: 1px solid var(--border-panel);
-            border-radius: 3px;
-            padding: 3px 4px;
+            border-radius: 4px;
+            padding: 6px;
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 5px;
             min-width: 0;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
         }
-        .player-ctrl-card.p1-card { border-top: 2px solid #ef4444; }
-        .player-ctrl-card.p2-card { border-top: 2px solid #f59e0b; }
-        .player-ctrl-card.p3-card { border-top: 2px solid #3b82f6; }
+        .player-ctrl-card.p1-card { border-top: 3px solid #ef4444; }
+        .player-ctrl-card.p2-card { border-top: 3px solid #f59e0b; }
+        .player-ctrl-card.p3-card { border-top: 3px solid #3b82f6; }
 
         .player-card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 9.5px;
-            font-weight: 800;
+            font-size: 11px;
+            font-weight: 900;
         }
         .p1-text { color: #f87171; }
         .p2-text { color: #fbbf24; }
@@ -484,20 +485,22 @@
 
         .player-card-inputs {
             display: flex;
-            gap: 2px;
+            gap: 4px;
         }
         .p-name-input {
-            flex: 1.2;
-            font-size: 10px;
-            padding: 2px 3px;
+            flex: 1.1;
+            font-size: 11px;
+            padding: 3px 5px;
             text-align: left;
+            border-radius: 3px;
         }
         .p-score-input {
             flex: 1;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 900;
-            padding: 2px 3px;
+            padding: 3px 5px;
             text-align: right;
+            border-radius: 3px;
         }
         .p1-score { color: #f87171; }
         .p2-score { color: #fbbf24; }
@@ -506,19 +509,30 @@
         .player-score-btns-row1 {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 2px;
+            gap: 4px;
+            margin-bottom: 4px;
         }
         .player-score-btns-row2 {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 2px;
+            gap: 4px;
         }
         .player-score-btns-row1 button, .player-score-btns-row2 button {
-            padding: 2px 0;
-            font-size: 8.5px;
+            padding: 5px 0;
+            font-size: 10.5px;
             font-weight: 800;
-            border-radius: 2px;
+            border-radius: 3px;
             white-space: nowrap;
+            min-height: 27px;
+            cursor: pointer;
+            transition: all 0.12s ease;
+        }
+        .player-score-btns-row1 button:hover, .player-score-btns-row2 button:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.2);
+        }
+        .player-score-btns-row1 button:active, .player-score-btns-row2 button:active {
+            transform: translateY(0);
         }
 
         .player-ctrl-box {
@@ -928,12 +942,12 @@
             cursor: pointer;
         }
 
-        /* Soundboard Panel Styles */
+        /* Soundboard Panel Styles (Compact & Space-Saving) */
         .soundboard-scroll-container {
-            max-height: 250px;
+            max-height: 185px;
             overflow-y: auto;
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 3px;
             padding-right: 2px;
         }
@@ -953,18 +967,18 @@
         .btn-soundboard {
             background: #131b29;
             border: 1px solid #233149;
-            border-radius: 3px;
-            padding: 5px 3px;
+            border-radius: 2px;
+            padding: 3px 2px;
             color: #e2e8f0;
             cursor: pointer;
             font-family: inherit;
             text-align: center;
-            transition: all 0.15s ease;
+            transition: all 0.12s ease;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 48px;
+            min-height: 33px;
             position: relative;
             overflow: hidden;
             user-select: none;
@@ -980,48 +994,52 @@
         .btn-soundboard.sb-playing {
             background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%) !important;
             border-color: #38bdf8 !important;
-            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4), inset 0 0 8px rgba(56, 189, 248, 0.2);
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.4), inset 0 0 6px rgba(56, 189, 248, 0.2);
             animation: sbPulse 1.2s infinite alternate;
         }
         @keyframes sbPulse {
-            from { border-color: #38bdf8; box-shadow: 0 0 6px rgba(56, 189, 248, 0.3); }
-            to { border-color: #7dd3fc; box-shadow: 0 0 14px rgba(56, 189, 248, 0.6); }
+            from { border-color: #38bdf8; box-shadow: 0 0 4px rgba(56, 189, 248, 0.3); }
+            to { border-color: #7dd3fc; box-shadow: 0 0 10px rgba(56, 189, 248, 0.6); }
         }
         .sb-icon {
-            font-size: 13px;
+            font-size: 10px;
             line-height: 1;
-            margin-bottom: 2px;
+            margin-bottom: 1px;
         }
         .sb-name {
-            font-size: 10px;
-            font-weight: 800;
+            font-size: 8.5px;
+            font-weight: 700;
             color: #fff;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             max-width: 100%;
+            line-height: 1.1;
         }
         .btn-soundboard.sb-playing .sb-name {
             color: #38bdf8;
         }
         .sb-file {
-            font-size: 8px;
+            font-size: 7px;
             color: #64748b;
             font-family: monospace;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             max-width: 100%;
+            line-height: 1;
+            margin-top: 1px;
         }
         .btn-soundboard.sb-playing .sb-file {
             color: #bae6fd;
         }
         .sb-state {
-            font-size: 7.5px;
+            font-size: 6.5px;
             font-weight: 800;
             color: #34d399;
             margin-top: 1px;
-            min-height: 10px;
+            min-height: 8px;
+            line-height: 1;
         }
     </style>
 </head>
@@ -1414,23 +1432,23 @@
                 <div class="console-panel-header">
                     <h2 class="console-panel-title">🚨 THAO TÁC BẢNG & KHẨN CẤP</h2>
                 </div>
-                <div class="console-panel-body">
-                    <div style="margin-bottom: 3px;">
-                        <button type="button" id="btnToggleWWF" style="width: 100%; padding: 3px 5px; font-weight: 800; font-size: 9.5px; border-radius: 2px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: #131b29; border: 1px solid #233149; color: #94a3b8;" onclick="toggleWWFMode()" title="Chế độ Words With Friends (DL x2 / TL x3)">
-                            <span style="display: flex; align-items: center; gap: 4px;">🔤 WORDS WITH FRIENDS (ĐỀ 3, 4, 5, 9)</span>
-                            <span id="wwfBadge" style="padding: 1px 4px; border-radius: 2px; font-size: 9px; font-weight: 800; background: #070a10; color: #94a3b8; border: 1px solid #233149;">ĐANG TẮT</span>
+                <div class="console-panel-body" style="padding: 6px;">
+                    <div style="margin-bottom: 6px;">
+                        <button type="button" id="btnToggleWWF" style="width: 100%; padding: 6px 10px; font-weight: 800; font-size: 11px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: #131b29; border: 1px solid #233149; color: #94a3b8; transition: all 0.15s ease;" onclick="toggleWWFMode()" title="Chế độ Words With Friends (DL x2 / TL x3)">
+                            <span style="display: flex; align-items: center; gap: 6px;">🔤 WORDS WITH FRIENDS (ĐỀ 3, 4, 5, 9)</span>
+                            <span id="wwfBadge" style="padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 800; background: #070a10; color: #94a3b8; border: 1px solid #233149;">ĐANG TẮT</span>
                         </button>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px; margin-bottom: 3px;">
-                        <button type="button" class="btn-main" style="padding: 3px 0; font-size: 9.5px;" onclick="sendCmd('SHOW_BOARD'); controlShowBoardLocally();">🎬 SHOW CHÍNH</button>
-                        <button type="button" style="background: #0284c7; color: white; border-color: #0369a1; padding: 3px 0; font-size: 9.5px;" onclick="sendCmd('SHOW_THUMBNAIL')">🖼️ THUMBNAIL</button>
-                        <button type="button" class="btn-reset" style="padding: 3px 0; font-size: 9.5px;" onclick="sendCmd('HIDE_THUMBNAIL')">🙈 ẨN THUMB</button>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 6px;">
+                        <button type="button" class="btn-main" style="padding: 8px 2px; font-size: 11.5px; font-weight: 800; min-height: 36px; border-radius: 4px;" onclick="sendCmd('SHOW_BOARD'); controlShowBoardLocally();">🎬 SHOW CHÍNH</button>
+                        <button type="button" style="background: #0284c7; color: white; border-color: #0369a1; padding: 8px 2px; font-size: 11.5px; font-weight: 800; min-height: 36px; border-radius: 4px;" onclick="sendCmd('SHOW_THUMBNAIL')">🖼️ THUMBNAIL</button>
+                        <button type="button" class="btn-reset" style="padding: 8px 2px; font-size: 11.5px; font-weight: 800; min-height: 36px; border-radius: 4px;" onclick="sendCmd('HIDE_THUMBNAIL')">🙈 ẨN THUMB</button>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 2px;">
-                        <button type="button" class="btn-reveal" style="padding: 4px 0; font-size: 9.5px; font-weight: 800;" onclick="sendCmd('REVEAL_ALL'); setControlBuzzerOpen(false); controlRevealAllLocally();">🔓 MỞ HẾT Ô</button>
-                        <button type="button" class="btn-tossup" style="padding: 4px 0; font-size: 9.5px;" onclick="sendCmd('STOP_ALL_SFX')">🛑 DỪNG SFX</button>
-                        <button type="button" class="btn-reset" style="padding: 4px 0; font-size: 9.5px;" onclick="sendCmd('RESET_BOARD'); setControlBuzzerOpen(false); controlResetBoardLocally();">♻️ RESET</button>
+                    <div style="display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 6px;">
+                        <button type="button" class="btn-reveal" style="padding: 9px 2px; font-size: 12px; font-weight: 900; min-height: 38px; border-radius: 4px; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);" onclick="sendCmd('REVEAL_ALL'); setControlBuzzerOpen(false); controlRevealAllLocally();">🔓 MỞ HẾT Ô</button>
+                        <button type="button" class="btn-tossup" style="padding: 9px 2px; font-size: 12px; font-weight: 900; min-height: 38px; border-radius: 4px; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.3);" onclick="sendCmd('STOP_ALL_SFX')">🛑 DỪNG SFX</button>
+                        <button type="button" class="btn-reset" style="padding: 9px 2px; font-size: 11.5px; font-weight: 800; min-height: 38px; border-radius: 4px;" onclick="sendCmd('RESET_BOARD'); setControlBuzzerOpen(false); controlResetBoardLocally();">♻️ RESET</button>
                     </div>
                 </div>
             </div>
