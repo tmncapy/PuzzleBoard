@@ -40,12 +40,41 @@
             font-style: normal;
         }
         
+        :root, html {
+            background-color: #1d64f2 !important;
+            background: #1d64f2 !important;
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+        }
+        
         body {
             font-family: 'SVN-Gilroy', 'SVN-Gilroy Bold', sans-serif;
-            background-color: #1d64f2; /* Vibrant solid blue / lam */
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
+            background-color: #1d64f2 !important; /* Vibrant solid blue / lam */
+            background: #1d64f2 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            overflow: hidden !important;
+        }
+
+        /* Lớp nền cố định bảo vệ màu sắc khi add vào OBS Studio Browser Source */
+        .scoreboard-bg-layer {
+            position: fixed !important;
+            inset: 0 !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            background-color: #1d64f2 !important;
+            background: #1d64f2 !important;
+            z-index: 0 !important;
+            pointer-events: none;
         }
 
         .number-text {
@@ -145,13 +174,16 @@
         }
     </style>
 </head>
-<body class="w-screen h-screen flex items-center justify-center relative overflow-hidden">
+<body style="background-color: #1d64f2 !important; background: #1d64f2 !important; margin: 0; padding: 0; overflow: hidden;" class="w-screen h-screen flex items-center justify-center relative overflow-hidden">
+
+    <!-- LỚP NỀN CỐ ĐỊNH CHỐNG MẤT MÀU KHI ADD VÀO OBS STUDIO BROWSER SOURCE -->
+    <div id="scoreboardBgLayer" class="scoreboard-bg-layer" style="background-color: #1d64f2 !important; background: #1d64f2 !important;"></div>
 
     <!-- 2 MŨI TÊN >< CHỚP TỪ TỪ Ở 2 CẠNH BÊN SCOREBOARD -->
     <div id="buzzerArrowLeft" class="buzzer-arrow left" aria-hidden="true">&gt;</div>
     <div id="buzzerArrowRight" class="buzzer-arrow right" aria-hidden="true">&lt;</div>
 
-    <main class="flex flex-col items-center justify-center w-full h-full select-none relative">
+    <main class="flex flex-col items-center justify-center w-full h-full select-none relative" style="position: relative; z-index: 10;">
         <div id="teamName" class="team-title">ĐỘI LAM</div>
         <h1 id="scoreValue" class="number-text">0</h1>
     </main>
@@ -159,8 +191,31 @@
     <script>
         // Cấu hình Scoreboard 3: Đội Lam (Player 3)
         const MY_PLAYER_NUM = 3;
+        const TEAM_COLOR = '#1d64f2';
         const urlParams = new URLSearchParams(window.location.search);
         const roomId = urlParams.get('roomid') || 'default_room';
+
+        // Bảo vệ màu nền của Scoreboard chống bị OBS Custom CSS ('body { background-color: rgba(0,0,0,0); }') ghi đè làm mất màu
+        function enforceScoreboardColor() {
+            if (urlParams.get('bg') === 'transparent' || urlParams.get('transparent') === '1') {
+                return; // Cho phép chế độ trong suốt nếu người dùng cố ý truyền tham số ?transparent=1
+            }
+            try {
+                document.documentElement.style.setProperty('background-color', TEAM_COLOR, 'important');
+                document.documentElement.style.setProperty('background', TEAM_COLOR, 'important');
+                document.body.style.setProperty('background-color', TEAM_COLOR, 'important');
+                document.body.style.setProperty('background', TEAM_COLOR, 'important');
+                const bgLayer = document.getElementById('scoreboardBgLayer');
+                if (bgLayer) {
+                    bgLayer.style.setProperty('background-color', TEAM_COLOR, 'important');
+                    bgLayer.style.setProperty('background', TEAM_COLOR, 'important');
+                }
+            } catch(e) {}
+        }
+        enforceScoreboardColor();
+        window.addEventListener('DOMContentLoaded', enforceScoreboardColor);
+        window.addEventListener('load', enforceScoreboardColor);
+        setInterval(enforceScoreboardColor, 500);
 
         const scoreValueEl = document.getElementById('scoreValue');
         const teamNameEl = document.getElementById('teamName');

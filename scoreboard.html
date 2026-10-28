@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng Điểm Game Show - 3 Đội (OBS Ready)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="sync-bridge.js"></script>
+    <style>
+        @font-face {
+            font-family: 'SVN-Gilroy';
+            src: url('SVN-Gilroy Bold.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'SVN-Gilroy Bold';
+            src: url('SVN-Gilroy Bold.otf') format('opentype');
+            font-weight: bold;
+            font-style: normal;
+        }
+
+        :root, html {
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+        }
+
+        body {
+            font-family: 'SVN-Gilroy', 'SVN-Gilroy Bold', sans-serif;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            overflow: hidden !important;
+            background-color: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .scoreboards-wrapper {
+            position: relative;
+            width: 96vw;
+            max-width: 1280px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .scoreboard-card {
+            position: relative;
+            border-radius: 16px;
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 180px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.25);
+            transition: transform 0.2s ease;
+        }
+
+        .card-p1 {
+            background-color: #f02828 !important;
+            border: 3px solid #ff4d4d;
+        }
+
+        .card-p2 {
+            background-color: #f2a900 !important;
+            border: 3px solid #fbbf24;
+        }
+
+        .card-p3 {
+            background-color: #1d64f2 !important;
+            border: 3px solid #60a5fa;
+        }
+
+        .team-title {
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 900;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-size: clamp(14px, 2vw, 24px);
+            margin-bottom: 8px;
+            text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+        }
+
+        .number-text {
+            color: #ffffff;
+            font-size: clamp(36px, 6vw, 76px);
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: -0.02em;
+            text-shadow: 
+                -3px -3px 0 #000,  
+                 3px -3px 0 #000,
+                -3px  3px 0 #000,
+                 3px  3px 0 #000,
+                 0px -3px 0 #000,
+                 0px  3px 0 #000,
+                -3px  0px 0 #000,
+                 3px  0px 0 #000;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .buzzer-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #ffffff;
+            font-size: clamp(24px, 4vw, 48px);
+            font-weight: 900;
+            text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .buzzer-arrow.left { left: 10px; }
+        .buzzer-arrow.right { right: 10px; }
+        .buzzer-arrow.active {
+            opacity: 1;
+            animation: slowBlink 1.2s ease-in-out infinite;
+        }
+
+        @keyframes slowBlink {
+            0%, 100% { opacity: 0.2; transform: translateY(-50%) scale(0.95); }
+            50% { opacity: 1; transform: translateY(-50%) scale(1.1); filter: drop-shadow(0 0 15px rgba(255,255,255,0.9)); }
+        }
+    </style>
+</head>
+<body class="w-screen h-screen overflow-hidden">
+
+    <div class="scoreboards-wrapper" id="scoreboardsWrapper">
+        <!-- ĐỘI ĐỎ -->
+        <div class="scoreboard-card card-p1" id="cardP1">
+            <div id="buzzerL1" class="buzzer-arrow left">&gt;</div>
+            <div id="buzzerR1" class="buzzer-arrow right">&lt;</div>
+            <div class="team-title" id="nameP1">ĐỘI ĐỎ</div>
+            <div class="number-text" id="scoreP1">0</div>
+        </div>
+
+        <!-- ĐỘI VÀNG -->
+        <div class="scoreboard-card card-p2" id="cardP2">
+            <div id="buzzerL2" class="buzzer-arrow left">&gt;</div>
+            <div id="buzzerR2" class="buzzer-arrow right">&lt;</div>
+            <div class="team-title" id="nameP2">ĐỘI VÀNG</div>
+            <div class="number-text" id="scoreP2">0</div>
+        </div>
+
+        <!-- ĐỘI LAM -->
+        <div class="scoreboard-card card-p3" id="cardP3">
+            <div id="buzzerL3" class="buzzer-arrow left">&gt;</div>
+            <div id="buzzerR3" class="buzzer-arrow right">&lt;</div>
+            <div class="team-title" id="nameP3">ĐỘI LAM</div>
+            <div class="number-text" id="scoreP3">0</div>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get('roomid') || 'default_room';
+        const singleP = urlParams.get('p');
+
+        // Nếu chỉ định ?p=1 hoặc 2 hoặc 3, chuyển hướng hoặc chỉ hiển thị đội đó
+        if (singleP === '1') {
+            window.location.replace(`scoreboard1.html?roomid=${encodeURIComponent(roomId)}`);
+        } else if (singleP === '2') {
+            window.location.replace(`scoreboard2.html?roomid=${encodeURIComponent(roomId)}`);
+        } else if (singleP === '3') {
+            window.location.replace(`scoreboard3.html?roomid=${encodeURIComponent(roomId)}`);
+        }
+
+        const scoreP1El = document.getElementById('scoreP1');
+        const scoreP2El = document.getElementById('scoreP2');
+        const scoreP3El = document.getElementById('scoreP3');
+        const nameP1El = document.getElementById('nameP1');
+        const nameP2El = document.getElementById('nameP2');
+        const nameP3El = document.getElementById('nameP3');
+
+        function formatScore(val) {
+            if (val === undefined || val === null || isNaN(val)) return "0";
+            return Number(val).toLocaleString('vi-VN');
+        }
+
+        function triggerBuzzer(playerNum) {
+            const p = parseInt(playerNum);
+            const lEl = document.getElementById(`buzzerL${p}`);
+            const rEl = document.getElementById(`buzzerR${p}`);
+            if (lEl) lEl.classList.add('active');
+            if (rEl) rEl.classList.add('active');
+            setTimeout(() => {
+                if (lEl) lEl.classList.remove('active');
+                if (rEl) rEl.classList.remove('active');
+            }, 8000);
+        }
+
+        function handleCommand(msg) {
+            if (!msg) return;
+            const type = msg.type || msg.action;
+            const data = msg.data || msg.payload?.data;
+
+            if (type === 'UPDATE_SCOREBOARD' || type === 'UPDATE_SCORE') {
+                const scoreData = data || msg.payload;
+                if (scoreData) {
+                    if (scoreData.p1) {
+                        if (scoreData.p1.name) nameP1El.textContent = scoreData.p1.name.toUpperCase();
+                        if (scoreData.p1.score !== undefined) scoreP1El.textContent = formatScore(scoreData.p1.score);
+                    }
+                    if (scoreData.p2) {
+                        if (scoreData.p2.name) nameP2El.textContent = scoreData.p2.name.toUpperCase();
+                        if (scoreData.p2.score !== undefined) scoreP2El.textContent = formatScore(scoreData.p2.score);
+                    }
+                    if (scoreData.p3) {
+                        if (scoreData.p3.name) nameP3El.textContent = scoreData.p3.name.toUpperCase();
+                        if (scoreData.p3.score !== undefined) scoreP3El.textContent = formatScore(scoreData.p3.score);
+                    }
+                }
+            }
+
+            if (msg.event === 'player-buzz' || type === 'PLAYER_BUZZ_WIN' || type === 'PLAYER_BUZZ' || type === 'BELL') {
+                const pNum = msg.payload?.playerNum || msg.data?.playerNum || data?.playerNum || msg.playerNum;
+                if (pNum) triggerBuzzer(pNum);
+            }
+        }
+
+        // 1. LocalStorage
+        function loadInitial() {
+            try {
+                const raw = localStorage.getItem('control-to-display-msg_' + roomId) || localStorage.getItem('control-to-display-msg');
+                if (raw) handleCommand(JSON.parse(raw));
+            } catch(e) {}
+        }
+        loadInitial();
+        window.addEventListener('storage', (e) => {
+            if ((e.key === 'control-to-display-msg' || e.key === 'control-to-display-msg_' + roomId) && e.newValue) {
+                try { handleCommand(JSON.parse(e.newValue)); } catch(err) {}
+            }
+        });
+
+        // 2. BroadcastChannel
+        try {
+            if (typeof BroadcastChannel !== 'undefined') {
+                const bc = new BroadcastChannel('broadcast_channel_' + roomId);
+                bc.onmessage = (e) => { if (e.data) handleCommand(e.data.payload || e.data); };
+            }
+        } catch(e) {}
+
+        // 3. MultiSyncBridge
+        if (window.GameSync) {
+            window.GameSync.init({
+                role: 'scoreboard',
+                roomId: roomId,
+                onMessage: (msg) => {
+                    if (msg.event === 'control-to-display' && msg.payload) {
+                        handleCommand(msg.payload);
+                    } else if (msg.event === 'player-buzz' && msg.payload?.playerNum) {
+                        triggerBuzzer(msg.payload.playerNum);
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
