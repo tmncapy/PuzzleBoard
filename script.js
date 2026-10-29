@@ -322,7 +322,7 @@ function playDisplaySoundboard(file, msgId = null) {
     currentSoundboardFile = file;
     currentDisplaySoundboardAudio = audio;
 
-    audio.src = file;
+    audio.src = encodeURI(file);
     audio.currentTime = 0;
     audio.volume = masterVolume;
 

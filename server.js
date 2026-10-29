@@ -84,15 +84,41 @@ function getRoomConfig(roomid) {
   return roomConfigs.get(rid);
 }
 
-// Soundboard MP3 dynamic file scanner
+// Soundboard audio dynamic file scanner (supports root and nhạc mới subdirectories)
 app.get('/api/soundboard-files', (req, res) => {
   try {
-    const files = fs.readdirSync(__dirname)
-      .filter(f => /\.mp3$/i.test(f))
-      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
-    res.json({ success: true, files });
+    const isAudio = (f) => /\.(mp3|wav|m4a|ogg)$/i.test(f);
+    const rootFiles = fs.existsSync(__dirname)
+      ? fs.readdirSync(__dirname, { withFileTypes: true })
+          .filter(d => d.isFile() && isAudio(d.name))
+          .map(d => ({
+            file: d.name,
+            name: d.name.replace(/\.[^.]+$/i, ''),
+            folder: 'Thư mục gốc',
+            ext: path.extname(d.name).toLowerCase()
+          }))
+      : [];
+
+    const nhacMoiDir = path.join(__dirname, 'nhạc mới');
+    const nhacMoiFiles = fs.existsSync(nhacMoiDir)
+      ? fs.readdirSync(nhacMoiDir, { withFileTypes: true })
+          .filter(d => d.isFile() && isAudio(d.name))
+          .map(d => ({
+            file: `nhạc mới/${d.name}`,
+            name: d.name.replace(/\.[^.]+$/i, ''),
+            folder: 'Nhạc mới',
+            ext: path.extname(d.name).toLowerCase()
+          }))
+      : [];
+
+    const allTracks = [...rootFiles, ...nhacMoiFiles].sort((a, b) => 
+      a.name.localeCompare(b.name, 'vi', { numeric: true, sensitivity: 'base' })
+    );
+
+    const files = allTracks.map(t => t.file);
+    res.json({ success: true, files, tracks: allTracks });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message, files: [] });
+    res.status(500).json({ success: false, error: err.message, files: [], tracks: [] });
   }
 });
 
