@@ -300,6 +300,13 @@ function fadeAllBgm(durationMs = 2000) {
 function playDisplaySoundboard(file, msgId = null) {
     if (isMuted || !file) return;
 
+    const now = Date.now();
+    const lastTime = recentSfxPlayed.get(file);
+    if (lastTime && (now - lastTime < 300) && currentBgmMode === 'soundboard' && currentSoundboardFile === file) {
+        return;
+    }
+    recentSfxPlayed.set(file, now);
+
     // Kiểm tra nếu đúng file đó đang phát -> KHÔNG tạo mới, chỉ đồng bộ volume
     if (currentBgmMode === 'soundboard' && currentSoundboardFile === file && soundboardAudioInstance && !soundboardAudioInstance.paused) {
         audioLog("Already playing, syncing volume", file);
@@ -429,7 +436,7 @@ function playFastSound(src) {
     if (isMuted) return;
     const now = Date.now();
     const lastTime = recentSfxPlayed.get(src);
-    if (lastTime && (now - lastTime < 90)) {
+    if (lastTime && (now - lastTime < 300)) {
         // Debounce rapid duplicate sound effects from multi-transport
         return;
     }

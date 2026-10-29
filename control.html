@@ -3905,7 +3905,14 @@ Link tham gia: ${fullUrl}`;
         ];
 
         // 1. Thư viện nhạc toàn bộ (Music Library)
-        let fullMusicLibrary = [...FALLBACK_TRACKS_META];
+        let rawFullLib = [...FALLBACK_TRACKS_META];
+        const uniqueLibMap = new Map();
+        rawFullLib.forEach(t => {
+            if (t && t.file) {
+                uniqueLibMap.set(t.file.toLowerCase(), t);
+            }
+        });
+        let fullMusicLibrary = Array.from(uniqueLibMap.values());
 
         // 2. Danh sách nhạc sử dụng đang được kích hoạt (Active Track List)
         let activeSoundboardTrackFiles = new Set();
@@ -4493,7 +4500,13 @@ Link tham gia: ${fullUrl}`;
                                 mergedTracks.push(f);
                             }
                         });
-                        fullMusicLibrary = mergedTracks;
+                        const uniqueMap = new Map();
+                        mergedTracks.forEach(t => {
+                            if (t && t.file) {
+                                uniqueMap.set(t.file.toLowerCase(), t);
+                            }
+                        });
+                        fullMusicLibrary = Array.from(uniqueMap.values());
 
                         // Nếu chưa từng có active tracks, kích hoạt tất cả
                         if (!isSelectionInitialized || activeSoundboardTrackFiles.size === 0) {
