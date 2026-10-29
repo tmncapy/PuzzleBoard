@@ -104,7 +104,11 @@ setTimeout(() => {
 
 const board = document.getElementById("board");
 
-// Khởi tạo các đối tượng âm thanh hệ thống chính với preload tự động
+// --- HỆ THỐNG QUẢN LÝ ÂM THANH TẬP TRUNG (CENTRALIZED AUDIO ENGINE) ---
+function audioLog(action, details = "") {
+    console.log(`%c[GameAudio] ${action}%c ${details}`, "color: #38bdf8; font-weight: bold;", "color: #94a3b8;");
+}
+
 let masterVolume = 1.0;
 try {
     const savedVol = localStorage.getItem('system_master_volume');
@@ -114,33 +118,139 @@ try {
     }
 } catch(e) {}
 
+// One-time global user-gesture audio unlocker (stops memoPlay listener stacking)
+let hasAudioBeenUnlocked = false;
+function unlockAudioOnInteraction() {
+    if (hasAudioBeenUnlocked) return;
+    hasAudioBeenUnlocked = true;
+    ['click', 'touchstart', 'keydown'].forEach(evt => {
+        window.removeEventListener(evt, unlockAudioOnInteraction, true);
+    });
+    audioLog("Audio unlocked via user gesture");
+    if (currentBgmMode === 'tossup' && tossupSound.paused && !isMuted) {
+        safePlayAudio(tossupSound, 'tossup.mp3');
+    } else if (currentBgmMode === 'round30' && round30Sound.paused && !isMuted) {
+        safePlayAudio(round30Sound, '30s.mp3');
+    } else if (currentBgmMode === 'soundboard' && soundboardAudioInstance && soundboardAudioInstance.paused && !isMuted) {
+        safePlayAudio(soundboardAudioInstance, currentSoundboardFile);
+    }
+}
+['click', 'touchstart', 'keydown'].forEach(evt => {
+    window.addEventListener(evt, unlockAudioOnInteraction, { once: true, capture: true });
+});
+
+// Promise-safe audio player preventing AbortError and concurrent play requests
+const pendingAudioPromises = new WeakMap();
+
+function safePlayAudio(audio, trackName = '') {
+    if (!audio || isMuted) return Promise.resolve();
+    audio.volume = masterVolume;
+
+    if (pendingAudioPromises.has(audio)) {
+        return pendingAudioPromises.get(audio);
+    }
+
+    try {
+        const p = audio.play();
+        if (p !== undefined) {
+            pendingAudioPromises.set(audio, p);
+            return p.then(() => {
+                pendingAudioPromises.delete(audio);
+                audioLog("Playing", `${trackName || audio.src || 'track'} [Vol: ${Math.round(audio.volume * 100)}%]`);
+            }).catch(err => {
+                pendingAudioPromises.delete(audio);
+                if (err.name === 'AbortError') {
+                    return; // Normal interruption
+                }
+                if (err.name === 'NotAllowedError') {
+                    audioLog("Autoplay pending user gesture", trackName);
+                    return;
+                }
+                console.warn("[GameAudio] Play warning:", err.message);
+            });
+        }
+    } catch(e) {
+        pendingAudioPromises.delete(audio);
+    }
+    return Promise.resolve();
+}
+
+function safePauseAudio(audio, resetPosition = false) {
+    if (!audio) return;
+    try {
+        const pending = pendingAudioPromises.get(audio);
+        if (pending) {
+            pending.then(() => {
+                try {
+                    audio.pause();
+                    if (resetPosition) audio.currentTime = 0;
+                } catch(e){}
+            }).catch(() => {});
+        } else {
+            audio.pause();
+            if (resetPosition) audio.currentTime = 0;
+        }
+    } catch(e){}
+}
+
+// Khởi tạo các đối tượng âm thanh hệ thống chính với preload tự động
 const showSound = new Audio("Reveal_the_Letters.mp3");
 showSound.preload = "auto";
 showSound.volume = masterVolume;
+
 const revealSound = new Audio("ClearTossUp.mp3");
 revealSound.preload = "auto";
 revealSound.volume = masterVolume;
+
 const clearPuzzleSound = new Audio("ClearPuzzle.mp3");
 clearPuzzleSound.preload = "auto";
 clearPuzzleSound.volume = masterVolume;
+
 const lettersSolvedSound = new Audio("Letters_Solved.mp3");
 lettersSolvedSound.preload = "auto";
 lettersSolvedSound.volume = masterVolume;
+
 const tossupSound = new Audio("tossup.mp3");
 tossupSound.preload = "auto";
 tossupSound.loop = true;
 tossupSound.volume = masterVolume;
+
 const round30Sound = new Audio("30s.mp3");
 round30Sound.preload = "auto";
 round30Sound.loop = false;
 round30Sound.volume = masterVolume;
 round30Sound.addEventListener('ended', () => {
-    round30Sound.pause();
-    round30Sound.currentTime = 0;
+    safePauseAudio(round30Sound, true);
+    if (currentBgmMode === 'round30') currentBgmMode = 'none';
 });
+
 const correctSound = new Audio("Correct.mp3");
 correctSound.preload = "auto";
 correctSound.volume = masterVolume;
+
+// Trạng thái BGM tập trung (đảm bảo không phát chồng lấn BGM)
+let currentBgmMode = 'none'; // 'none' | 'tossup' | 'round30' | 'soundboard'
+let currentSoundboardFile = null;
+let currentDisplaySoundboardAudio = null;
+let soundboardAudioInstance = null;
+
+function getSoundboardAudio() {
+    if (!soundboardAudioInstance) {
+        soundboardAudioInstance = new Audio();
+        soundboardAudioInstance.preload = 'auto';
+        soundboardAudioInstance.addEventListener('ended', () => {
+            audioLog("Soundboard track ended", currentSoundboardFile);
+            currentBgmMode = 'none';
+            currentSoundboardFile = null;
+        });
+        soundboardAudioInstance.addEventListener('error', () => {
+            console.warn('[GameAudio] Soundboard file load error:', currentSoundboardFile);
+            currentBgmMode = 'none';
+            currentSoundboardFile = null;
+        });
+    }
+    return soundboardAudioInstance;
+}
 
 // Centralized Fade Out Manager for Display BGM
 let displayBgmFadeInterval = null;
@@ -148,15 +258,17 @@ function cancelDisplayBgmFade() {
     if (displayBgmFadeInterval) {
         clearInterval(displayBgmFadeInterval);
         displayBgmFadeInterval = null;
+        audioLog("Fade out cancelled");
     }
 }
 
 function fadeAllBgm(durationMs = 2000) {
     cancelDisplayBgmFade();
-    const bgmList = [currentDisplaySoundboardAudio, tossupSound, round30Sound].filter(a => a && !a.paused && a.volume > 0.001);
-    if (bgmList.length === 0) return;
+    const activeAudios = [currentDisplaySoundboardAudio, tossupSound, round30Sound].filter(a => a && !a.paused && a.volume > 0.001);
+    if (activeAudios.length === 0) return;
 
-    const startVols = bgmList.map(a => a.volume);
+    audioLog("Fade out started", `${durationMs}ms for ${activeAudios.length} active track(s)`);
+    const startVols = activeAudios.map(a => a.volume);
     const steps = 40;
     const stepTime = Math.max(16, Math.floor(durationMs / steps));
     let step = 0;
@@ -164,7 +276,7 @@ function fadeAllBgm(durationMs = 2000) {
     displayBgmFadeInterval = setInterval(() => {
         step++;
         const factor = Math.max(0, 1 - (step / steps));
-        bgmList.forEach((audio, idx) => {
+        activeAudios.forEach((audio, idx) => {
             if (audio && !audio.paused) {
                 audio.volume = startVols[idx] * factor;
             }
@@ -172,23 +284,128 @@ function fadeAllBgm(durationMs = 2000) {
 
         if (step >= steps || factor <= 0.001) {
             cancelDisplayBgmFade();
-            bgmList.forEach(audio => {
-                try {
-                    audio.pause();
-                    audio.currentTime = 0;
-                    audio.volume = masterVolume;
-                } catch(e) {}
+            activeAudios.forEach(audio => {
+                safePauseAudio(audio, true);
+                audio.volume = masterVolume;
             });
-            if (currentDisplaySoundboardAudio && bgmList.includes(currentDisplaySoundboardAudio)) {
-                try { currentDisplaySoundboardAudio.remove(); } catch(e){}
-                currentDisplaySoundboardAudio = null;
-            }
+            currentBgmMode = 'none';
+            currentSoundboardFile = null;
+            currentDisplaySoundboardAudio = null;
+            audioLog("Fade out completed cleanly");
         }
     }, stepTime);
 }
 
+// Phát Soundboard BGM tập trung trên Màn hình chính
+function playDisplaySoundboard(file, msgId = null) {
+    if (isMuted || !file) return;
+
+    // Kiểm tra nếu đúng file đó đang phát -> KHÔNG tạo mới, chỉ đồng bộ volume
+    if (currentBgmMode === 'soundboard' && currentSoundboardFile === file && soundboardAudioInstance && !soundboardAudioInstance.paused) {
+        audioLog("Already playing, syncing volume", file);
+        soundboardAudioInstance.volume = masterVolume;
+        return;
+    }
+
+    cancelDisplayBgmFade();
+
+    // Dừng các loại BGM khác
+    stopTossupMusicImmediate();
+    stopRound30Music(true);
+
+    const audio = getSoundboardAudio();
+    if (!audio.paused) {
+        safePauseAudio(audio, true);
+    }
+
+    currentBgmMode = 'soundboard';
+    currentSoundboardFile = file;
+    currentDisplaySoundboardAudio = audio;
+
+    audio.src = file;
+    audio.currentTime = 0;
+    audio.volume = masterVolume;
+
+    audioLog("Soundboard start", `${file} [ID: ${msgId || 'local'}, Vol: ${Math.round(masterVolume*100)}%]`);
+    safePlayAudio(audio, file);
+}
+
+function stopSoundboardAudio() {
+    cancelDisplayBgmFade();
+    if (soundboardAudioInstance) {
+        safePauseAudio(soundboardAudioInstance, true);
+    }
+    if (currentBgmMode === 'soundboard') {
+        currentBgmMode = 'none';
+        currentSoundboardFile = null;
+    }
+    currentDisplaySoundboardAudio = null;
+    audioLog("Soundboard stopped");
+}
+
+function playTossupMusic() {
+    if (isMuted || currentQuizIndex === 12) return;
+    cancelDisplayBgmFade();
+
+    if (currentBgmMode === 'tossup' && !tossupSound.paused && tossupSound.currentTime > 0) {
+        tossupSound.volume = masterVolume;
+        return;
+    }
+
+    stopRound30Music(true);
+    stopSoundboardAudio();
+
+    currentBgmMode = 'tossup';
+    tossupSound.volume = masterVolume;
+    audioLog("Tossup music started");
+    safePlayAudio(tossupSound, 'tossup.mp3');
+}
+
+function stopTossupMusicImmediate() {
+    cancelDisplayBgmFade();
+    safePauseAudio(tossupSound, true);
+    tossupSound.volume = masterVolume;
+    if (currentBgmMode === 'tossup') currentBgmMode = 'none';
+}
+
+function fadeOutTossupMusic(durationMs = 400, resetPosition = false) {
+    cancelDisplayBgmFade();
+    if (tossupSound.paused || isMuted) {
+        if (resetPosition) tossupSound.currentTime = 0;
+        return;
+    }
+    fadeAllBgm(durationMs);
+}
+
+function playRound30Music() {
+    if (isMuted) return;
+    cancelDisplayBgmFade();
+
+    if (currentBgmMode === 'round30' && !round30Sound.paused && round30Sound.currentTime > 0) {
+        round30Sound.volume = masterVolume;
+        return;
+    }
+
+    stopTossupMusicImmediate();
+    stopSoundboardAudio();
+
+    currentBgmMode = 'round30';
+    round30Sound.volume = masterVolume;
+    audioLog("Round 30s music started");
+    safePlayAudio(round30Sound, '30s.mp3');
+}
+
+function stopRound30Music(resetPosition = true) {
+    cancelDisplayBgmFade();
+    safePauseAudio(round30Sound, resetPosition);
+    round30Sound.volume = masterVolume;
+    if (currentBgmMode === 'round30') currentBgmMode = 'none';
+}
+
 // --- AUDIO POOL & PRELOAD MANAGER FOR 0MS LATENCY ---
 const audioPool = {};
+const recentSfxPlayed = new Map();
+
 function getPooledAudio(src) {
     if (!audioPool[src]) {
         audioPool[src] = [];
@@ -210,11 +427,18 @@ function getPooledAudio(src) {
 
 function playFastSound(src) {
     if (isMuted) return;
+    const now = Date.now();
+    const lastTime = recentSfxPlayed.get(src);
+    if (lastTime && (now - lastTime < 90)) {
+        // Debounce rapid duplicate sound effects from multi-transport
+        return;
+    }
+    recentSfxPlayed.set(src, now);
     try {
         const audio = getPooledAudio(src);
         audio.currentTime = 0;
         audio.volume = masterVolume;
-        audio.play().catch(() => {});
+        safePlayAudio(audio, src);
     } catch(e) {}
 }
 
@@ -255,7 +479,6 @@ const lightGreen = document.getElementById("light-green");
 const lightRed = document.getElementById("light-red");
 
 let activeSFXList = [];
-let currentDisplaySoundboardAudio = null;
 let tossupTimeoutIds = [];
 let allCells = [];
 let absoluteCells = new Array(52).fill(null);
@@ -434,88 +657,7 @@ function playTimerSound(seconds) {
     playFastSound(filename);
 }
 
-let fadeInterval = null;
-
-function fadeOutTossupMusic(durationMs = 400, resetPosition = false) {
-    if (fadeInterval) {
-        clearInterval(fadeInterval);
-        fadeInterval = null;
-    }
-    if (tossupSound.paused || isMuted) {
-        if (resetPosition) tossupSound.currentTime = 0;
-        return;
-    }
-    const startVolume = tossupSound.volume || masterVolume;
-    const steps = 20;
-    const stepTime = Math.max(10, durationMs / steps);
-    const volumeStep = startVolume / steps;
-
-    fadeInterval = setInterval(() => {
-        if (tossupSound.volume - volumeStep > 0) {
-            tossupSound.volume -= volumeStep;
-        } else {
-            tossupSound.volume = 0;
-            tossupSound.pause();
-            if (resetPosition) {
-                tossupSound.currentTime = 0;
-            }
-            tossupSound.volume = masterVolume;
-            clearInterval(fadeInterval);
-            fadeInterval = null;
-        }
-    }, stepTime);
-}
-
-function playTossupMusic() {
-    if (isMuted || currentQuizIndex === 12) return;
-    cancelDisplayBgmFade();
-    if (fadeInterval) {
-        clearInterval(fadeInterval);
-        fadeInterval = null;
-    }
-    if (!tossupSound.paused && tossupSound.currentTime > 0) {
-        tossupSound.volume = masterVolume;
-        return;
-    }
-    tossupSound.volume = masterVolume; 
-    let playPromise = tossupSound.play();
-    if (playPromise !== undefined) {
-        playPromise.catch(() => {
-            document.body.addEventListener('click', function memoPlay() {
-                if (!isMuted && currentQuizIndex !== 12) tossupSound.play();
-                document.body.removeEventListener('click', memoPlay);
-            }, { once: true });
-        });
-    }
-}
-
-function playRound30Music() {
-    if (isMuted) return;
-    cancelDisplayBgmFade();
-    if (!round30Sound.paused && round30Sound.currentTime > 0) {
-        round30Sound.volume = masterVolume;
-        return;
-    }
-    round30Sound.volume = masterVolume;
-    let playPromise = round30Sound.play();
-    if (playPromise !== undefined) {
-        playPromise.catch(() => {
-            document.body.addEventListener('click', function memoPlay() {
-                if (!isMuted) round30Sound.play();
-                document.body.removeEventListener('click', memoPlay);
-            }, { once: true });
-        });
-    }
-}
-
-function stopRound30Music(resetPosition = true) {
-    cancelDisplayBgmFade();
-    round30Sound.pause();
-    if (resetPosition) {
-        round30Sound.currentTime = 0;
-    }
-    round30Sound.volume = masterVolume;
-}
+// (Hàm fadeOutTossupMusic, playTossupMusic, playRound30Music, stopRound30Music đã được tích hợp tập trung ở phía trên)
 
 // Hàm hỗ trợ ẩn tất cả đèn hiệu ứng màn hình
 function hideAllLights() {
@@ -929,47 +1071,32 @@ function handleControlCommand(payload) {
     }
     else if (type === "STOP_ALL_SFX") {
         cancelDisplayBgmFade();
-        tossupSound.pause(); showSound.pause(); revealSound.pause(); clearPuzzleSound.pause();
-        tossupSound.currentTime = 0; showSound.currentTime = 0; revealSound.currentTime = 0; clearPuzzleSound.currentTime = 0;
-        tossupSound.volume = masterVolume;
-        if (currentDisplaySoundboardAudio) {
-            try { currentDisplaySoundboardAudio.pause(); currentDisplaySoundboardAudio.currentTime = 0; currentDisplaySoundboardAudio.remove(); } catch(e){}
-            currentDisplaySoundboardAudio = null;
-        }
-        activeSFXList.forEach(audio => { try { audio.pause(); audio.currentTime = 0; audio.remove(); } catch (e) {} });
+        stopTossupMusicImmediate();
+        stopRound30Music(true);
+        stopSoundboardAudio();
+        safePauseAudio(showSound, true);
+        safePauseAudio(revealSound, true);
+        safePauseAudio(clearPuzzleSound, true);
+        safePauseAudio(lettersSolvedSound, true);
+        safePauseAudio(correctSound, true);
+        activeSFXList.forEach(audio => { try { audio.pause(); audio.currentTime = 0; } catch (e) {} });
         activeSFXList = [];
+        audioLog("All SFX & BGM stopped");
     }
     else if (type === "PLAY_SOUNDBOARD") {
-        cancelDisplayBgmFade();
-        initAudioPermission();
-        if (currentDisplaySoundboardAudio) {
-            try { currentDisplaySoundboardAudio.pause(); currentDisplaySoundboardAudio.currentTime = 0; currentDisplaySoundboardAudio.remove(); } catch(e){}
-            currentDisplaySoundboardAudio = null;
-        }
         const file = (data && data.file) ? data.file : (typeof data === 'string' ? data : null);
-        if (!isMuted && file) {
-            const sfxAudio = new Audio(file);
-            sfxAudio.volume = masterVolume;
-            currentDisplaySoundboardAudio = sfxAudio;
-            activeSFXList.push(sfxAudio);
-            sfxAudio.play().catch(e => console.log('[Display Soundboard] play error:', e));
-            sfxAudio.onended = () => {
-                if (currentDisplaySoundboardAudio === sfxAudio) currentDisplaySoundboardAudio = null;
-                activeSFXList = activeSFXList.filter(audio => audio !== sfxAudio);
-                sfxAudio.remove();
-            };
-            sfxAudio.onerror = (e) => {
-                console.warn('[Display Soundboard] file error:', file);
-                if (currentDisplaySoundboardAudio === sfxAudio) currentDisplaySoundboardAudio = null;
-            };
+        const playOnDisplay = (data && data.playOnDisplay !== undefined) ? !!data.playOnDisplay : true;
+        if (!playOnDisplay) {
+            audioLog("Skipped on display (delegated to TECH monitor)", file);
+            return;
+        }
+        if (file) {
+            initAudioPermission();
+            playDisplaySoundboard(file, payload.msgId);
         }
     }
     else if (type === "STOP_SOUNDBOARD") {
-        cancelDisplayBgmFade();
-        if (currentDisplaySoundboardAudio) {
-            try { currentDisplaySoundboardAudio.pause(); currentDisplaySoundboardAudio.currentTime = 0; currentDisplaySoundboardAudio.remove(); } catch(e){}
-            currentDisplaySoundboardAudio = null;
-        }
+        stopSoundboardAudio();
     }
     else if (type === "SET_MASTER_VOLUME") {
         const vol = (data && typeof data.volume === 'number') ? data.volume : (typeof data === 'number' ? data : 1.0);
@@ -983,6 +1110,7 @@ function handleControlCommand(payload) {
                 try { a.volume = masterVolume; } catch(e){}
             });
         }
+        audioLog("Master volume updated", `${Math.round(masterVolume * 100)}%`);
     }
     else if (type === "FADE_OUT_BGM") {
         const durationMs = (data && data.durationMs) ? data.durationMs : 2000;
@@ -1372,6 +1500,7 @@ function handleControlCommand(payload) {
 
 let lastProcessedControlTs = 0;
 const processedControlMsgIds = new Set();
+const recentControlCommandSignatures = new Map();
 
 function handleControlCommandWrapper(payload, ts, msgId) {
     if (!payload) return;
@@ -1384,15 +1513,33 @@ function handleControlCommandWrapper(payload, ts, msgId) {
 
     const id = msgId || payload.msgId || payload.id;
     if (id && processedControlMsgIds.has(id)) {
+        audioLog("Deduplicated msgId", id);
         return;
     }
     if (id) {
         processedControlMsgIds.add(id);
-        if (processedControlMsgIds.size > 300) {
+        if (processedControlMsgIds.size > 800) {
             const first = processedControlMsgIds.values().next().value;
             processedControlMsgIds.delete(first);
         }
     }
+
+    // Semantic content deduplication across multiple transports within 350ms window
+    const now = Date.now();
+    const dataSig = payload.data !== undefined ? (typeof payload.data === 'object' ? JSON.stringify(payload.data) : String(payload.data)) : '';
+    const cmdSig = `${type}_${dataSig}`;
+    const lastRun = recentControlCommandSignatures.get(cmdSig);
+    if (lastRun && (now - lastRun < 350)) {
+        audioLog("Deduplicated multi-transport duplicate command", cmdSig);
+        return;
+    }
+    recentControlCommandSignatures.set(cmdSig, now);
+    if (recentControlCommandSignatures.size > 200) {
+        for (const [k, t] of recentControlCommandSignatures.entries()) {
+            if (now - t > 4000) recentControlCommandSignatures.delete(k);
+        }
+    }
+
     handleControlCommand(payload);
 }
 

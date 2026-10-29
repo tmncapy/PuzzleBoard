@@ -1585,6 +1585,7 @@
                         <span id="soundboardStatusBadge" style="padding: 1px 6px; border-radius: 2px; font-size: 9px; font-weight: 800; background: #070a10; color: #94a3b8; border: 1px solid #233149;">SẴN SÀNG</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 4px;">
+                        <button type="button" class="btn-standard" id="btnToggleTechMonitor" style="padding: 2px 7px; font-size: 9px;" onclick="toggleTechAudioMonitor()" title="Bật/Tắt phát âm thanh trực tiếp trên màn hình TECH (Mặc định: Tắt để âm thanh chỉ phát trên Màn hình chính / OBS)">Loa TECH: Tắt</button>
                         <button type="button" class="btn-standard" style="padding: 2px 7px; font-size: 9px;" onclick="refreshSoundboardFiles(true)" title="Quét lại toàn bộ file MP3 trong thư mục dự án">Quét</button>
                         <button type="button" class="btn-standard" id="btnSoundboardFadeOut" style="padding: 2px 7px; font-size: 9px;" onclick="fadeOutSoundboard(2000)" title="Giảm dần âm lượng nhạc về 0 trong 2 giây rồi dừng">Tắt nhạc</button>
                         <button type="button" class="btn-danger-action" style="padding: 2px 7px; font-size: 9px;" onclick="stopSoundboard(true)" title="Dừng âm thanh Soundboard ngay lập tức">Dừng ngay</button>
@@ -3330,16 +3331,18 @@ Link tham gia: ${fullUrl}`;
                     stopSoundboard(false);
                 }
             }
-            const payload = { action: action, type: action, data: data, roomId: roomId };
+            const ts = Date.now();
+            const cmdId = 'cmd_' + ts + '_' + Math.random().toString(36).substr(2, 7);
+            const payload = { action: action, type: action, data: data, roomId: roomId, msgId: cmdId, ts: ts };
             const fullMsg = { 
                 event: 'control-to-display', 
                 payload: payload, 
                 type: action, 
                 action: action, 
                 data: data, 
-                ts: Date.now(), 
+                ts: ts, 
                 roomid: roomId, 
-                msgId: 'cmd_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) 
+                msgId: cmdId 
             };
 
             // Universal Multi-Transport Broadcast (Socket.IO + WebRTC + SSE + REST + BroadcastChannel)
@@ -3347,7 +3350,15 @@ Link tham gia: ${fullUrl}`;
                 try { window.GameSync.send('control-to-display', payload); } catch(e){}
             }
 
-            // 1. Post to Server API for cross-device sync (only if server confirmed available)
+            // Direct BroadcastChannel fallback (with exact same cmdId for deduplication)
+            if (roomBC) {
+                try { roomBC.postMessage(fullMsg); } catch(e){}
+            }
+            if (localBC) {
+                try { localBC.postMessage(fullMsg); } catch(e){}
+            }
+
+            // Post to Server API (only if server confirmed available)
             if (isServerApiAvailable === true) {
                 try {
                     fetch(getApiUrl('api/broadcast'), {
@@ -3358,30 +3369,7 @@ Link tham gia: ${fullUrl}`;
                 } catch(e) {}
             }
 
-            // 2. Supabase Realtime (with robust send / retry for cross-browser sync)
-            [channel, globalChannel].forEach(ch => {
-                if (ch) {
-                    try {
-                        if (ch.state === 'joined') {
-                            ch.send({ type: 'broadcast', event: 'control-to-display', payload: payload, ...fullMsg });
-                        } else {
-                            ch.send({ type: 'broadcast', event: 'control-to-display', payload: payload, ...fullMsg }).catch(() => {
-                                setTimeout(() => { try { ch.send({ type: 'broadcast', event: 'control-to-display', payload: payload, ...fullMsg }); } catch(e){} }, 400);
-                            });
-                        }
-                    } catch(e) {}
-                }
-            });
-
-            // 3. BroadcastChannel
-            if (roomBC) {
-                try { roomBC.postMessage(fullMsg); } catch(e){}
-            }
-            if (localBC) {
-                try { localBC.postMessage(fullMsg); } catch(e){}
-            }
-
-            // 4. LocalStorage
+            // LocalStorage fallback
             try {
                 localStorage.setItem('control-to-display-msg', JSON.stringify(fullMsg));
                 if (roomId) localStorage.setItem('control-to-display-msg_' + roomId, JSON.stringify(fullMsg));
@@ -3704,11 +3692,56 @@ Link tham gia: ${fullUrl}`;
             }
         }
 
+        // Quản lý kiểm âm tại máy TECH (Mặc định: TẮT để Màn hình chính / OBS chịu trách nhiệm phát âm thanh duy nhất)
+        let isTechAudioMonitorEnabled = (function() {
+            try {
+                return localStorage.getItem('crossword_tech_audio_monitor') === '1';
+            } catch(e) {
+                return false;
+            }
+        })();
+
+        function updateTechMonitorUI() {
+            const btn = document.getElementById('btnToggleTechMonitor');
+            if (!btn) return;
+            if (isTechAudioMonitorEnabled) {
+                btn.textContent = "Loa TECH: Bật";
+                btn.style.color = "#38bdf8";
+                btn.style.borderColor = "#0284c7";
+            } else {
+                btn.textContent = "Loa TECH: Tắt";
+                btn.style.color = "#94a3b8";
+                btn.style.borderColor = "#334155";
+            }
+        }
+
+        function toggleTechAudioMonitor() {
+            isTechAudioMonitorEnabled = !isTechAudioMonitorEnabled;
+            try {
+                localStorage.setItem('crossword_tech_audio_monitor', isTechAudioMonitorEnabled ? '1' : '0');
+            } catch(e){}
+            updateTechMonitorUI();
+            if (!isTechAudioMonitorEnabled && activeSoundboardAudio) {
+                try { activeSoundboardAudio.pause(); activeSoundboardAudio.currentTime = 0; } catch(e){}
+                activeSoundboardAudio = null;
+            }
+            showCustomAlert(isTechAudioMonitorEnabled 
+                ? "Đã BẬT Loa TECH (Kiểm âm trực tiếp trên máy điều khiển).\nLưu ý: Màn hình chính sẽ tạm ngưng phát bản này để tránh dội âm thanh."
+                : "Đã TẮT Loa TECH.\nÂm thanh được phát độc quyền qua Màn hình chính (OBS / Khán giả).");
+        }
+
+        let lastSoundboardClickTs = 0;
+
         function playSoundboardFile(file) {
             if (!file) return;
+            const now = Date.now();
+            if (now - lastSoundboardClickTs < 250) {
+                return; // Debounce rapid click
+            }
+            lastSoundboardClickTs = now;
 
             // Toggle behavior: Nếu nhấn lại nút đang phát -> dừng âm thanh và kết thúc
-            if (activeSoundboardFile === file && activeSoundboardAudio && !activeSoundboardAudio.paused) {
+            if (activeSoundboardFile === file) {
                 stopSoundboard(true);
                 return;
             }
@@ -3718,11 +3751,6 @@ Link tham gia: ${fullUrl}`;
             stopSoundboard(false);
 
             const displayName = file.replace(/\.mp3$/i, '');
-            const audioUrl = getApiUrl(file);
-            const audio = new Audio(audioUrl);
-            audio.preload = 'auto';
-            audio.volume = currentMasterVolume; // Áp dụng ngay mức âm lượng hiện tại
-            activeSoundboardAudio = audio;
             activeSoundboardFile = file;
 
             const btnId = getSoundboardId(file);
@@ -3740,31 +3768,40 @@ Link tham gia: ${fullUrl}`;
                 badge.style.borderColor = '#0284c7';
             }
 
-            audio.onended = () => {
-                if (activeSoundboardFile === file) {
+            // CHỈ PHÁT TRÊN LOA TECH NẾU TECH BẬT CHẾ ĐỘ KIỂM ÂM (Mặc định: Tắt để Màn hình chính / OBS phát duy nhất)
+            if (isTechAudioMonitorEnabled) {
+                const audioUrl = getApiUrl(file);
+                const audio = new Audio(audioUrl);
+                audio.preload = 'auto';
+                audio.volume = currentMasterVolume;
+                activeSoundboardAudio = audio;
+
+                audio.onended = () => {
+                    if (activeSoundboardFile === file) {
+                        stopSoundboard(false);
+                    }
+                };
+
+                audio.onerror = (e) => {
+                    console.error(`[Soundboard] Không thể tải file: ${file}`, e);
                     stopSoundboard(false);
-                }
-            };
+                };
 
-            audio.onerror = (e) => {
-                console.error(`[Soundboard] Không thể tải file: ${file}`, e);
-                stopSoundboard(false);
-                showCustomAlert(`Không tìm thấy hoặc lỗi khi tải file âm thanh:\n"${file}"\nVui lòng kiểm tra lại file trong thư mục dự án.`);
-            };
+                audio.play().catch(err => {
+                    if (err.name !== 'AbortError') {
+                        console.warn(`[Soundboard] Lỗi phát âm thanh cho ${file}:`, err);
+                    }
+                });
+            }
 
-            audio.play().catch(err => {
-                console.warn(`[Soundboard] Lỗi phát âm thanh cho ${file}:`, err);
-                stopSoundboard(false);
-                if (err.name === 'NotAllowedError') {
-                    showCustomAlert(`Trình duyệt chặn tự động phát âm thanh. Vui lòng bấm chuột tương tác trên trang trước.`);
-                } else {
-                    showCustomAlert(`Không thể phát file âm thanh "${file}": ${err.message || 'Lỗi không xác định'}`);
-                }
-            });
-
-            // Đồng bộ sang màn hình hiển thị (OBS / Khán giả)
+            // Đồng bộ sang màn hình hiển thị (OBS / Khán giả) - chỉ phát trên Display nếu Loa TECH đang TẮT
             if (typeof sendCmd === 'function') {
-                sendCmd('PLAY_SOUNDBOARD', { button: displayName, file: file, volume: currentMasterVolume });
+                sendCmd('PLAY_SOUNDBOARD', { 
+                    button: displayName, 
+                    file: file, 
+                    volume: currentMasterVolume,
+                    playOnDisplay: !isTechAudioMonitorEnabled 
+                });
             }
         }
 
@@ -3809,6 +3846,7 @@ Link tham gia: ${fullUrl}`;
         window.addEventListener('DOMContentLoaded', () => {
             renderControlBoard();
             updateWWFButtonUI();
+            updateTechMonitorUI();
             updatePlayerUrlDisplay();
             renderTossupSpeedUI();
             renderRound30SpeedUI();

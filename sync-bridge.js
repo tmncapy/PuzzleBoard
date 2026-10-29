@@ -25,13 +25,37 @@
     }
 
     const processedMsgIds = new Set();
-    function isDuplicateMsg(msgId) {
-        if (!msgId) return false;
-        if (processedMsgIds.has(msgId)) return true;
-        processedMsgIds.add(msgId);
-        if (processedMsgIds.size > 500) {
-            const first = processedMsgIds.values().next().value;
-            processedMsgIds.delete(first);
+    const recentCommandSignatures = new Map();
+
+    function isDuplicateMsg(msgId, data) {
+        const now = Date.now();
+        if (msgId) {
+            if (processedMsgIds.has(msgId)) return true;
+            processedMsgIds.add(msgId);
+            if (processedMsgIds.size > 800) {
+                const first = processedMsgIds.values().next().value;
+                processedMsgIds.delete(first);
+            }
+        }
+
+        // Semantic content deduplication across multiple transports within 350ms window
+        if (data && (data.payload || data.action || data.type)) {
+            const p = data.payload || data;
+            const actionType = p.type || p.action || data.event || '';
+            if (actionType && typeof actionType === 'string') {
+                const subKey = p.data !== undefined ? (typeof p.data === 'object' ? JSON.stringify(p.data) : String(p.data)) : '';
+                const sig = `${data.event || ''}_${actionType}_${subKey}`;
+                const lastTs = recentCommandSignatures.get(sig);
+                if (lastTs && (now - lastTs < 350)) {
+                    return true;
+                }
+                recentCommandSignatures.set(sig, now);
+                if (recentCommandSignatures.size > 200) {
+                    for (const [k, t] of recentCommandSignatures.entries()) {
+                        if (now - t > 4000) recentCommandSignatures.delete(k);
+                    }
+                }
+            }
         }
         return false;
     }
@@ -101,7 +125,7 @@
         dispatchMessage(data) {
             if (!data) return;
             const msgId = data.msgId || (data.event + '_' + (data.ts || Date.now()) + '_' + JSON.stringify(data.payload || {}));
-            if (isDuplicateMsg(msgId)) return;
+            if (isDuplicateMsg(msgId, data)) return;
 
             // Room validation: normalize both sides
             const targetRoom = normalizeRoomId(data.roomid || data.roomId);
@@ -331,14 +355,14 @@
 
         // Broadcast a message through ALL active transports
         send(event, payload) {
-            const ts = Date.now();
-            const msgId = 'msg_' + ts + '_' + Math.random().toString(36).substr(2, 6);
+            const ts = (payload && payload.ts) ? payload.ts : Date.now();
+            const msgId = (payload && payload.msgId) ? payload.msgId : ('msg_' + ts + '_' + Math.random().toString(36).substr(2, 6));
             const fullMsg = {
                 event: event,
                 type: event,
                 payload: payload,
                 data: payload ? payload.data : null,
-                action: payload ? payload.action : null,
+                action: payload ? (payload.action || payload.type) : null,
                 ts: ts,
                 msgId: msgId,
                 roomid: this.roomId,
@@ -346,7 +370,7 @@
             };
 
             // Local dispatch prevention
-            isDuplicateMsg(msgId);
+            isDuplicateMsg(msgId, fullMsg);
 
             // A. Socket.IO (only if server connected)
             if (this.socket && this.socket.connected) {
