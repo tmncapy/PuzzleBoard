@@ -429,29 +429,28 @@
 
     <!-- SCREEN 1A: ERROR SCREEN (IF ROOM INACTIVE) -->
     <div id="errorScreen" class="centered-container" style="display: none;">
-        <div class="error-icon">⚠️</div>
+        <div class="error-icon">!</div>
         <h2 id="errorTitle" class="screen-title" style="color: #ff453a;">THIẾU MÃ PHÒNG</h2>
         <p id="errorSubtitle" class="screen-subtitle">
             Vui lòng sử dụng liên kết đầy đủ kèm theo mã phòng được cấp từ Trọng Tài để tham gia trò chơi.<br>
             Ví dụ: <code>player.html?roomid=123456&pass=8888</code>
         </p>
-        <button onclick="showCredentialsModal()" style="margin-top: 15px; background: #eab308; color: #000; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer;">🔑 NHẬP MÃ PHÒNG & PASS</button>
+        <button onclick="showCredentialsModal()" style="margin-top: 15px; background: #eab308; color: #000; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer;">NHẬP MÃ PHÒNG & PASS</button>
     </div>
 
     <!-- SCREEN 1C: ROOM CREDENTIALS / PASS SCREEN -->
     <div id="credentialsScreen" class="centered-container" style="display: none;">
         <div style="background: #18181b; border: 1px solid #3f3f46; border-radius: 16px; padding: 28px 24px; max-width: 380px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.6); text-align: center;">
-            <div style="font-size: 38px; margin-bottom: 8px;">🔒</div>
             <h2 style="color: #f4f4f5; font-size: 19px; font-weight: 800; margin: 0 0 6px 0;">THAM GIA PHÒNG CHƠI</h2>
             <p style="color: #a1a1aa; font-size: 12px; margin: 0 0 18px 0; line-height: 1.4;">Nhập mã phòng và mật khẩu do Trọng tài cung cấp để vào bấm chuông</p>
 
             <div style="text-align: left; margin-bottom: 12px;">
-                <label style="display: block; font-size: 11px; font-weight: 700; color: #fbbf24; text-transform: uppercase; margin-bottom: 5px;">🔑 Mã Phòng (Room ID)</label>
+                <label style="display: block; font-size: 11px; font-weight: 700; color: #fbbf24; text-transform: uppercase; margin-bottom: 5px;">Mã Phòng (Room ID)</label>
                 <input type="text" id="playerRoomIdInput" placeholder="Ví dụ: 123456" style="width: 100%; box-sizing: border-box; background: #27272a; border: 1px solid #52525b; color: #fff; padding: 10px 12px; border-radius: 8px; font-family: monospace; font-size: 15px; font-weight: bold;">
             </div>
 
             <div style="text-align: left; margin-bottom: 16px;">
-                <label style="display: block; font-size: 11px; font-weight: 700; color: #f87171; text-transform: uppercase; margin-bottom: 5px;">🔒 Mật Khẩu (Pass)</label>
+                <label style="display: block; font-size: 11px; font-weight: 700; color: #f87171; text-transform: uppercase; margin-bottom: 5px;">Mật Khẩu (Pass)</label>
                 <input type="text" id="playerPassInput" placeholder="Nhập pass phòng..." style="width: 100%; box-sizing: border-box; background: #27272a; border: 1px solid #52525b; color: #fff; padding: 10px 12px; border-radius: 8px; font-family: monospace; font-size: 15px; font-weight: bold;">
             </div>
 
@@ -469,7 +468,7 @@
         <div class="color-selector-grid">
             <div id="roomLiveStatusBadge" style="grid-column: 1 / -1; display: none; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; color: #fff; text-align: center; margin-bottom: 4px; justify-content: center; align-items: center;"></div>
             <div class="color-card red-card" onclick="selectRole(1)">
-                <div class="color-badge">🔴</div>
+                <div class="color-badge">P1</div>
                 <div class="color-info">
                     <h3>MÀU ĐỎ</h3>
                     <p>Người chơi 1 (Phím điều khiển)</p>
@@ -477,7 +476,7 @@
             </div>
             
             <div class="color-card yellow-card" onclick="selectRole(2)">
-                <div class="color-badge">🟡</div>
+                <div class="color-badge">P2</div>
                 <div class="color-info">
                     <h3>MÀU VÀNG</h3>
                     <p>Người chơi 2 (Phím điều khiển)</p>
@@ -485,7 +484,7 @@
             </div>
             
             <div class="color-card blue-card" onclick="selectRole(3)">
-                <div class="color-badge">🔵</div>
+                <div class="color-badge">P3</div>
                 <div class="color-info">
                     <h3>MÀU XANH</h3>
                     <p>Người chơi 3 (Phím điều khiển)</p>
@@ -504,7 +503,7 @@
             </div>
             <div class="action-btns">
                 <button class="header-btn" onclick="toggleFullScreen()" title="Toàn màn hình">
-                    ⛶ Toàn màn hình
+                    Toàn màn hình
                 </button>
             </div>
         </div>
@@ -705,7 +704,7 @@
             if (el) {
                 el.style.display = "inline-flex";
                 el.style.background = connected ? "#15803d" : "#0284c7";
-                el.innerHTML = connected ? `🟢 ĐÃ KẾT NỐI (Phòng: ${roomId})` : `⚡ SUPABASE CLOUD (Phòng: ${roomId})`;
+                el.innerHTML = connected ? `ĐÃ KẾT NỐI (Phòng: ${roomId})` : `SUPABASE CLOUD (Phòng: ${roomId})`;
             }
         }
 
@@ -1300,7 +1299,7 @@
             pill.style.background = "rgba(34, 197, 94, 0.25)";
             pill.style.borderColor = "#22c55e";
             pill.style.color = "#ffffff";
-            pill.textContent = "🔔 BẠN ĐÃ DÀNH QUYỀN TRẢ LỜI!";
+            pill.textContent = "BẠN ĐÃ DÀNH QUYỀN TRẢ LỜI!";
             hint.textContent = "Đang trong lượt trả lời của bạn";
         }
 
@@ -1318,7 +1317,7 @@
             pill.style.background = "rgba(239, 68, 68, 0.2)";
             pill.style.borderColor = "#ef4444";
             pill.style.color = "#fca5a5";
-            pill.textContent = `🔒 Người chơi màu ${winnerColorName} đã bấm trước!`;
+            pill.textContent = `Người chơi màu ${winnerColorName} đã bấm trước!`;
             hint.textContent = "Chuông đã khóa cho lượt này";
         }
 
@@ -1332,7 +1331,7 @@
             pill.style.background = "rgba(239, 68, 68, 0.15)";
             pill.style.borderColor = "#ef4444";
             pill.style.color = "#f87171";
-            pill.textContent = "🔒 CHUÔNG ĐANG KHÓA";
+            pill.textContent = "CHUÔNG ĐANG KHÓA";
             hint.textContent = reason;
         }
 
@@ -1346,7 +1345,7 @@
             pill.style.background = "rgba(34, 197, 94, 0.2)";
             pill.style.borderColor = "#22c55e";
             pill.style.color = "#4ade80";
-            pill.textContent = "🟢 CHUÔNG ĐÃ MỞ - SẴN SÀNG!";
+            pill.textContent = "CHUÔNG ĐÃ MỞ - SẴN SÀNG!";
             hint.textContent = "Chạm màn hình hoặc phím Cách [Space] để bấm chuông";
         }
 

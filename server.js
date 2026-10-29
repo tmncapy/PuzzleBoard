@@ -17,7 +17,7 @@ const io = new SocketIOServer(server, {
   },
   transports: ['websocket', 'polling']
 });
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json());
 
@@ -505,6 +505,10 @@ app.get('/scoreboard3', (req, res) => {
   res.sendFile(path.join(__dirname, 'scoreboard3.html'));
 });
 
+app.get('/scoreboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'scoreboard.html'));
+});
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -512,4 +516,21 @@ app.get('/', (req, res) => {
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on http://0.0.0.0:${PORT}`);
 });
+
+// If PORT is not 3000 (e.g. Cloud Run PORT=8080), also listen on port 3000 for local / AI Studio internal proxies
+if (PORT !== 3000) {
+  try {
+    const secondaryServer = http.createServer(app);
+    io.attach(secondaryServer);
+    secondaryServer.listen(3000, '0.0.0.0', () => {
+      console.log(`Secondary listener is active on http://0.0.0.0:3000`);
+    });
+    secondaryServer.on('error', (err) => {
+      console.warn('Port 3000 secondary listener notice:', err.message);
+    });
+  } catch (err) {
+    console.warn('Failed to start secondary listener on port 3000:', err);
+  }
+}
+
 

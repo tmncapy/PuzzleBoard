@@ -105,26 +105,87 @@ setTimeout(() => {
 const board = document.getElementById("board");
 
 // Khởi tạo các đối tượng âm thanh hệ thống chính với preload tự động
+let masterVolume = 1.0;
+try {
+    const savedVol = localStorage.getItem('system_master_volume');
+    if (savedVol !== null) {
+        const v = parseFloat(savedVol);
+        if (!isNaN(v) && v >= 0 && v <= 1) masterVolume = v;
+    }
+} catch(e) {}
+
 const showSound = new Audio("Reveal_the_Letters.mp3");
 showSound.preload = "auto";
+showSound.volume = masterVolume;
 const revealSound = new Audio("ClearTossUp.mp3");
 revealSound.preload = "auto";
+revealSound.volume = masterVolume;
 const clearPuzzleSound = new Audio("ClearPuzzle.mp3");
 clearPuzzleSound.preload = "auto";
+clearPuzzleSound.volume = masterVolume;
 const lettersSolvedSound = new Audio("Letters_Solved.mp3");
 lettersSolvedSound.preload = "auto";
+lettersSolvedSound.volume = masterVolume;
 const tossupSound = new Audio("tossup.mp3");
 tossupSound.preload = "auto";
 tossupSound.loop = true;
+tossupSound.volume = masterVolume;
 const round30Sound = new Audio("30s.mp3");
 round30Sound.preload = "auto";
 round30Sound.loop = false;
+round30Sound.volume = masterVolume;
 round30Sound.addEventListener('ended', () => {
     round30Sound.pause();
     round30Sound.currentTime = 0;
 });
 const correctSound = new Audio("Correct.mp3");
 correctSound.preload = "auto";
+correctSound.volume = masterVolume;
+
+// Centralized Fade Out Manager for Display BGM
+let displayBgmFadeInterval = null;
+function cancelDisplayBgmFade() {
+    if (displayBgmFadeInterval) {
+        clearInterval(displayBgmFadeInterval);
+        displayBgmFadeInterval = null;
+    }
+}
+
+function fadeAllBgm(durationMs = 2000) {
+    cancelDisplayBgmFade();
+    const bgmList = [currentDisplaySoundboardAudio, tossupSound, round30Sound].filter(a => a && !a.paused && a.volume > 0.001);
+    if (bgmList.length === 0) return;
+
+    const startVols = bgmList.map(a => a.volume);
+    const steps = 40;
+    const stepTime = Math.max(16, Math.floor(durationMs / steps));
+    let step = 0;
+
+    displayBgmFadeInterval = setInterval(() => {
+        step++;
+        const factor = Math.max(0, 1 - (step / steps));
+        bgmList.forEach((audio, idx) => {
+            if (audio && !audio.paused) {
+                audio.volume = startVols[idx] * factor;
+            }
+        });
+
+        if (step >= steps || factor <= 0.001) {
+            cancelDisplayBgmFade();
+            bgmList.forEach(audio => {
+                try {
+                    audio.pause();
+                    audio.currentTime = 0;
+                    audio.volume = masterVolume;
+                } catch(e) {}
+            });
+            if (currentDisplaySoundboardAudio && bgmList.includes(currentDisplaySoundboardAudio)) {
+                try { currentDisplaySoundboardAudio.remove(); } catch(e){}
+                currentDisplaySoundboardAudio = null;
+            }
+        }
+    }, stepTime);
+}
 
 // --- AUDIO POOL & PRELOAD MANAGER FOR 0MS LATENCY ---
 const audioPool = {};
@@ -136,11 +197,13 @@ function getPooledAudio(src) {
     for (let i = 0; i < pool.length; i++) {
         if (pool[i].paused || pool[i].ended) {
             pool[i].currentTime = 0;
+            pool[i].volume = masterVolume;
             return pool[i];
         }
     }
     const a = new Audio(src);
     a.preload = "auto";
+    a.volume = masterVolume;
     if (pool.length < 5) pool.push(a);
     return a;
 }
@@ -150,6 +213,7 @@ function playFastSound(src) {
     try {
         const audio = getPooledAudio(src);
         audio.currentTime = 0;
+        audio.volume = masterVolume;
         audio.play().catch(() => {});
     } catch(e) {}
 }
@@ -313,13 +377,13 @@ function updateMuteState(muted) {
             return Promise.resolve();
         };
     } else {
-        showSound.volume = 1.0;
-        revealSound.volume = 1.0;
-        clearPuzzleSound.volume = 1.0;
-        lettersSolvedSound.volume = 1.0;
-        tossupSound.volume = 1.0;
-        round30Sound.volume = 1.0;
-        correctSound.volume = 1.0;
+        showSound.volume = masterVolume;
+        revealSound.volume = masterVolume;
+        clearPuzzleSound.volume = masterVolume;
+        lettersSolvedSound.volume = masterVolume;
+        tossupSound.volume = masterVolume;
+        round30Sound.volume = masterVolume;
+        correctSound.volume = masterVolume;
         Audio.prototype.play = originalAudioPlay;
     }
 }
@@ -381,7 +445,7 @@ function fadeOutTossupMusic(durationMs = 400, resetPosition = false) {
         if (resetPosition) tossupSound.currentTime = 0;
         return;
     }
-    const startVolume = tossupSound.volume || 1.0;
+    const startVolume = tossupSound.volume || masterVolume;
     const steps = 20;
     const stepTime = Math.max(10, durationMs / steps);
     const volumeStep = startVolume / steps;
@@ -395,7 +459,7 @@ function fadeOutTossupMusic(durationMs = 400, resetPosition = false) {
             if (resetPosition) {
                 tossupSound.currentTime = 0;
             }
-            tossupSound.volume = 1.0;
+            tossupSound.volume = masterVolume;
             clearInterval(fadeInterval);
             fadeInterval = null;
         }
@@ -404,15 +468,16 @@ function fadeOutTossupMusic(durationMs = 400, resetPosition = false) {
 
 function playTossupMusic() {
     if (isMuted || currentQuizIndex === 12) return;
+    cancelDisplayBgmFade();
     if (fadeInterval) {
         clearInterval(fadeInterval);
         fadeInterval = null;
     }
     if (!tossupSound.paused && tossupSound.currentTime > 0) {
-        tossupSound.volume = 1.0;
+        tossupSound.volume = masterVolume;
         return;
     }
-    tossupSound.volume = 1.0; 
+    tossupSound.volume = masterVolume; 
     let playPromise = tossupSound.play();
     if (playPromise !== undefined) {
         playPromise.catch(() => {
@@ -426,11 +491,12 @@ function playTossupMusic() {
 
 function playRound30Music() {
     if (isMuted) return;
+    cancelDisplayBgmFade();
     if (!round30Sound.paused && round30Sound.currentTime > 0) {
-        round30Sound.volume = 1.0;
+        round30Sound.volume = masterVolume;
         return;
     }
-    round30Sound.volume = 1.0;
+    round30Sound.volume = masterVolume;
     let playPromise = round30Sound.play();
     if (playPromise !== undefined) {
         playPromise.catch(() => {
@@ -443,10 +509,12 @@ function playRound30Music() {
 }
 
 function stopRound30Music(resetPosition = true) {
+    cancelDisplayBgmFade();
     round30Sound.pause();
     if (resetPosition) {
         round30Sound.currentTime = 0;
     }
+    round30Sound.volume = masterVolume;
 }
 
 // Hàm hỗ trợ ẩn tất cả đèn hiệu ứng màn hình
@@ -807,6 +875,7 @@ function handleControlCommand(payload) {
         initAudioPermission();
         if (!isMuted && data) {
             const sfxAudio = new Audio(data);
+            sfxAudio.volume = masterVolume;
             activeSFXList.push(sfxAudio);
             sfxAudio.play().catch(e => console.log(e));
             sfxAudio.onended = () => {
@@ -859,9 +928,10 @@ function handleControlCommand(payload) {
         }
     }
     else if (type === "STOP_ALL_SFX") {
+        cancelDisplayBgmFade();
         tossupSound.pause(); showSound.pause(); revealSound.pause(); clearPuzzleSound.pause();
         tossupSound.currentTime = 0; showSound.currentTime = 0; revealSound.currentTime = 0; clearPuzzleSound.currentTime = 0;
-        tossupSound.volume = 1.0;
+        tossupSound.volume = masterVolume;
         if (currentDisplaySoundboardAudio) {
             try { currentDisplaySoundboardAudio.pause(); currentDisplaySoundboardAudio.currentTime = 0; currentDisplaySoundboardAudio.remove(); } catch(e){}
             currentDisplaySoundboardAudio = null;
@@ -870,6 +940,7 @@ function handleControlCommand(payload) {
         activeSFXList = [];
     }
     else if (type === "PLAY_SOUNDBOARD") {
+        cancelDisplayBgmFade();
         initAudioPermission();
         if (currentDisplaySoundboardAudio) {
             try { currentDisplaySoundboardAudio.pause(); currentDisplaySoundboardAudio.currentTime = 0; currentDisplaySoundboardAudio.remove(); } catch(e){}
@@ -878,6 +949,7 @@ function handleControlCommand(payload) {
         const file = (data && data.file) ? data.file : (typeof data === 'string' ? data : null);
         if (!isMuted && file) {
             const sfxAudio = new Audio(file);
+            sfxAudio.volume = masterVolume;
             currentDisplaySoundboardAudio = sfxAudio;
             activeSFXList.push(sfxAudio);
             sfxAudio.play().catch(e => console.log('[Display Soundboard] play error:', e));
@@ -893,10 +965,28 @@ function handleControlCommand(payload) {
         }
     }
     else if (type === "STOP_SOUNDBOARD") {
+        cancelDisplayBgmFade();
         if (currentDisplaySoundboardAudio) {
             try { currentDisplaySoundboardAudio.pause(); currentDisplaySoundboardAudio.currentTime = 0; currentDisplaySoundboardAudio.remove(); } catch(e){}
             currentDisplaySoundboardAudio = null;
         }
+    }
+    else if (type === "SET_MASTER_VOLUME") {
+        const vol = (data && typeof data.volume === 'number') ? data.volume : (typeof data === 'number' ? data : 1.0);
+        masterVolume = Math.max(0, Math.min(1, vol));
+        try { localStorage.setItem('system_master_volume', masterVolume.toString()); } catch(e){}
+        if (!isMuted) {
+            if (tossupSound) tossupSound.volume = masterVolume;
+            if (round30Sound) round30Sound.volume = masterVolume;
+            if (currentDisplaySoundboardAudio) currentDisplaySoundboardAudio.volume = masterVolume;
+            activeSFXList.forEach(a => {
+                try { a.volume = masterVolume; } catch(e){}
+            });
+        }
+    }
+    else if (type === "FADE_OUT_BGM") {
+        const durationMs = (data && data.durationMs) ? data.durationMs : 2000;
+        fadeAllBgm(durationMs);
     }
     else if (type === "GUESS_LETTER" || type === "CHOOSE_LETTER") {
         initAudioPermission();

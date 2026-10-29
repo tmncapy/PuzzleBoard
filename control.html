@@ -958,9 +958,60 @@
             cursor: pointer;
         }
 
-        /* Soundboard Panel Styles (Compact & Space-Saving) */
+        /* Master Volume Control Bar (Minimalist & Professional) */
+        .master-volume-control-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #080d16;
+            border: 1px solid #1a2538;
+            border-radius: 3px;
+            padding: 4px 6px;
+            margin-bottom: 4px;
+        }
+        .vol-control-label {
+            font-size: 9.5px;
+            font-weight: 800;
+            color: #94a3b8;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .master-vol-range {
+            flex: 1;
+            height: 4px;
+            accent-color: #38bdf8;
+            background: #1e293b;
+            border-radius: 2px;
+            cursor: pointer;
+            outline: none;
+        }
+        .vol-control-percent {
+            font-size: 10.5px;
+            font-weight: 800;
+            color: #38bdf8;
+            min-width: 34px;
+            text-align: right;
+        }
+        .btn-vol-preset {
+            background: #0f172a;
+            color: #94a3b8;
+            border: 1px solid #1e293b;
+            border-radius: 2px;
+            padding: 1px 4px;
+            font-size: 8.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.12s ease;
+        }
+        .btn-vol-preset:hover {
+            background: #1e293b;
+            color: #f1f5f9;
+            border-color: #38bdf8;
+        }
+
+        /* Soundboard Panel Styles (Compact & Minimalist) */
         .soundboard-scroll-container {
-            max-height: 185px;
+            max-height: 180px;
             overflow-y: auto;
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -981,10 +1032,10 @@
             background: #38bdf8;
         }
         .btn-soundboard {
-            background: #131b29;
-            border: 1px solid #233149;
-            border-radius: 2px;
-            padding: 3px 2px;
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 3px;
+            padding: 4px 3px;
             color: #e2e8f0;
             cursor: pointer;
             font-family: inherit;
@@ -994,68 +1045,61 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 33px;
+            min-height: 32px;
             position: relative;
             overflow: hidden;
             user-select: none;
         }
         .btn-soundboard:hover {
-            background: #1a2538;
+            background: #1e293b;
             border-color: #38bdf8;
-            transform: translateY(-1px);
+            color: #fff;
         }
         .btn-soundboard:active {
-            transform: translateY(0);
+            background: #090d16;
         }
         .btn-soundboard.sb-playing {
-            background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%) !important;
+            background: #0c4a6e !important;
             border-color: #38bdf8 !important;
-            box-shadow: 0 0 8px rgba(56, 189, 248, 0.4), inset 0 0 6px rgba(56, 189, 248, 0.2);
-            animation: sbPulse 1.2s infinite alternate;
-        }
-        @keyframes sbPulse {
-            from { border-color: #38bdf8; box-shadow: 0 0 4px rgba(56, 189, 248, 0.3); }
-            to { border-color: #7dd3fc; box-shadow: 0 0 10px rgba(56, 189, 248, 0.6); }
-        }
-        .sb-icon {
-            font-size: 10px;
-            line-height: 1;
-            margin-bottom: 1px;
+            color: #fff !important;
+            box-shadow: inset 0 0 4px rgba(56, 189, 248, 0.4);
         }
         .sb-name {
-            font-size: 8.5px;
+            font-size: 9px;
             font-weight: 700;
-            color: #fff;
+            color: #f8fafc;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             max-width: 100%;
-            line-height: 1.1;
+            line-height: 1.2;
         }
         .btn-soundboard.sb-playing .sb-name {
             color: #38bdf8;
+            font-weight: 800;
         }
         .sb-file {
-            font-size: 7px;
+            font-size: 7.5px;
             color: #64748b;
             font-family: monospace;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             max-width: 100%;
-            line-height: 1;
+            line-height: 1.1;
             margin-top: 1px;
         }
         .btn-soundboard.sb-playing .sb-file {
             color: #bae6fd;
         }
         .sb-state {
-            font-size: 6.5px;
+            font-size: 7.5px;
             font-weight: 800;
             color: #34d399;
             margin-top: 1px;
-            min-height: 8px;
+            min-height: 9px;
             line-height: 1;
+            text-transform: uppercase;
         }
     </style>
 </head>
@@ -1081,16 +1125,16 @@
         </div>
         <div class="master-header-right">
             <a id="audienceLinkBtn" class="btn-link btn-live-audience" href="index.html" target="_blank" title="Mở cổng phát hình trực tiếp ra màn hình lớn/OBS/Khán giả">
-                📺 KHÁN GIẢ
+                Khán giả
             </a>
-            <a id="headerS1Link" class="btn-scoreboard-quick btn-s1-quick" href="scoreboard1.html" target="_blank" title="Scoreboard 1 (Đỏ)">📊 S1 (ĐỎ)</a>
-            <a id="headerS2Link" class="btn-scoreboard-quick btn-s2-quick" href="scoreboard2.html" target="_blank" title="Scoreboard 2 (Vàng)">📊 S2 (VÀNG)</a>
-            <a id="headerS3Link" class="btn-scoreboard-quick btn-s3-quick" href="scoreboard3.html" target="_blank" title="Scoreboard 3 (Lam)">📊 S3 (LAM)</a>
+            <a id="headerS1Link" class="btn-scoreboard-quick btn-s1-quick" href="scoreboard1.html" target="_blank" title="Scoreboard 1 (Đỏ)">S1 (Đỏ)</a>
+            <a id="headerS2Link" class="btn-scoreboard-quick btn-s2-quick" href="scoreboard2.html" target="_blank" title="Scoreboard 2 (Vàng)">S2 (Vàng)</a>
+            <a id="headerS3Link" class="btn-scoreboard-quick btn-s3-quick" href="scoreboard3.html" target="_blank" title="Scoreboard 3 (Lam)">S3 (Lam)</a>
             <a id="headerP1Link" class="btn-player-quick btn-p1-quick" href="player.html?p=1" target="_blank">P1</a>
             <a id="headerP2Link" class="btn-player-quick btn-p2-quick" href="player.html?p=2" target="_blank">P2</a>
             <a id="headerP3Link" class="btn-player-quick btn-p3-quick" href="player.html?p=3" target="_blank">P3</a>
             <button type="button" class="btn-emergency-stop" onclick="sendCmd('STOP_ALL_SFX')" title="Ngắt khẩn cấp toàn bộ hiệu ứng âm thanh đang phát">
-                🛑 DỪNG SFX
+                Dừng SFX
             </button>
         </div>
     </header>
@@ -1100,20 +1144,20 @@
         <div style="display: flex; gap: 6px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
             <div style="display: flex; gap: 6px; align-items: center; flex: 1; min-width: 320px;">
                 <span style="font-weight: 800; color: var(--cyan-bright); font-size: 10.5px; text-transform: uppercase; white-space: nowrap;">
-                    📡 ĐỒNG BỘ:
+                    ĐỒNG BỘ:
                 </span>
                 <input id="inputDomain" class="tech-input" type="text" placeholder="Domain host" oninput="updatePlayerUrlDisplay()" style="flex: 1.5; min-width: 120px; padding: 2px 5px; font-size: 11px;" title="Domain hoặc Host">
-                <button type="button" class="btn-main" onclick="resetDomainToCurrent(true)" style="font-size: 10px; padding: 3px 6px; background: #0891b2; border-color: #06b6d4;" title="Tự động lấy link URL hiện tại">🔄 Auto</button>
+                <button type="button" class="btn-main" onclick="resetDomainToCurrent(true)" style="font-size: 10px; padding: 3px 6px; background: #0891b2; border-color: #06b6d4;" title="Tự động lấy link URL hiện tại">Tự động</button>
                 <input id="inputRoomId" class="tech-input" type="text" placeholder="Phòng" style="width: 75px; color: #fbbf24; font-weight: bold; padding: 2px 5px; font-size: 11px;" oninput="updatePlayerUrlDisplay()" title="Mã phòng">
                 <input id="inputRoomPass" class="tech-input" type="text" placeholder="Pass" style="width: 60px; color: #f87171; font-weight: bold; padding: 2px 5px; font-size: 11px;" oninput="updatePlayerUrlDisplay()" title="Mật khẩu phòng">
-                <button type="button" class="btn-main" onclick="saveRoomCredentials(true)" style="font-size: 10px; padding: 3px 7px;">💾 Lưu</button>
+                <button type="button" class="btn-main" onclick="saveRoomCredentials(true)" style="font-size: 10px; padding: 3px 7px;">Lưu</button>
             </div>
             <div style="display: flex; gap: 4px; align-items: center;">
                 <input id="playerFullUrlInput" class="tech-input" readonly style="width: 170px; color: #34d399; cursor: pointer; padding: 2px 5px; font-size: 10.5px;" onclick="this.select()" title="Click để chọn link player">
-                <button type="button" class="btn-tossup" onclick="copyPlayerInvitationWithDetails()" style="font-size: 10px; padding: 3px 6px;">📋 Full Info</button>
-                <button type="button" class="btn-reveal" onclick="copyPlayerLink(1)" style="font-size: 10px; padding: 3px 5px;">🔴 P1</button>
-                <button type="button" class="btn-tossup" onclick="copyPlayerLink(2)" style="font-size: 10px; padding: 3px 5px;">🟡 P2</button>
-                <button type="button" style="background: #1d4ed8; color: #fff; border-color: #3b82f6; font-size: 10px; padding: 3px 5px;" onclick="copyPlayerLink(3)">🔵 P3</button>
+                <button type="button" class="btn-tossup" onclick="copyPlayerInvitationWithDetails()" style="font-size: 10px; padding: 3px 6px;">Sao chép thông tin</button>
+                <button type="button" class="btn-reveal" onclick="copyPlayerLink(1)" style="font-size: 10px; padding: 3px 5px;">P1</button>
+                <button type="button" class="btn-tossup" onclick="copyPlayerLink(2)" style="font-size: 10px; padding: 3px 5px;">P2</button>
+                <button type="button" style="background: #1d4ed8; color: #fff; border-color: #3b82f6; font-size: 10px; padding: 3px 5px;" onclick="copyPlayerLink(3)">P3</button>
             </div>
         </div>
     </div>
@@ -1126,11 +1170,11 @@
             <!-- Deck 1: Nạp File Excel & Chọn Đề Thi -->
             <div class="console-panel">
                 <div class="console-panel-header">
-                    <h2 class="console-panel-title">📊 NẠP FILE EXCEL & CHỌN ĐỀ</h2>
+                    <h2 class="console-panel-title">NẠP FILE EXCEL & CHỌN ĐỀ</h2>
                 </div>
                 <div class="console-panel-body">
                     <button type="button" class="btn-excel" style="width: 100%; padding: 4px 0; margin-bottom: 4px; font-size: 10px;" onclick="document.getElementById('excelInput').click()">
-                        📁 TẢI LÊN FILE EXCEL (.xlsx)
+                        TẢI LÊN FILE EXCEL (.xlsx)
                     </button>
                     <input type="file" id="excelInput" accept=".xlsx, .xls" style="display:none;" onchange="handleExcel(this)">
 
@@ -1145,7 +1189,7 @@
                         </script>
                     </div>
                     <button type="button" class="btn-quiz-item" id="btnQuiz13" style="width: 100%; background: #b45309; color: #fff; border-color: #f59e0b; font-weight: 800; padding: 4px 0; margin-top: 2px; font-size: 10px;" onclick="loadQuizFromExcel(12)">
-                        ⏱️ ĐỀ 13 (VÒNG 30S LIÊN HOÀN)
+                        ĐỀ 13 (VÒNG 30S LIÊN HOÀN)
                     </button>
                 </div>
             </div>
@@ -1153,12 +1197,12 @@
             <!-- Deck 2: Nhập Văn Bản Trực Tiếp -->
             <div class="console-panel">
                 <div class="console-panel-header">
-                    <h2 class="console-panel-title">✍️ NHẬP VĂN BẢN TRỰC TIẾP</h2>
+                    <h2 class="console-panel-title">NHẬP VĂN BẢN TRỰC TIẾP</h2>
                 </div>
                 <div class="console-panel-body">
                     <textarea id="manualTextInput" style="width: 100%; height: 38px; background: #070a10; border: 1px solid #233149; color: #38bdf8; padding: 3px; font-size: 10px; border-radius: 2px; resize: none; text-transform: uppercase; font-family: ui-monospace, monospace;" placeholder="DÒNG 1 (MAX 12 CHỮ)&#10;DÒNG 2 (MAX 14 CHỮ)&#10;DÒNG 3 (MAX 14 CHỮ)&#10;DÒNG 4 (MAX 12 CHỮ)"></textarea>
                     <button type="button" class="btn-main" style="width: 100%; padding: 3px 0; margin-top: 3px; font-size: 10px;" onclick="sendManualText()">
-                        SHOW LÊN BẢNG Ô CHỮ
+                        HIỂN THỊ LÊN BẢNG
                     </button>
                 </div>
             </div>
@@ -1166,7 +1210,7 @@
             <!-- Deck 3: Xem Trước Đề Đang Chọn -->
             <div class="console-panel" style="flex: 1; min-height: 80px;">
                 <div class="console-panel-header">
-                    <h2 class="console-panel-title">🔍 XEM TRƯỚC ĐỀ (PREVIEW)</h2>
+                    <h2 class="console-panel-title">XEM TRƯỚC ĐỀ (PREVIEW)</h2>
                 </div>
                 <div class="console-panel-body" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 3px 5px;">
                     <div style="display: flex; gap: 2px; flex-wrap: wrap; margin-bottom: 3px;">
@@ -1192,16 +1236,16 @@
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <span style="font-size: 12px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
                             <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 5px #ef4444;"></span>
-                            📺 BẢNG Ô CHỮ TRỰC TIẾP (AIR MONITOR)
+                            BẢNG Ô CHỮ TRỰC TIẾP (AIR MONITOR)
                         </span>
                         <span id="ctrlBoardQuizBadge" class="ctrl-badge-quiz">ĐỀ 1</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 4px;">
                         <button type="button" class="ctrl-board-opt-btn" id="btnTogglePeek" onclick="toggleHostPeek()" title="Bật/Tắt xem trước chữ cái đang ẩn cho kỹ thuật">
-                            👁️ Soi chữ: TẮT
+                            Soi chữ: Tắt
                         </button>
                         <button type="button" class="ctrl-board-opt-btn" id="btnToggleCellIdx" onclick="toggleCellIndex()" title="Bật/Tắt số thứ tự ô (1-52)">
-                            🔢 Số ô: TẮT
+                            Số ô: Tắt
                         </button>
                     </div>
                 </div>
@@ -1209,19 +1253,19 @@
                 <div class="console-panel-body">
                     <!-- Thanh chọn chế độ click -->
                     <div class="ctrl-mode-bar">
-                        <span class="ctrl-mode-label">👆 THAO TÁC KHI CLICK Ô:</span>
+                        <span class="ctrl-mode-label">THAO TÁC KHI CLICK Ô:</span>
                         <div class="ctrl-mode-buttons">
                             <button type="button" class="btn-click-mode active" id="btnModeReveal" data-mode="reveal" onclick="setClickMode('reveal')">
-                                ⚡ MỞ Ô (REVEAL)
+                                Mở ô
                             </button>
                             <button type="button" class="btn-click-mode" id="btnModeMark" data-mode="mark" onclick="setClickMode('mark')">
-                                ✨ ĐÁNH DẤU (DẤU)
+                                Đánh dấu
                             </button>
                             <button type="button" class="btn-click-mode" id="btnModeRevealSame" data-mode="reveal_same" onclick="setClickMode('reveal_same')">
-                                🔤 MỞ HẾT CHỮ NÀY
+                                Mở hết chữ này
                             </button>
                             <button type="button" class="btn-click-mode" id="btnModeHide" data-mode="hide" onclick="setClickMode('hide')">
-                                🔒 ĐÓNG Ô (ẨN)
+                                Đóng ô
                             </button>
                         </div>
                         <span class="ctrl-mode-hint">(Chuột phải: đổi trạng thái nhanh)</span>
@@ -1245,13 +1289,13 @@
                         </div>
                         <div style="display: flex; gap: 4px;">
                             <button type="button" class="btn-board-quick btn-reveal" onclick="sendCmd('REVEAL_ALL'); setControlBuzzerOpen(false); controlRevealAllLocally();" title="Mở toàn bộ ô chữ trên bảng">
-                                🔓 MỞ TOÀN BẢNG
+                                Mở toàn bảng
                             </button>
                             <button type="button" class="btn-board-quick" style="background: #1e293b; color: #fff; border-color: #334155;" onclick="sendCmd('SHOW_BOARD'); controlShowBoardLocally();" title="Hiện khung trắng tất cả ô chữ cho người chơi đoán">
-                                🎬 SHOW LẠI Ô CHỮ
+                                Hiện lại ô chữ
                             </button>
                             <button type="button" class="btn-board-quick btn-reset" onclick="sendCmd('RESET_BOARD'); setControlBuzzerOpen(false); controlResetBoardLocally();" title="Reset bảng về trạng thái ban đầu">
-                                ♻️ RESET BẢNG
+                                Làm mới bảng
                             </button>
                         </div>
                     </div>
@@ -1259,7 +1303,7 @@
                     <!-- Thống kê chữ cái và danh sách chip mở theo chữ -->
                     <div class="ctrl-puzzle-chips-container">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
-                            <span style="font-size: 10px; color: #fbbf24; font-weight: 800; text-transform: uppercase;">🔤 CHỮ CÁI TRONG Ô CHỮ (CLICK ĐỂ MỞ TẤT CẢ):</span>
+                            <span style="font-size: 10px; color: #fbbf24; font-weight: 800; text-transform: uppercase;">CHỮ CÁI TRONG Ô CHỮ (CLICK ĐỂ MỞ TẤT CẢ):</span>
                             <span id="ctrlBoardStatsText" class="font-mono" style="font-size: 10px; color: #38bdf8; font-weight: 700;">Tổng: 0 chữ | Đã mở: 0</span>
                         </div>
                         <div id="ctrlLetterChipsList" class="ctrl-chips-list">
@@ -1272,14 +1316,14 @@
             <!-- VÒNG TOSS-UP CHUẨN -->
             <div class="console-panel" id="standardTossupSection">
                 <div class="console-panel-header">
-                    <h2 class="console-panel-title">⚡ ĐIỀU KHIỂN VÒNG TOSS-UP</h2>
+                    <h2 class="console-panel-title">ĐIỀU KHIỂN VÒNG TOSS-UP</h2>
                 </div>
                 <div class="console-panel-body">
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1.6fr; gap: 4px; margin-bottom: 4px;">
-                        <button type="button" class="btn-tossup" id="startBtn" style="padding: 5px 0; font-weight: 800;" onclick="clickStartTossup()">▶️ START</button>
-                        <button type="button" class="btn-tossup" id="pauseBtn" style="padding: 5px 0; font-weight: 800;" onclick="clickPauseTossup()">⏸️ PAUSE</button>
-                        <button type="button" class="btn-tossup" id="playBtn" style="padding: 5px 0; font-weight: 800;" onclick="clickPlayTossup()">▶️ PLAY</button>
-                        <button type="button" class="btn-solve" id="solveBtn" style="padding: 5px 0; font-weight: 800;" onclick="solveTossUp()">💡 GIẢI ĐÁP (SOLVE)</button>
+                        <button type="button" class="btn-tossup" id="startBtn" style="padding: 5px 0; font-weight: 800;" onclick="clickStartTossup()">Bắt đầu</button>
+                        <button type="button" class="btn-tossup" id="pauseBtn" style="padding: 5px 0; font-weight: 800;" onclick="clickPauseTossup()">Tạm dừng</button>
+                        <button type="button" class="btn-tossup" id="playBtn" style="padding: 5px 0; font-weight: 800;" onclick="clickPlayTossup()">Tiếp tục</button>
+                        <button type="button" class="btn-solve" id="solveBtn" style="padding: 5px 0; font-weight: 800;" onclick="solveTossUp()">Giải đáp</button>
                     </div>
 
                     <!-- Cài đặt tốc độ lật chữ Toss-Up -->
@@ -1305,7 +1349,7 @@
             <!-- VÒNG 30 GIÂY (ĐỀ 13) -->
             <div class="console-panel" id="round30Section" style="display: none; border-left: 3px solid #f59e0b;">
                 <div class="console-panel-header">
-                    <h2 class="console-panel-title">⏱️ VÒNG 30 GIÂY LIÊN HOÀN (ĐỀ 13)</h2>
+                    <h2 class="console-panel-title">VÒNG 30 GIÂY LIÊN HOÀN (ĐỀ 13)</h2>
                 </div>
                 <div class="console-panel-body">
                     <div style="background: #080d16; border-radius: 3px; padding: 3px 6px; margin-bottom: 4px; border: 1px solid #1a2538; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
@@ -1315,14 +1359,14 @@
                             <div id="round30ProgressBar" style="width: 100%; height: 100%; background: #10b981; transition: width 0.1s linear;"></div>
                         </div>
                         <span id="round30SubBadgeCtrl" style="background: #059669; color: white; padding: 1px 5px; border-radius: 2px; font-size: 9.5px; font-weight: bold;">Ô 1/8</span>
-                        <button type="button" class="btn-reset" style="padding: 2px 5px; font-size: 9.5px;" onclick="resetRound30Timer()">🔄 RESET</button>
+                        <button type="button" class="btn-reset" style="padding: 2px 5px; font-size: 9.5px;" onclick="resetRound30Timer()">Làm mới</button>
                     </div>
 
                     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; margin-bottom: 4px;">
-                        <button type="button" id="btnRound30Start" class="btn-main" style="padding: 4px 0; font-size: 10px;" onclick="startRound30()">▶️ BẮT ĐẦU</button>
-                        <button type="button" id="btnRound30Pause" class="btn-tossup" style="padding: 4px 0; font-size: 10px;" onclick="togglePauseRound30()">⏸️ TẠM DỪNG</button>
-                        <button type="button" style="background: #0284c7; color: white; border-color: #0369a1; padding: 4px 0; font-size: 10px;" onclick="revealRound30Answer()">💡 ĐÁP ÁN</button>
-                        <button type="button" style="background: #6366f1; color: white; border-color: #4f46e5; padding: 4px 0; font-size: 10px;" onclick="nextRound30Puzzle()">⏭️ Ô TIẾP</button>
+                        <button type="button" id="btnRound30Start" class="btn-main" style="padding: 4px 0; font-size: 10px;" onclick="startRound30()">Bắt đầu</button>
+                        <button type="button" id="btnRound30Pause" class="btn-tossup" style="padding: 4px 0; font-size: 10px;" onclick="togglePauseRound30()">Tạm dừng</button>
+                        <button type="button" style="background: #0284c7; color: white; border-color: #0369a1; padding: 4px 0; font-size: 10px;" onclick="revealRound30Answer()">Đáp án</button>
+                        <button type="button" style="background: #6366f1; color: white; border-color: #4f46e5; padding: 4px 0; font-size: 10px;" onclick="nextRound30Puzzle()">Ô tiếp theo</button>
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 3px; margin-bottom: 4px;">
@@ -1331,10 +1375,10 @@
                     </div>
 
                     <div style="background: #080d16; padding: 3px 6px; border-radius: 2px; border-left: 3px solid #f59e0b; margin-bottom: 4px; font-size: 10.5px; display: flex; justify-content: space-between; align-items: center;">
-                        <div><span style="color: #fbbf24; font-weight: bold;">🔑 ĐÁP ÁN:</span> <span id="round30AnswerText" style="font-weight: bold; color: #fff;">...</span></div>
+                        <div><span style="color: #fbbf24; font-weight: bold;">ĐÁP ÁN:</span> <span id="round30AnswerText" style="font-weight: bold; color: #fff;">...</span></div>
                         <div style="display: flex; gap: 3px;">
-                            <button type="button" onclick="handleRound30Result(true)" class="btn-main" style="padding: 2px 6px; font-size: 9.5px;">✅ ĐÚNG (+1k)</button>
-                            <button type="button" onclick="handleRound30Result(false)" class="btn-reveal" style="padding: 2px 6px; font-size: 9.5px;">❌ SAI</button>
+                            <button type="button" onclick="handleRound30Result(true)" class="btn-main" style="padding: 2px 6px; font-size: 9.5px;">Đúng (+1k)</button>
+                            <button type="button" onclick="handleRound30Result(false)" class="btn-reveal" style="padding: 2px 6px; font-size: 9.5px;">Sai</button>
                         </div>
                     </div>
 
@@ -1362,17 +1406,17 @@
             <!-- 1. BẢNG ĐIỂM & CHUÔNG BÁO (3 NGƯỜI CHƠI XẾP HÀNG NGANG) -->
             <div class="console-panel">
                 <div class="console-panel-header">
-                    <h2 class="console-panel-title">👥 BẢNG ĐIỂM & CHUÔNG BÁO</h2>
+                    <h2 class="console-panel-title">BẢNG ĐIỂM & CHUÔNG BÁO</h2>
                     <div id="buzzerStateBadge" style="padding: 2px 7px; border-radius: 3px; font-size: 9.5px; font-weight: 800; background: #070a10; color: #f87171; border: 1px solid #233149;">
-                        🔒 Chuông Khóa
+                        Chuông khóa
                     </div>
                 </div>
 
                 <div class="console-panel-body">
                     <!-- Buzzer Alert Box -->
                     <div id="controlBuzzerBox" style="display: none; background: #dc2626; color: white; padding: 3px 6px; border-radius: 3px; margin-bottom: 3px; font-weight: bold; align-items: center; justify-content: space-between;">
-                        <span id="controlBuzzerText" style="font-size: 10px;">🔔 P1 ĐÃ BẤM CHUÔNG!</span>
-                        <button type="button" onclick="clearControlBuzzer()" style="background: white; color: #000; border: none; padding: 1px 5px; border-radius: 2px; font-size: 9px; font-weight: bold; cursor: pointer;">TẮT BÁO</button>
+                        <span id="controlBuzzerText" style="font-size: 10px;">P1 đã bấm chuông!</span>
+                        <button type="button" onclick="clearControlBuzzer()" style="background: white; color: #000; border: none; padding: 1px 5px; border-radius: 2px; font-size: 9px; font-weight: bold; cursor: pointer;">Tắt báo</button>
                     </div>
 
                     <!-- 3 Người chơi xếp hàng ngang compact -->
@@ -1380,7 +1424,7 @@
                         <!-- Player 1: Đỏ -->
                         <div class="player-ctrl-card p1-card">
                             <div class="player-card-header">
-                                <span class="p1-text">🔴 P1 (ĐỎ)</span>
+                                <span class="p1-text">P1 (Đỏ)</span>
                             </div>
                             <div class="player-card-inputs">
                                 <input type="text" id="pName1" class="ctrl-input p-name-input" value="Player 1" placeholder="Tên P1" oninput="updateScoreboard()">
@@ -1405,7 +1449,7 @@
                         <!-- Player 2: Vàng -->
                         <div class="player-ctrl-card p2-card">
                             <div class="player-card-header">
-                                <span class="p2-text">🟡 P2 (VÀNG)</span>
+                                <span class="p2-text">P2 (Vàng)</span>
                             </div>
                             <div class="player-card-inputs">
                                 <input type="text" id="pName2" class="ctrl-input p-name-input" value="Player 2" placeholder="Tên P2" oninput="updateScoreboard()">
@@ -1430,7 +1474,7 @@
                         <!-- Player 3: Lam -->
                         <div class="player-ctrl-card p3-card">
                             <div class="player-card-header">
-                                <span class="p3-text">🔵 P3 (LAM)</span>
+                                <span class="p3-text">P3 (Lam)</span>
                             </div>
                             <div class="player-card-inputs">
                                 <input type="text" id="pName3" class="ctrl-input p-name-input" value="Player 3" placeholder="Tên P3" oninput="updateScoreboard()">
@@ -1458,25 +1502,25 @@
             <!-- 2. THAO TÁC BẢNG & KHẨN CẤP -->
             <div class="console-panel">
                 <div class="console-panel-header">
-                    <h2 class="console-panel-title">🚨 THAO TÁC BẢNG & KHẨN CẤP</h2>
+                    <h2 class="console-panel-title">THAO TÁC BẢNG & KHẨN CẤP</h2>
                 </div>
                 <div class="console-panel-body" style="padding: 6px;">
                     <div style="margin-bottom: 6px;">
                         <button type="button" id="btnToggleWWF" style="width: 100%; padding: 6px 10px; font-weight: 800; font-size: 11px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: #131b29; border: 1px solid #233149; color: #94a3b8; transition: all 0.15s ease;" onclick="toggleWWFMode()" title="Chế độ Words With Friends (DL x2 / TL x3)">
-                            <span style="display: flex; align-items: center; gap: 6px;">🔤 WORDS WITH FRIENDS (ĐỀ 3, 4, 5, 9)</span>
+                            <span style="display: flex; align-items: center; gap: 6px;">WORDS WITH FRIENDS (ĐỀ 3, 4, 5, 9)</span>
                             <span id="wwfBadge" style="padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 800; background: #070a10; color: #94a3b8; border: 1px solid #233149;">ĐANG TẮT</span>
                         </button>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 6px;">
-                        <button type="button" class="btn-main" style="padding: 8px 2px; font-size: 11.5px; font-weight: 800; min-height: 36px; border-radius: 4px;" onclick="sendCmd('SHOW_BOARD'); controlShowBoardLocally();">🎬 SHOW CHÍNH</button>
-                        <button type="button" style="background: #0284c7; color: white; border-color: #0369a1; padding: 8px 2px; font-size: 11.5px; font-weight: 800; min-height: 36px; border-radius: 4px;" onclick="sendCmd('SHOW_THUMBNAIL')">🖼️ THUMBNAIL</button>
-                        <button type="button" class="btn-reset" style="padding: 8px 2px; font-size: 11.5px; font-weight: 800; min-height: 36px; border-radius: 4px;" onclick="sendCmd('HIDE_THUMBNAIL')">🙈 ẨN THUMB</button>
+                        <button type="button" class="btn-main" style="padding: 8px 2px; font-size: 11.5px; font-weight: 800; min-height: 36px; border-radius: 4px;" onclick="sendCmd('SHOW_BOARD'); controlShowBoardLocally();">Show chính</button>
+                        <button type="button" style="background: #0284c7; color: white; border-color: #0369a1; padding: 8px 2px; font-size: 11.5px; font-weight: 800; min-height: 36px; border-radius: 4px;" onclick="sendCmd('SHOW_THUMBNAIL')">Thumbnail</button>
+                        <button type="button" class="btn-reset" style="padding: 8px 2px; font-size: 11.5px; font-weight: 800; min-height: 36px; border-radius: 4px;" onclick="sendCmd('HIDE_THUMBNAIL')">Ẩn Thumb</button>
                     </div>
                     <div style="display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 6px;">
-                        <button type="button" class="btn-reveal" style="padding: 9px 2px; font-size: 12px; font-weight: 900; min-height: 38px; border-radius: 4px; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);" onclick="sendCmd('REVEAL_ALL'); setControlBuzzerOpen(false); controlRevealAllLocally();">🔓 MỞ HẾT Ô</button>
-                        <button type="button" class="btn-tossup" style="padding: 9px 2px; font-size: 12px; font-weight: 900; min-height: 38px; border-radius: 4px; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.3);" onclick="sendCmd('STOP_ALL_SFX')">🛑 DỪNG SFX</button>
-                        <button type="button" class="btn-reset" style="padding: 9px 2px; font-size: 11.5px; font-weight: 800; min-height: 38px; border-radius: 4px;" onclick="sendCmd('RESET_BOARD'); setControlBuzzerOpen(false); controlResetBoardLocally();">♻️ RESET</button>
+                        <button type="button" class="btn-reveal" style="padding: 9px 2px; font-size: 12px; font-weight: 900; min-height: 38px; border-radius: 4px; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);" onclick="sendCmd('REVEAL_ALL'); setControlBuzzerOpen(false); controlRevealAllLocally();">Mở hết ô</button>
+                        <button type="button" class="btn-tossup" style="padding: 9px 2px; font-size: 12px; font-weight: 900; min-height: 38px; border-radius: 4px; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.3);" onclick="sendCmd('STOP_ALL_SFX')">Dừng SFX</button>
+                        <button type="button" class="btn-reset" style="padding: 9px 2px; font-size: 11.5px; font-weight: 800; min-height: 38px; border-radius: 4px;" onclick="sendCmd('RESET_BOARD'); setControlBuzzerOpen(false); controlResetBoardLocally();">Làm mới</button>
                     </div>
                 </div>
             </div>
@@ -1485,16 +1529,26 @@
             <div class="console-panel" id="soundboardSection">
                 <div class="console-panel-header" style="background: #10192a;">
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        <h2 class="console-panel-title">🎛️ SOUNDBOARD</h2>
+                        <h2 class="console-panel-title">SOUNDBOARD</h2>
                         <span id="soundboardCountBadge" style="padding: 1px 5px; border-radius: 2px; font-size: 9px; font-weight: 800; background: #070a10; color: #38bdf8; border: 1px solid #233149;">0 bài</span>
                         <span id="soundboardStatusBadge" style="padding: 1px 6px; border-radius: 2px; font-size: 9px; font-weight: 800; background: #070a10; color: #94a3b8; border: 1px solid #233149;">SẴN SÀNG</span>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 3px;">
-                        <button type="button" class="btn-main" style="padding: 2px 5px; font-size: 9px; background: #0284c7; border-color: #0ea5e9;" onclick="refreshSoundboardFiles(true)" title="Quét lại toàn bộ file MP3 trong thư mục dự án">🔄 Quét</button>
-                        <button type="button" class="btn-emergency-stop" style="padding: 2px 6px; font-size: 9px;" onclick="stopSoundboard(true)" title="Dừng âm thanh Soundboard ngay lập tức">⏹️ Dừng Nhạc</button>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <button type="button" class="btn-main" style="padding: 2px 6px; font-size: 9px; background: #0284c7; border-color: #0ea5e9;" onclick="refreshSoundboardFiles(true)" title="Quét lại toàn bộ file MP3 trong thư mục dự án">Quét</button>
+                        <button type="button" class="btn-tossup" id="btnSoundboardFadeOut" style="padding: 2px 6px; font-size: 9px; background: #b45309; border-color: #f59e0b;" onclick="fadeOutSoundboard(2000)" title="Giảm dần âm lượng nhạc về 0 trong 2 giây rồi dừng">Tắt nhạc</button>
+                        <button type="button" class="btn-emergency-stop" style="padding: 2px 6px; font-size: 9px;" onclick="stopSoundboard(true)" title="Dừng âm thanh Soundboard ngay lập tức">Dừng ngay</button>
                     </div>
                 </div>
                 <div class="console-panel-body" style="padding: 4px;">
+                    <!-- THANH ĐIỀU CHỈNH ÂM LƯỢNG TOÀN HỆ THỐNG -->
+                    <div class="master-volume-control-bar">
+                        <span class="vol-control-label">ÂM LƯỢNG:</span>
+                        <input type="range" id="masterVolumeSlider" min="0" max="100" value="100" step="1" oninput="handleVolumeSliderInput(this.value)" class="master-vol-range" title="Kéo để chỉnh âm lượng 0% - 100%">
+                        <span id="masterVolumeDisplay" class="font-mono vol-control-percent">100%</span>
+                        <button type="button" class="btn-vol-preset" onclick="setMasterVolume(100)">100%</button>
+                        <button type="button" class="btn-vol-preset" onclick="setMasterVolume(50)">50%</button>
+                        <button type="button" class="btn-vol-preset" onclick="setMasterVolume(0)">0%</button>
+                    </div>
                     <div class="soundboard-scroll-container" id="soundboardButtonsContainer">
                         <!-- Danh sách nút âm thanh MP3 được tự động nạp tại đây -->
                     </div>
@@ -1504,7 +1558,7 @@
             <!-- 3. BÀN PHÍM CHỮ CÁI & MỞ Ô -->
             <div class="console-panel" id="alphabetSection">
                 <div class="console-panel-header">
-                    <h2 class="console-panel-title">⌨️ BÀN PHÍM CHỮ CÁI & MỞ Ô</h2>
+                    <h2 class="console-panel-title">BÀN PHÍM CHỮ CÁI & MỞ Ô</h2>
                 </div>
                 <div class="console-panel-body">
                     <div class="group group-center" id="alphabetContainer" style="gap: 2px; margin-bottom: 3px;"></div>
@@ -1691,7 +1745,7 @@
                 window.GameSync.init({ role: 'control', roomId: roomId });
             }
             if (showNotice) {
-                showCustomAlert(`🔄 Đã tự động cập nhật domain theo link hiện tại:\n${detected}`);
+                showCustomAlert(`Đã tự động cập nhật domain theo link hiện tại:\n${detected}`);
             }
         }
 
@@ -1776,7 +1830,7 @@
             }
 
             if (showNotice) {
-                showCustomAlert(`✅ Đã lưu cài đặt phòng!\n• Domain: ${getBaseUrl()}\n• Mã phòng: ${roomId}\n• Pass: ${roomPass}`);
+                showCustomAlert(`Đã lưu cài đặt phòng!\n• Domain: ${getBaseUrl()}\n• Mã phòng: ${roomId}\n• Pass: ${roomPass}`);
             }
         }
 
@@ -1784,20 +1838,20 @@
             saveRoomCredentials(false);
             const url = getPlayerUrl(type);
             const label = type === 1 ? 'P1' : type === 2 ? 'P2' : type === 3 ? 'P3' : 'Người chơi';
-            copyTextToClipboard(url, `📋 Đã sao chép link ${label}:\n${url}`);
+            copyTextToClipboard(url, `Đã sao chép link ${label}:\n${url}`);
         }
 
         function copyPlayerInvitationWithDetails() {
             saveRoomCredentials(false);
             const base = getBaseUrl();
             const fullUrl = getPlayerUrl(0);
-            const details = `🎮 THÔNG TIN THAM GIA CHO NGƯỜI CHƠI (PLAYER):
-🌐 Domain / Base URL: ${base}
-📄 Tên file HTML: player.html
-🔑 Mã phòng (Room ID): ${roomId}
-🔒 Mật khẩu (Pass): ${roomPass}
-🔗 Link tham gia: ${fullUrl}`;
-            copyTextToClipboard(details, `📋 Đã sao chép link và thông tin người chơi!`);
+            const details = `THÔNG TIN THAM GIA CHO NGƯỜI CHƠI (PLAYER):
+Domain / Base URL: ${base}
+Tên file HTML: player.html
+Mã phòng (Room ID): ${roomId}
+Mật khẩu (Pass): ${roomPass}
+Link tham gia: ${fullUrl}`;
+            copyTextToClipboard(details, `Đã sao chép link và thông tin người chơi!`);
         }
 
         function copyTextToClipboard(text, successMsg) {
@@ -2028,11 +2082,11 @@
             const badge = document.getElementById("buzzerStateBadge");
             if (badge) {
                 if (isBuzzerCurrentlyOpen) {
-                    badge.textContent = "🟢 Chuông Đang Mở";
+                    badge.textContent = "Chuông mở";
                     badge.style.background = "#059669";
                     badge.style.color = "#ffffff";
                 } else {
-                    badge.textContent = "🔒 Chuông Khóa";
+                    badge.textContent = "Chuông khóa";
                     badge.style.background = "#090c14";
                     badge.style.color = "#f87171";
                 }
@@ -2046,7 +2100,7 @@
             const box = document.getElementById("controlBuzzerBox");
             const text = document.getElementById("controlBuzzerText");
             if (box && text) {
-                text.textContent = `🔔 NGƯỜI CHƠI ${playerNum} ĐÃ BẤM CHUÔNG!`;
+                text.textContent = `Người chơi ${playerNum} đã bấm chuông!`;
                 box.style.display = "flex";
             }
 
@@ -2171,7 +2225,7 @@
             isHostPeekEnabled = !isHostPeekEnabled;
             const btn = document.getElementById("btnTogglePeek");
             if (btn) {
-                btn.textContent = isHostPeekEnabled ? "👁️ Soi chữ: BẬT" : "👁️ Soi chữ: TẮT";
+                btn.textContent = isHostPeekEnabled ? "Soi chữ: Bật" : "Soi chữ: Tắt";
                 btn.classList.toggle("active", isHostPeekEnabled);
             }
             renderControlBoard();
@@ -2181,7 +2235,7 @@
             isShowCellIndexEnabled = !isShowCellIndexEnabled;
             const btn = document.getElementById("btnToggleCellIdx");
             if (btn) {
-                btn.textContent = isShowCellIndexEnabled ? "🔢 Số ô: BẬT" : "🔢 Số ô: TẮT";
+                btn.textContent = isShowCellIndexEnabled ? "Số ô: Bật" : "Số ô: Tắt";
                 btn.classList.toggle("active", isShowCellIndexEnabled);
             }
             renderControlBoard();
@@ -2711,7 +2765,7 @@
                 btn.style.cssText = "padding: 5px 2px; font-size: 11px; font-weight: bold; border-radius: 4px;";
                 const isCurrent = (i === currentRound30SubIndex);
                 const isSolved = round30SolvedStatus[i];
-                btn.textContent = `Ô ${i + 1}${isSolved ? ' ✓' : ''}`;
+                btn.textContent = `Ô ${i + 1}${isSolved ? ' (Xong)' : ''}`;
                 if (isCurrent) {
                     btn.style.background = "#fbbf24";
                     btn.style.color = "#000";
@@ -2999,7 +3053,7 @@
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 populateQuizzesFromWorkbook(workbook);
-                showCustomAlert(`✅ Nạp thành công Excel 12 đề + Đề 13!`);
+                showCustomAlert(`Nạp thành công Excel 12 đề + Đề 13!`);
                 selectPreviewQuiz(0);
             };
             reader.readAsArrayBuffer(file);
@@ -3084,7 +3138,7 @@
 
             if (index === 12) {
                 let subList = (importedQuizzes[12] && Array.isArray(importedQuizzes[12]) && importedQuizzes[12].length > 0) ? importedQuizzes[12] : [];
-                let html = `<div style="color: #fbbf24; font-weight: bold; margin-bottom: 6px;">⏱️ TỔ HỢP ${subList.length} Ô CHỮ ĐỀ 13 (VÒNG 30S):</div>`;
+                let html = `<div style="color: #fbbf24; font-weight: bold; margin-bottom: 6px;">TỔ HỢP ${subList.length} Ô CHỮ ĐỀ 13 (VÒNG 30S):</div>`;
                 subList.forEach((sub, sIdx) => {
                     const ans = extractAnswerFromLetters(sub);
                     html += `<div style="display: flex; justify-content: space-between; align-items: center; background: #131927; padding: 4px 8px; border-radius: 4px; margin-bottom: 4px; font-size: 11px;">
@@ -3111,7 +3165,7 @@
                 html += '</div>';
             });
             html += '</div>';
-            html += `<div style="margin-top: 6px; padding: 6px 8px; background: #181f2f; border-radius: 4px; font-weight: bold; font-size: 11.5px; color: #fbbf24;">🔑 ĐÁP ÁN: ${ans || "(Trống)"}</div>`;
+            html += `<div style="margin-top: 6px; padding: 6px 8px; background: #181f2f; border-radius: 4px; font-weight: bold; font-size: 11.5px; color: #fbbf24;">ĐÁP ÁN: ${ans || "(Trống)"}</div>`;
             container.innerHTML = html;
         }
 
@@ -3347,11 +3401,11 @@
             const badge = document.getElementById("wwfBadge");
             if (!btn || !badge) return;
             if (isWWFMode) {
-                btn.style.background = "linear-gradient(135deg, #0284c7, #0ea5e9)";
+                btn.style.background = "#0284c7";
                 btn.style.borderColor = "#38bdf8";
                 btn.style.color = "#ffffff";
-                btn.style.boxShadow = "0 0 10px rgba(14, 165, 233, 0.35)";
-                badge.textContent = "🟢 BẬT (ĐỀ 3, 4, 5, 9)";
+                btn.style.boxShadow = "none";
+                badge.textContent = "BẬT (ĐỀ 3, 4, 5, 9)";
                 badge.style.background = "#090c14";
                 badge.style.color = "#38bdf8";
                 badge.style.borderColor = "#38bdf8";
@@ -3360,7 +3414,7 @@
                 btn.style.borderColor = "#2a354c";
                 btn.style.color = "#94a3b8";
                 btn.style.boxShadow = "none";
-                badge.textContent = "⚪ ĐANG TẮT";
+                badge.textContent = "ĐANG TẮT";
                 badge.style.background = "#090c14";
                 badge.style.color = "#94a3b8";
                 badge.style.borderColor = "#334155";
@@ -3414,18 +3468,101 @@
         let activeSoundboardAudio = null;
         let activeSoundboardFile = null;
 
-        function getSoundboardIcon(filename) {
-            const f = filename.toLowerCase();
-            if (f.includes('spin')) return '🎡';
-            if (f.includes('10s') || f.includes('30s') || f.includes('timer')) return '⏱️';
-            if (f.includes('final') || f.includes('cue') || f.includes('bell')) return '🔔';
-            if (f.includes('host') || f.includes('entrance') || f.includes('mc')) return '🎤';
-            if (f.includes('intro') || f.includes('title') || f.includes('opening')) return '🎵';
-            if (f.includes('ding') || f.includes('correct')) return '🔔';
-            if (f.includes('wrong') || f.includes('bankrupt') || f.includes('red')) return '❌';
-            if (f.includes('reveal') || f.includes('letter') || f.includes('highlight')) return '🔤';
-            if (f.includes('toss') || f.includes('puzzle') || f.includes('mystery')) return '💡';
-            return '🎶';
+        // Centralized Master Volume Control
+        let currentMasterVolume = 1.0;
+        try {
+            const savedVol = localStorage.getItem('system_master_volume');
+            if (savedVol !== null) {
+                const parsed = parseFloat(savedVol);
+                if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+                    currentMasterVolume = parsed;
+                }
+            }
+        } catch(e) {}
+
+        function setMasterVolume(val) {
+            const num = Math.max(0, Math.min(100, Number(val)));
+            currentMasterVolume = num / 100;
+            try {
+                localStorage.setItem('system_master_volume', currentMasterVolume.toString());
+            } catch(e) {}
+
+            const slider = document.getElementById('masterVolumeSlider');
+            if (slider) slider.value = num;
+
+            const display = document.getElementById('masterVolumeDisplay');
+            if (display) display.textContent = `${Math.round(num)}%`;
+
+            if (activeSoundboardAudio && !isSoundboardFadingOut) {
+                activeSoundboardAudio.volume = currentMasterVolume;
+            }
+
+            if (typeof sendCmd === 'function') {
+                sendCmd('SET_MASTER_VOLUME', { volume: currentMasterVolume });
+            }
+        }
+
+        function handleVolumeSliderInput(val) {
+            setMasterVolume(val);
+        }
+
+        // Centralized Smooth BGM Fade Out (Default: 2000ms)
+        let soundboardFadeInterval = null;
+        let isSoundboardFadingOut = false;
+
+        function cancelSoundboardFadeOut() {
+            if (soundboardFadeInterval) {
+                clearInterval(soundboardFadeInterval);
+                soundboardFadeInterval = null;
+            }
+            isSoundboardFadingOut = false;
+        }
+
+        function fadeOutSoundboard(durationMs = 2000) {
+            cancelSoundboardFadeOut();
+
+            // Broadcast fade out command to audience / OBS display
+            if (typeof sendCmd === 'function') {
+                sendCmd('FADE_OUT_BGM', { durationMs });
+            }
+
+            if (!activeSoundboardAudio || activeSoundboardAudio.paused) {
+                return;
+            }
+
+            const audioToFade = activeSoundboardAudio;
+            const startVolume = audioToFade.volume;
+            if (startVolume <= 0.01) {
+                stopSoundboard(false);
+                return;
+            }
+
+            isSoundboardFadingOut = true;
+            const steps = 40;
+            const stepTime = Math.max(16, Math.floor(durationMs / steps));
+            let currentStep = 0;
+
+            soundboardFadeInterval = setInterval(() => {
+                currentStep++;
+                const progress = currentStep / steps;
+                const newVol = Math.max(0, startVolume * (1 - progress));
+
+                if (audioToFade && !audioToFade.paused) {
+                    audioToFade.volume = newVol;
+                }
+
+                if (currentStep >= steps || newVol <= 0.001) {
+                    cancelSoundboardFadeOut();
+                    if (activeSoundboardAudio === audioToFade) {
+                        stopSoundboard(false);
+                    } else {
+                        try {
+                            audioToFade.pause();
+                            audioToFade.currentTime = 0;
+                        } catch(e) {}
+                    }
+                }
+            }, stepTime);
         }
 
         function getSoundboardId(filename) {
@@ -3460,7 +3597,6 @@
             uniqueFiles.forEach(file => {
                 const displayName = file.replace(/\.mp3$/i, '');
                 const btnId = getSoundboardId(file);
-                const icon = getSoundboardIcon(file);
                 const isCurrentlyPlaying = (activeSoundboardFile === file && activeSoundboardAudio && !activeSoundboardAudio.paused);
 
                 const btn = document.createElement('button');
@@ -3470,17 +3606,18 @@
                 btn.title = `Phát: ${file}`;
                 btn.onclick = () => playSoundboardFile(file);
 
+                // Strictly plain text layout: no emojis or graphic icons
                 btn.innerHTML = `
-                    <span class="sb-icon">${icon}</span>
                     <span class="sb-name" title="${displayName}">${displayName}</span>
                     <span class="sb-file" title="${file}">${file}</span>
-                    <span class="sb-state">${isCurrentlyPlaying ? '🔊 ĐANG PHÁT' : ''}</span>
+                    <span class="sb-state">${isCurrentlyPlaying ? 'Đang phát' : ''}</span>
                 `;
                 container.appendChild(btn);
             });
         }
 
         function stopSoundboard(notifyDisplay = true) {
+            cancelSoundboardFadeOut();
             if (activeSoundboardAudio) {
                 try {
                     activeSoundboardAudio.pause();
@@ -3518,13 +3655,15 @@
                 return;
             }
 
-            // Dừng âm thanh đang phát trước khi phát âm thanh mới (không chồng lấn nhạc)
+            // Cancel any previous fade out and stop current soundboard audio
+            cancelSoundboardFadeOut();
             stopSoundboard(false);
 
             const displayName = file.replace(/\.mp3$/i, '');
             const audioUrl = getApiUrl(file);
             const audio = new Audio(audioUrl);
             audio.preload = 'auto';
+            audio.volume = currentMasterVolume; // Áp dụng ngay mức âm lượng hiện tại
             activeSoundboardAudio = audio;
             activeSoundboardFile = file;
 
@@ -3533,12 +3672,12 @@
             if (el) {
                 el.classList.add('sb-playing');
                 const stateEl = el.querySelector('.sb-state');
-                if (stateEl) stateEl.textContent = '🔊 ĐANG PHÁT';
+                if (stateEl) stateEl.textContent = 'Đang phát';
             }
 
             const badge = document.getElementById('soundboardStatusBadge');
             if (badge) {
-                badge.textContent = `▶ ${displayName.toUpperCase()}`;
+                badge.textContent = displayName.toUpperCase();
                 badge.style.color = '#38bdf8';
                 badge.style.borderColor = '#0284c7';
             }
@@ -3552,22 +3691,22 @@
             audio.onerror = (e) => {
                 console.error(`[Soundboard] Không thể tải file: ${file}`, e);
                 stopSoundboard(false);
-                showCustomAlert(`⚠️ Không tìm thấy hoặc lỗi khi tải file âm thanh:\n"${file}"\nVui lòng kiểm tra lại file trong thư mục dự án.`);
+                showCustomAlert(`Không tìm thấy hoặc lỗi khi tải file âm thanh:\n"${file}"\nVui lòng kiểm tra lại file trong thư mục dự án.`);
             };
 
             audio.play().catch(err => {
                 console.warn(`[Soundboard] Lỗi phát âm thanh cho ${file}:`, err);
                 stopSoundboard(false);
                 if (err.name === 'NotAllowedError') {
-                    showCustomAlert(`⚠️ Trình duyệt chặn tự động phát âm thanh. Vui lòng bấm chuột tương tác trên trang trước.`);
+                    showCustomAlert(`Trình duyệt chặn tự động phát âm thanh. Vui lòng bấm chuột tương tác trên trang trước.`);
                 } else {
-                    showCustomAlert(`⚠️ Không thể phát file âm thanh "${file}": ${err.message || 'Lỗi không xác định'}`);
+                    showCustomAlert(`Không thể phát file âm thanh "${file}": ${err.message || 'Lỗi không xác định'}`);
                 }
             });
 
             // Đồng bộ sang màn hình hiển thị (OBS / Khán giả)
             if (typeof sendCmd === 'function') {
-                sendCmd('PLAY_SOUNDBOARD', { button: displayName, file: file });
+                sendCmd('PLAY_SOUNDBOARD', { button: displayName, file: file, volume: currentMasterVolume });
             }
         }
 
@@ -3597,7 +3736,7 @@
                         });
                         renderSoundboardButtons(merged);
                         if (userInitiated) {
-                            showCustomAlert(`✅ Đã quét và cập nhật ${merged.length} file âm thanh MP3!`);
+                            showCustomAlert(`Đã quét và cập nhật ${merged.length} file âm thanh MP3!`);
                         }
                     } else {
                         renderSoundboardButtons(KNOWN_PROJECT_MP3S);
@@ -3616,6 +3755,7 @@
             renderTossupSpeedUI();
             renderRound30SpeedUI();
             sendCmd("SET_WWF_MODE", { enabled: isWWFMode });
+            setMasterVolume(Math.round(currentMasterVolume * 100));
             refreshSoundboardFiles(false);
             setInterval(() => refreshSoundboardFiles(false), 15000);
 
