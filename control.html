@@ -138,11 +138,13 @@
             gap: 6px;
         }
 
-        /* Broadcast Buttons Standard */
+        /* Broadcast Buttons Standard - Minimal Dark Broadcast Control Panel */
         button, .btn-link {
             font-family: inherit;
             font-weight: 700;
             font-size: 10px;
+            background: #1e293b;
+            color: #f1f5f9;
             border: 1px solid var(--border-subtle);
             border-radius: 3px;
             cursor: pointer;
@@ -154,30 +156,34 @@
             text-transform: uppercase;
             letter-spacing: 0.2px;
             user-select: none;
-            padding: 3px 7px;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+            padding: 3px 8px;
+            box-shadow: none;
+            text-decoration: none;
         }
 
         button:hover, .btn-link:hover {
-            filter: brightness(1.15);
+            background: #283548;
+            border-color: #475569;
+            color: #ffffff;
         }
 
         button:active, .btn-link:active {
             transform: translateY(1px);
-            filter: brightness(0.9);
+            background: #172033;
         }
 
         .btn-live-audience {
-            background: #0284c7;
+            background: #2563eb;
             color: #ffffff;
-            border-color: #0369a1;
+            border-color: #3b82f6;
             padding: 3px 8px;
             text-decoration: none;
             font-size: 10.5px;
             font-weight: 800;
         }
         .btn-live-audience:hover {
-            background: #0ea5e9;
+            background: #1d4ed8;
+            border-color: #60a5fa;
             color: #ffffff;
         }
 
@@ -185,32 +191,50 @@
             text-decoration: none;
             font-size: 9.5px;
             font-weight: 800;
-            padding: 2px 5px;
-            border-radius: 2px;
-            border: 1px solid transparent;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: #1e293b;
+            color: #cbd5e1;
+            border: 1px solid #334155;
         }
-        .btn-s1-quick { background: rgba(239, 68, 68, 0.25); color: #fca5a5; border-color: #ef4444; }
-        .btn-s2-quick { background: rgba(245, 158, 11, 0.25); color: #fde047; border-color: #f59e0b; }
-        .btn-s3-quick { background: rgba(59, 130, 246, 0.25); color: #93c5fd; border-color: #3b82f6; }
+        .btn-scoreboard-quick:hover {
+            background: #283548;
+            color: #ffffff;
+        }
+        .btn-s1-quick { border-bottom: 2px solid #ef4444; }
+        .btn-s2-quick { border-bottom: 2px solid #f59e0b; }
+        .btn-s3-quick { border-bottom: 2px solid #3b82f6; }
 
         .btn-player-quick {
             text-decoration: none;
             font-size: 9.5px;
             font-weight: 800;
-            padding: 2px 5px;
-            border-radius: 2px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: #1e293b;
+            color: #cbd5e1;
+            border: 1px solid #334155;
         }
-        .btn-p1-quick { background: #991b1b; color: #fff; border-color: #ef4444; }
-        .btn-p2-quick { background: #b45309; color: #fff; border-color: #f59e0b; }
-        .btn-p3-quick { background: #1d4ed8; color: #fff; border-color: #3b82f6; }
+        .btn-player-quick:hover {
+            background: #283548;
+            color: #ffffff;
+        }
+        .btn-p1-quick { border-bottom: 2px solid #ef4444; }
+        .btn-p2-quick { border-bottom: 2px solid #f59e0b; }
+        .btn-p3-quick { border-bottom: 2px solid #3b82f6; }
 
         .btn-emergency-stop {
-            background: #dc2626;
+            background: #b91c1c;
             color: #ffffff;
-            border-color: #b91c1c;
-            padding: 2px 7px;
+            border-color: #ef4444;
+            padding: 2px 8px;
             font-weight: 800;
             font-size: 10px;
+        }
+        .btn-emergency-stop:hover {
+            background: #991b1b;
+            border-color: #f87171;
+            color: #ffffff;
         }
 
         /* Master Layout & Compact Single Screen Constraint */
@@ -334,41 +358,39 @@
             border-color: var(--cyan-accent);
         }
 
-        /* Functional Button Themes */
-        .btn-main {
-            background: #0f766e;
-            color: #ffffff;
-            border-color: #14b8a6;
+        /* Functional Button Themes - Minimal Dark Neutral Palette */
+        .btn-main, .btn-excel, .btn-tossup, .btn-solve, .btn-reveal, .btn-reset, .btn-standard {
+            background: #1e293b;
+            color: #f1f5f9;
+            border-color: #334155;
         }
-        .btn-main:hover { background: #0d9488; }
-
-        .btn-excel {
-            background: #3730a3;
-            color: #ffffff;
-            border-color: #6366f1;
-        }
-        .btn-excel:hover { background: #4338ca; }
-
-        .btn-tossup, .btn-solve {
-            background: #b45309;
-            color: #ffffff;
-            border-color: #f59e0b;
-        }
-        .btn-tossup:hover, .btn-solve:hover { background: #d97706; }
-
-        .btn-reveal {
-            background: #b91c1c;
-            color: #ffffff;
-            border-color: #ef4444;
-        }
-        .btn-reveal:hover { background: #dc2626; }
-
-        .btn-reset {
-            background: #334155;
-            color: #cbd5e1;
+        .btn-main:hover, .btn-excel:hover, .btn-tossup:hover, .btn-solve:hover, .btn-reveal:hover, .btn-reset:hover, .btn-standard:hover {
+            background: #283548;
             border-color: #475569;
+            color: #ffffff;
         }
-        .btn-reset:hover { background: #475569; color: #fff; }
+
+        .btn-primary-action {
+            background: #2563eb !important;
+            color: #ffffff !important;
+            border-color: #3b82f6 !important;
+        }
+        .btn-primary-action:hover {
+            background: #1d4ed8 !important;
+            border-color: #60a5fa !important;
+            color: #ffffff !important;
+        }
+
+        .btn-danger-action {
+            background: #b91c1c !important;
+            color: #ffffff !important;
+            border-color: #ef4444 !important;
+        }
+        .btn-danger-action:hover {
+            background: #991b1b !important;
+            border-color: #f87171 !important;
+            color: #ffffff !important;
+        }
 
         /* Quiz Item Selector Matrix */
         .quiz-matrix-grid {
@@ -379,7 +401,7 @@
         }
 
         .btn-quiz-item {
-            background: #0d131f;
+            background: #0f172a;
             color: #94a3b8;
             border: 1px solid #1e293b;
             padding: 5px 4px;
@@ -389,22 +411,22 @@
             text-align: center;
         }
         .btn-quiz-item:hover {
-            border-color: var(--cyan-accent);
-            background: #172233;
-            color: #38bdf8;
+            border-color: #334155;
+            background: #1e293b;
+            color: #f1f5f9;
         }
         .btn-quiz-item.active {
-            background: #dc2626 !important;
+            background: #2563eb !important;
             color: #ffffff !important;
-            border-color: #ef4444 !important;
-            box-shadow: inset 0 0 0 1px #fff;
+            border-color: #3b82f6 !important;
+            box-shadow: none;
         }
 
         /* Alphabet Keyboard Switcher */
         .btn-letter {
-            background-color: #1a2233;
+            background-color: #1e293b;
             color: #f1f5f9;
-            border: 1px solid #2a374f;
+            border: 1px solid #334155;
             width: calc(10% - 2px);
             padding: 2px 0;
             font-size: 10px;
@@ -413,39 +435,38 @@
             text-align: center;
         }
         .btn-letter:hover:not(:disabled) {
-            background-color: #0284c7;
+            background-color: #283548;
             color: #ffffff;
-            border-color: #38bdf8;
+            border-color: #475569;
         }
         .btn-letter:disabled {
-            background-color: #0c1017 !important;
+            background-color: #0b0f17 !important;
             color: #475569 !important;
-            border-color: #161e2a !important;
+            border-color: #1a2233 !important;
             cursor: not-allowed;
             opacity: 0.45;
         }
 
         /* Preset Speed Radio Buttons */
         .btn-preset-speed, .btn-preset-speed-r30 {
-            background: #121824;
+            background: #0f172a;
             color: #94a3b8;
-            border: 1px solid #26334a;
+            border: 1px solid #1e293b;
             border-radius: 2px;
             padding: 2px 5px;
             font-size: 9.5px;
             font-weight: 700;
             cursor: pointer;
         }
-        .btn-preset-speed:hover, .btn-preset-speed.active {
-            background: #f59e0b;
-            color: #000;
-            border-color: #fbbf24;
-            font-weight: 800;
+        .btn-preset-speed:hover, .btn-preset-speed-r30:hover {
+            background: #1e293b;
+            color: #f1f5f9;
+            border-color: #334155;
         }
-        .btn-preset-speed-r30:hover, .btn-preset-speed-r30.active {
-            background: #10b981;
-            color: #000;
-            border-color: #34d399;
+        .btn-preset-speed.active, .btn-preset-speed-r30.active {
+            background: #2563eb !important;
+            color: #ffffff !important;
+            border-color: #3b82f6 !important;
             font-weight: 800;
         }
 
@@ -541,14 +562,25 @@
             transform: translateY(0);
         }
         .btn-deduct {
-            background: #991b1b !important;
-            color: #ffffff !important;
-            border: 1px solid #ef4444 !important;
-            box-shadow: 0 1px 3px rgba(239, 68, 68, 0.25);
+            background: #1e293b !important;
+            color: #fca5a5 !important;
+            border: 1px solid #334155 !important;
+            box-shadow: none !important;
         }
         .btn-deduct:hover {
+            background: #283548 !important;
+            border-color: #ef4444 !important;
+            color: #ffffff !important;
+        }
+
+        .btn-score-zero {
+            background: #991b1b !important;
+            color: #ffffff !important;
+            border: 1px solid #b91c1c !important;
+        }
+        .btn-score-zero:hover {
             background: #b91c1c !important;
-            border-color: #f87171 !important;
+            border-color: #ef4444 !important;
         }
 
         .player-ctrl-box {
@@ -621,23 +653,25 @@
         }
 
         .ctrl-board-opt-btn {
-            background: #0a101b;
-            color: #8fa0ba;
-            border: 1px solid #1d2a3e;
-            padding: 3px 7px;
+            background: #0f172a;
+            color: #94a3b8;
+            border: 1px solid #1e293b;
+            padding: 3px 8px;
             border-radius: 3px;
             font-size: 10px;
             font-weight: 700;
             cursor: pointer;
+            transition: all 0.12s ease;
         }
         .ctrl-board-opt-btn:hover {
-            color: #fff;
-            border-color: #38bdf8;
+            background: #1e293b;
+            color: #f1f5f9;
+            border-color: #334155;
         }
         .ctrl-board-opt-btn.active {
-            background: #172740;
-            color: #38bdf8;
-            border-color: #0284c7;
+            background: #2563eb !important;
+            color: #ffffff !important;
+            border-color: #3b82f6 !important;
         }
 
         .ctrl-mode-bar {
@@ -666,23 +700,25 @@
         }
 
         .btn-click-mode {
-            background: #131b29;
-            color: #cbd5e1;
-            border: 1px solid #233149;
-            padding: 3px 7px;
+            background: #1e293b;
+            color: #94a3b8;
+            border: 1px solid #334155;
+            padding: 3px 8px;
             border-radius: 3px;
             font-size: 10px;
             font-weight: 800;
             cursor: pointer;
+            transition: all 0.12s ease;
         }
         .btn-click-mode:hover {
-            background: #1a2538;
-            color: #fff;
+            background: #283548;
+            color: #f1f5f9;
+            border-color: #475569;
         }
         .btn-click-mode.active {
-            background: #0284c7;
-            color: #fff;
-            border-color: #38bdf8;
+            background: #2563eb !important;
+            color: #ffffff !important;
+            border-color: #3b82f6 !important;
         }
 
         .ctrl-mode-hint {
@@ -840,28 +876,37 @@
         }
 
         .btn-row-reveal {
-            background: #131b29;
-            color: #cbd5e1;
-            border: 1px solid #233149;
-            padding: 3px 6px;
+            background: #1e293b;
+            color: #f1f5f9;
+            border: 1px solid #334155;
+            padding: 3px 8px;
             border-radius: 3px;
             font-size: 10px;
             font-weight: 700;
             cursor: pointer;
+            transition: all 0.12s ease;
         }
         .btn-row-reveal:hover {
-            background: #0284c7;
-            color: #fff;
-            border-color: #38bdf8;
+            background: #283548;
+            color: #ffffff;
+            border-color: #475569;
         }
 
         .btn-board-quick {
-            padding: 4px 7px;
+            padding: 4px 8px;
             font-size: 10px;
             font-weight: 800;
             border-radius: 3px;
-            border: 1px solid transparent;
+            border: 1px solid #334155;
+            background: #1e293b;
+            color: #f1f5f9;
             cursor: pointer;
+            transition: all 0.12s ease;
+        }
+        .btn-board-quick:hover {
+            background: #283548;
+            border-color: #475569;
+            color: #ffffff;
         }
 
         .ctrl-puzzle-chips-container {
@@ -880,10 +925,10 @@
         }
 
         .ctrl-letter-chip {
-            background: #141c2b;
-            border: 1px solid #243249;
+            background: #1e293b;
+            border: 1px solid #334155;
             color: #f1f5f9;
-            padding: 2px 6px;
+            padding: 2px 7px;
             border-radius: 3px;
             font-size: 10.5px;
             font-weight: 800;
@@ -891,24 +936,25 @@
             align-items: center;
             gap: 3px;
             cursor: pointer;
+            transition: all 0.12s ease;
         }
         .ctrl-letter-chip:hover {
-            background: #0284c7;
-            border-color: #38bdf8;
-            color: #fff;
+            background: #283548;
+            border-color: #475569;
+            color: #ffffff;
         }
         .ctrl-letter-chip.all-revealed {
-            background: #064e3b;
-            border-color: #059669;
-            color: #a7f3d0;
+            background: #0f172a;
+            border-color: #1e293b;
+            color: #64748b;
             opacity: 0.65;
         }
         .ctrl-letter-chip .chip-cnt {
             background: #070b12;
-            padding: 1px 3px;
+            padding: 1px 4px;
             border-radius: 2px;
             font-size: 9px;
-            color: #fbbf24;
+            color: #cbd5e1;
         }
 
         .group {
@@ -949,13 +995,18 @@
             white-space: pre-line;
         }
         .custom-popup-btn {
-            background: #0284c7;
+            background: #2563eb;
             color: #ffffff;
             padding: 6px 20px;
             font-weight: 800;
             border-radius: 3px;
-            border: none;
+            border: 1px solid #3b82f6;
             cursor: pointer;
+            transition: all 0.12s ease;
+        }
+        .custom-popup-btn:hover {
+            background: #1d4ed8;
+            border-color: #60a5fa;
         }
 
         /* Master Volume Control Bar (Minimalist & Professional) */
@@ -979,7 +1030,7 @@
         .master-vol-range {
             flex: 1;
             height: 4px;
-            accent-color: #38bdf8;
+            accent-color: #2563eb;
             background: #1e293b;
             border-radius: 2px;
             cursor: pointer;
@@ -988,25 +1039,25 @@
         .vol-control-percent {
             font-size: 10.5px;
             font-weight: 800;
-            color: #38bdf8;
+            color: #60a5fa;
             min-width: 34px;
             text-align: right;
         }
         .btn-vol-preset {
-            background: #0f172a;
-            color: #94a3b8;
-            border: 1px solid #1e293b;
+            background: #1e293b;
+            color: #cbd5e1;
+            border: 1px solid #334155;
             border-radius: 2px;
-            padding: 1px 4px;
+            padding: 2px 5px;
             font-size: 8.5px;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.12s ease;
         }
         .btn-vol-preset:hover {
-            background: #1e293b;
-            color: #f1f5f9;
-            border-color: #38bdf8;
+            background: #283548;
+            color: #ffffff;
+            border-color: #475569;
         }
 
         /* Soundboard Panel Styles (Compact & Minimalist) */
@@ -1029,7 +1080,7 @@
             border-radius: 2px;
         }
         .soundboard-scroll-container::-webkit-scrollbar-thumb:hover {
-            background: #38bdf8;
+            background: #334155;
         }
         .btn-soundboard {
             background: #0f172a;
@@ -1052,17 +1103,17 @@
         }
         .btn-soundboard:hover {
             background: #1e293b;
-            border-color: #38bdf8;
-            color: #fff;
+            border-color: #334155;
+            color: #ffffff;
         }
         .btn-soundboard:active {
             background: #090d16;
         }
         .btn-soundboard.sb-playing {
-            background: #0c4a6e !important;
-            border-color: #38bdf8 !important;
-            color: #fff !important;
-            box-shadow: inset 0 0 4px rgba(56, 189, 248, 0.4);
+            background: #1e3a5f !important;
+            border-color: #3b82f6 !important;
+            color: #ffffff !important;
+            box-shadow: none;
         }
         .sb-name {
             font-size: 9px;
@@ -1147,17 +1198,17 @@
                     ĐỒNG BỘ:
                 </span>
                 <input id="inputDomain" class="tech-input" type="text" placeholder="Domain host" oninput="updatePlayerUrlDisplay()" style="flex: 1.5; min-width: 120px; padding: 2px 5px; font-size: 11px;" title="Domain hoặc Host">
-                <button type="button" class="btn-main" onclick="resetDomainToCurrent(true)" style="font-size: 10px; padding: 3px 6px; background: #0891b2; border-color: #06b6d4;" title="Tự động lấy link URL hiện tại">Tự động</button>
+                <button type="button" class="btn-standard" onclick="resetDomainToCurrent(true)" style="font-size: 10px; padding: 3px 7px;" title="Tự động lấy link URL hiện tại">Tự động</button>
                 <input id="inputRoomId" class="tech-input" type="text" placeholder="Phòng" style="width: 75px; color: #fbbf24; font-weight: bold; padding: 2px 5px; font-size: 11px;" oninput="updatePlayerUrlDisplay()" title="Mã phòng">
                 <input id="inputRoomPass" class="tech-input" type="text" placeholder="Pass" style="width: 60px; color: #f87171; font-weight: bold; padding: 2px 5px; font-size: 11px;" oninput="updatePlayerUrlDisplay()" title="Mật khẩu phòng">
-                <button type="button" class="btn-main" onclick="saveRoomCredentials(true)" style="font-size: 10px; padding: 3px 7px;">Lưu</button>
+                <button type="button" class="btn-primary-action" onclick="saveRoomCredentials(true)" style="font-size: 10px; padding: 3px 8px;">Lưu</button>
             </div>
             <div style="display: flex; gap: 4px; align-items: center;">
                 <input id="playerFullUrlInput" class="tech-input" readonly style="width: 170px; color: #34d399; cursor: pointer; padding: 2px 5px; font-size: 10.5px;" onclick="this.select()" title="Click để chọn link player">
-                <button type="button" class="btn-tossup" onclick="copyPlayerInvitationWithDetails()" style="font-size: 10px; padding: 3px 6px;">Sao chép thông tin</button>
-                <button type="button" class="btn-reveal" onclick="copyPlayerLink(1)" style="font-size: 10px; padding: 3px 5px;">P1</button>
-                <button type="button" class="btn-tossup" onclick="copyPlayerLink(2)" style="font-size: 10px; padding: 3px 5px;">P2</button>
-                <button type="button" style="background: #1d4ed8; color: #fff; border-color: #3b82f6; font-size: 10px; padding: 3px 5px;" onclick="copyPlayerLink(3)">P3</button>
+                <button type="button" class="btn-standard" onclick="copyPlayerInvitationWithDetails()" style="font-size: 10px; padding: 3px 7px;">Sao chép thông tin</button>
+                <button type="button" class="btn-standard" onclick="copyPlayerLink(1)" style="font-size: 10px; padding: 3px 6px;">P1</button>
+                <button type="button" class="btn-standard" onclick="copyPlayerLink(2)" style="font-size: 10px; padding: 3px 6px;">P2</button>
+                <button type="button" class="btn-standard" onclick="copyPlayerLink(3)" style="font-size: 10px; padding: 3px 6px;">P3</button>
             </div>
         </div>
     </div>
@@ -1173,7 +1224,7 @@
                     <h2 class="console-panel-title">NẠP FILE EXCEL & CHỌN ĐỀ</h2>
                 </div>
                 <div class="console-panel-body">
-                    <button type="button" class="btn-excel" style="width: 100%; padding: 4px 0; margin-bottom: 4px; font-size: 10px;" onclick="document.getElementById('excelInput').click()">
+                    <button type="button" class="btn-standard" style="width: 100%; padding: 4px 0; margin-bottom: 4px; font-size: 10px;" onclick="document.getElementById('excelInput').click()">
                         TẢI LÊN FILE EXCEL (.xlsx)
                     </button>
                     <input type="file" id="excelInput" accept=".xlsx, .xls" style="display:none;" onchange="handleExcel(this)">
@@ -1188,7 +1239,7 @@
                             }
                         </script>
                     </div>
-                    <button type="button" class="btn-quiz-item" id="btnQuiz13" style="width: 100%; background: #b45309; color: #fff; border-color: #f59e0b; font-weight: 800; padding: 4px 0; margin-top: 2px; font-size: 10px;" onclick="loadQuizFromExcel(12)">
+                    <button type="button" class="btn-quiz-item" id="btnQuiz13" style="width: 100%; font-weight: 800; padding: 4px 0; margin-top: 2px; font-size: 10px;" onclick="loadQuizFromExcel(12)">
                         ĐỀ 13 (VÒNG 30S LIÊN HOÀN)
                     </button>
                 </div>
@@ -1201,7 +1252,7 @@
                 </div>
                 <div class="console-panel-body">
                     <textarea id="manualTextInput" style="width: 100%; height: 38px; background: #070a10; border: 1px solid #233149; color: #38bdf8; padding: 3px; font-size: 10px; border-radius: 2px; resize: none; text-transform: uppercase; font-family: ui-monospace, monospace;" placeholder="DÒNG 1 (MAX 12 CHỮ)&#10;DÒNG 2 (MAX 14 CHỮ)&#10;DÒNG 3 (MAX 14 CHỮ)&#10;DÒNG 4 (MAX 12 CHỮ)"></textarea>
-                    <button type="button" class="btn-main" style="width: 100%; padding: 3px 0; margin-top: 3px; font-size: 10px;" onclick="sendManualText()">
+                    <button type="button" class="btn-primary-action" style="width: 100%; padding: 4px 0; margin-top: 3px; font-size: 10px;" onclick="sendManualText()">
                         HIỂN THỊ LÊN BẢNG
                     </button>
                 </div>
@@ -1216,9 +1267,9 @@
                     <div style="display: flex; gap: 2px; flex-wrap: wrap; margin-bottom: 3px;">
                         <script>
                             for (let i = 1; i <= 12; i++) {
-                                document.write(`<button type="button" id="btnPreviewQuiz${i}" onclick="selectPreviewQuiz(${i - 1})" style="background: #111724; color: #94a3b8; border: 1px solid #233149; padding: 1px 3px; font-size: 8.5px; border-radius: 2px;">Đ${i}</button>`);
+                                document.write(`<button type="button" id="btnPreviewQuiz${i}" onclick="selectPreviewQuiz(${i - 1})" style="background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 1px 3px; font-size: 8.5px; border-radius: 2px;">Đ${i}</button>`);
                             }
-                            document.write(`<button type="button" id="btnPreviewQuiz13" onclick="selectPreviewQuiz(12)" style="background: #b45309; color: #fff; border: 1px solid #f59e0b; padding: 1px 3px; font-size: 8.5px; border-radius: 2px;">Đ13</button>`);
+                            document.write(`<button type="button" id="btnPreviewQuiz13" onclick="selectPreviewQuiz(12)" style="background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 1px 3px; font-size: 8.5px; border-radius: 2px;">Đ13</button>`);
                         </script>
                     </div>
                     <div id="quizPreviewBox" style="background: #070a10; border: 1px solid #1a2538; border-radius: 2px; padding: 4px; flex: 1; overflow-y: auto; font-size: 10px;">
@@ -1320,10 +1371,10 @@
                 </div>
                 <div class="console-panel-body">
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1.6fr; gap: 4px; margin-bottom: 4px;">
-                        <button type="button" class="btn-tossup" id="startBtn" style="padding: 5px 0; font-weight: 800;" onclick="clickStartTossup()">Bắt đầu</button>
-                        <button type="button" class="btn-tossup" id="pauseBtn" style="padding: 5px 0; font-weight: 800;" onclick="clickPauseTossup()">Tạm dừng</button>
-                        <button type="button" class="btn-tossup" id="playBtn" style="padding: 5px 0; font-weight: 800;" onclick="clickPlayTossup()">Tiếp tục</button>
-                        <button type="button" class="btn-solve" id="solveBtn" style="padding: 5px 0; font-weight: 800;" onclick="solveTossUp()">Giải đáp</button>
+                        <button type="button" class="btn-primary-action" id="startBtn" style="padding: 5px 0; font-weight: 800;" onclick="clickStartTossup()">Bắt đầu</button>
+                        <button type="button" class="btn-standard" id="pauseBtn" style="padding: 5px 0; font-weight: 800;" onclick="clickPauseTossup()">Tạm dừng</button>
+                        <button type="button" class="btn-standard" id="playBtn" style="padding: 5px 0; font-weight: 800;" onclick="clickPlayTossup()">Tiếp tục</button>
+                        <button type="button" class="btn-standard" id="solveBtn" style="padding: 5px 0; font-weight: 800;" onclick="solveTossUp()">Giải đáp</button>
                     </div>
 
                     <!-- Cài đặt tốc độ lật chữ Toss-Up -->
@@ -1347,26 +1398,26 @@
             </div>
 
             <!-- VÒNG 30 GIÂY (ĐỀ 13) -->
-            <div class="console-panel" id="round30Section" style="display: none; border-left: 3px solid #f59e0b;">
+            <div class="console-panel" id="round30Section" style="display: none; border-left: 3px solid #3b82f6;">
                 <div class="console-panel-header">
                     <h2 class="console-panel-title">VÒNG 30 GIÂY LIÊN HOÀN (ĐỀ 13)</h2>
                 </div>
                 <div class="console-panel-body">
                     <div style="background: #080d16; border-radius: 3px; padding: 3px 6px; margin-bottom: 4px; border: 1px solid #1a2538; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
                         <span style="font-size: 10px; color: #8493a8; font-weight: bold; white-space: nowrap;">30S:</span>
-                        <span id="round30TimerValCtrl" class="font-mono" style="font-size: 16px; font-weight: 900; color: #fbbf24; min-width: 48px;">30.0s</span>
+                        <span id="round30TimerValCtrl" class="font-mono" style="font-size: 16px; font-weight: 900; color: #60a5fa; min-width: 48px;">30.0s</span>
                         <div style="flex: 1; height: 5px; background: #1a2538; border-radius: 2px; overflow: hidden;">
-                            <div id="round30ProgressBar" style="width: 100%; height: 100%; background: #10b981; transition: width 0.1s linear;"></div>
+                            <div id="round30ProgressBar" style="width: 100%; height: 100%; background: #2563eb; transition: width 0.1s linear;"></div>
                         </div>
-                        <span id="round30SubBadgeCtrl" style="background: #059669; color: white; padding: 1px 5px; border-radius: 2px; font-size: 9.5px; font-weight: bold;">Ô 1/8</span>
-                        <button type="button" class="btn-reset" style="padding: 2px 5px; font-size: 9.5px;" onclick="resetRound30Timer()">Làm mới</button>
+                        <span id="round30SubBadgeCtrl" style="background: #1e293b; color: #f1f5f9; border: 1px solid #334155; padding: 1px 5px; border-radius: 2px; font-size: 9.5px; font-weight: bold;">Ô 1/8</span>
+                        <button type="button" class="btn-standard" style="padding: 2px 6px; font-size: 9.5px;" onclick="resetRound30Timer()">Làm mới</button>
                     </div>
 
                     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; margin-bottom: 4px;">
-                        <button type="button" id="btnRound30Start" class="btn-main" style="padding: 4px 0; font-size: 10px;" onclick="startRound30()">Bắt đầu</button>
-                        <button type="button" id="btnRound30Pause" class="btn-tossup" style="padding: 4px 0; font-size: 10px;" onclick="togglePauseRound30()">Tạm dừng</button>
-                        <button type="button" style="background: #0284c7; color: white; border-color: #0369a1; padding: 4px 0; font-size: 10px;" onclick="revealRound30Answer()">Đáp án</button>
-                        <button type="button" style="background: #6366f1; color: white; border-color: #4f46e5; padding: 4px 0; font-size: 10px;" onclick="nextRound30Puzzle()">Ô tiếp theo</button>
+                        <button type="button" id="btnRound30Start" class="btn-primary-action" style="padding: 4px 0; font-size: 10px;" onclick="startRound30()">Bắt đầu</button>
+                        <button type="button" id="btnRound30Pause" class="btn-standard" style="padding: 4px 0; font-size: 10px;" onclick="togglePauseRound30()">Tạm dừng</button>
+                        <button type="button" class="btn-standard" style="padding: 4px 0; font-size: 10px;" onclick="revealRound30Answer()">Đáp án</button>
+                        <button type="button" class="btn-standard" style="padding: 4px 0; font-size: 10px;" onclick="nextRound30Puzzle()">Ô tiếp theo</button>
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 3px; margin-bottom: 4px;">
@@ -1374,20 +1425,20 @@
                         <div id="round30SubButtonsContainer" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; flex: 1;"></div>
                     </div>
 
-                    <div style="background: #080d16; padding: 3px 6px; border-radius: 2px; border-left: 3px solid #f59e0b; margin-bottom: 4px; font-size: 10.5px; display: flex; justify-content: space-between; align-items: center;">
-                        <div><span style="color: #fbbf24; font-weight: bold;">ĐÁP ÁN:</span> <span id="round30AnswerText" style="font-weight: bold; color: #fff;">...</span></div>
+                    <div style="background: #080d16; padding: 3px 6px; border-radius: 2px; border-left: 3px solid #3b82f6; margin-bottom: 4px; font-size: 10.5px; display: flex; justify-content: space-between; align-items: center;">
+                        <div><span style="color: #60a5fa; font-weight: bold;">ĐÁP ÁN:</span> <span id="round30AnswerText" style="font-weight: bold; color: #fff;">...</span></div>
                         <div style="display: flex; gap: 3px;">
-                            <button type="button" onclick="handleRound30Result(true)" class="btn-main" style="padding: 2px 6px; font-size: 9.5px;">Đúng (+1k)</button>
-                            <button type="button" onclick="handleRound30Result(false)" class="btn-reveal" style="padding: 2px 6px; font-size: 9.5px;">Sai</button>
+                            <button type="button" onclick="handleRound30Result(true)" class="btn-res-correct" style="padding: 2px 7px; font-size: 9.5px; font-weight: 800; border-radius: 3px;">Đúng (+1k)</button>
+                            <button type="button" onclick="handleRound30Result(false)" class="btn-danger-action" style="padding: 2px 7px; font-size: 9.5px; font-weight: 800; border-radius: 3px;">Sai</button>
                         </div>
                     </div>
 
                     <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; font-size: 9.5px;">
                         <div style="display: flex; gap: 2px; align-items: center;">
                             <span style="color: #8493a8; font-weight: bold;">+1k:</span>
-                            <button type="button" class="btn-reveal" style="padding: 2px 5px; font-size: 9px;" onclick="modifyScore(1, 1000)">P1</button>
-                            <button type="button" class="btn-tossup" style="padding: 2px 5px; font-size: 9px;" onclick="modifyScore(2, 1000)">P2</button>
-                            <button type="button" style="background: #1d4ed8; color: white; border-color: #3b82f6; padding: 2px 5px; font-size: 9px;" onclick="modifyScore(3, 1000)">P3</button>
+                            <button type="button" class="btn-standard" style="padding: 2px 6px; font-size: 9px;" onclick="modifyScore(1, 1000)">P1</button>
+                            <button type="button" class="btn-standard" style="padding: 2px 6px; font-size: 9px;" onclick="modifyScore(2, 1000)">P2</button>
+                            <button type="button" class="btn-standard" style="padding: 2px 6px; font-size: 9px;" onclick="modifyScore(3, 1000)">P3</button>
                         </div>
                         <div style="display: flex; gap: 2px; align-items: center;">
                             <span style="color: #fbbf24;">TỐC ĐỘ:</span>
@@ -1431,18 +1482,18 @@
                                 <input type="number" id="pScore1" class="ctrl-input font-mono p-score-input p1-score" value="0" placeholder="0" oninput="updateScoreboard()">
                             </div>
                             <div class="player-score-btns-row1">
-                                <button type="button" class="btn-main" onclick="modifyScore(1, 50)">+50</button>
-                                <button type="button" class="btn-main" onclick="modifyScore(1, 100)">+100</button>
-                                <button type="button" class="btn-tossup" onclick="modifyScore(1, 1000)">+1k</button>
+                                <button type="button" class="btn-standard" onclick="modifyScore(1, 50)">+50</button>
+                                <button type="button" class="btn-standard" onclick="modifyScore(1, 100)">+100</button>
+                                <button type="button" class="btn-standard" onclick="modifyScore(1, 1000)">+1k</button>
                             </div>
                             <div class="player-score-btns-deduct">
                                 <button type="button" class="btn-deduct" onclick="modifyScore(1, -50)" title="Trừ 50 điểm">-50</button>
                                 <button type="button" class="btn-deduct" onclick="modifyScore(1, -100)" title="Trừ 100 điểm">-100</button>
                             </div>
                             <div class="player-score-btns-row2">
-                                <button type="button" style="background: #4f46e5; color: white; border-color: #6366f1;" onclick="modifyScore(1, 'x2')" title="Nhân đôi điểm">x2</button>
-                                <button type="button" style="background: #0284c7; color: white; border-color: #0ea5e9;" onclick="modifyScore(1, '÷2')" title="Chia đôi số điểm hiện tại (/2)">÷2</button>
-                                <button type="button" class="btn-reveal" onclick="modifyScore(1, '0')" title="Về 0 điểm">Mất(0)</button>
+                                <button type="button" class="btn-standard" onclick="modifyScore(1, 'x2')" title="Nhân đôi điểm">x2</button>
+                                <button type="button" class="btn-standard" onclick="modifyScore(1, '÷2')" title="Chia đôi số điểm hiện tại (/2)">÷2</button>
+                                <button type="button" class="btn-score-zero" onclick="modifyScore(1, '0')" title="Về 0 điểm">Mất(0)</button>
                             </div>
                         </div>
 
@@ -1456,18 +1507,18 @@
                                 <input type="number" id="pScore2" class="ctrl-input font-mono p-score-input p2-score" value="0" placeholder="0" oninput="updateScoreboard()">
                             </div>
                             <div class="player-score-btns-row1">
-                                <button type="button" class="btn-main" onclick="modifyScore(2, 50)">+50</button>
-                                <button type="button" class="btn-main" onclick="modifyScore(2, 100)">+100</button>
-                                <button type="button" class="btn-tossup" onclick="modifyScore(2, 1000)">+1k</button>
+                                <button type="button" class="btn-standard" onclick="modifyScore(2, 50)">+50</button>
+                                <button type="button" class="btn-standard" onclick="modifyScore(2, 100)">+100</button>
+                                <button type="button" class="btn-standard" onclick="modifyScore(2, 1000)">+1k</button>
                             </div>
                             <div class="player-score-btns-deduct">
                                 <button type="button" class="btn-deduct" onclick="modifyScore(2, -50)" title="Trừ 50 điểm">-50</button>
                                 <button type="button" class="btn-deduct" onclick="modifyScore(2, -100)" title="Trừ 100 điểm">-100</button>
                             </div>
                             <div class="player-score-btns-row2">
-                                <button type="button" style="background: #4f46e5; color: white; border-color: #6366f1;" onclick="modifyScore(2, 'x2')" title="Nhân đôi điểm">x2</button>
-                                <button type="button" style="background: #0284c7; color: white; border-color: #0ea5e9;" onclick="modifyScore(2, '÷2')" title="Chia đôi số điểm hiện tại (/2)">÷2</button>
-                                <button type="button" class="btn-reveal" onclick="modifyScore(2, '0')" title="Về 0 điểm">Mất(0)</button>
+                                <button type="button" class="btn-standard" onclick="modifyScore(2, 'x2')" title="Nhân đôi điểm">x2</button>
+                                <button type="button" class="btn-standard" onclick="modifyScore(2, '÷2')" title="Chia đôi số điểm hiện tại (/2)">÷2</button>
+                                <button type="button" class="btn-score-zero" onclick="modifyScore(2, '0')" title="Về 0 điểm">Mất(0)</button>
                             </div>
                         </div>
 
@@ -1481,18 +1532,18 @@
                                 <input type="number" id="pScore3" class="ctrl-input font-mono p-score-input p3-score" value="0" placeholder="0" oninput="updateScoreboard()">
                             </div>
                             <div class="player-score-btns-row1">
-                                <button type="button" class="btn-main" onclick="modifyScore(3, 50)">+50</button>
-                                <button type="button" class="btn-main" onclick="modifyScore(3, 100)">+100</button>
-                                <button type="button" class="btn-tossup" onclick="modifyScore(3, 1000)">+1k</button>
+                                <button type="button" class="btn-standard" onclick="modifyScore(3, 50)">+50</button>
+                                <button type="button" class="btn-standard" onclick="modifyScore(3, 100)">+100</button>
+                                <button type="button" class="btn-standard" onclick="modifyScore(3, 1000)">+1k</button>
                             </div>
                             <div class="player-score-btns-deduct">
                                 <button type="button" class="btn-deduct" onclick="modifyScore(3, -50)" title="Trừ 50 điểm">-50</button>
                                 <button type="button" class="btn-deduct" onclick="modifyScore(3, -100)" title="Trừ 100 điểm">-100</button>
                             </div>
                             <div class="player-score-btns-row2">
-                                <button type="button" style="background: #4f46e5; color: white; border-color: #6366f1;" onclick="modifyScore(3, 'x2')" title="Nhân đôi điểm">x2</button>
-                                <button type="button" style="background: #0284c7; color: white; border-color: #0ea5e9;" onclick="modifyScore(3, '÷2')" title="Chia đôi số điểm hiện tại (/2)">÷2</button>
-                                <button type="button" class="btn-reveal" onclick="modifyScore(3, '0')" title="Về 0 điểm">Mất(0)</button>
+                                <button type="button" class="btn-standard" onclick="modifyScore(3, 'x2')" title="Nhân đôi điểm">x2</button>
+                                <button type="button" class="btn-standard" onclick="modifyScore(3, '÷2')" title="Chia đôi số điểm hiện tại (/2)">÷2</button>
+                                <button type="button" class="btn-score-zero" onclick="modifyScore(3, '0')" title="Về 0 điểm">Mất(0)</button>
                             </div>
                         </div>
                     </div>
@@ -1513,14 +1564,14 @@
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 6px;">
-                        <button type="button" class="btn-main" style="padding: 8px 2px; font-size: 11.5px; font-weight: 800; min-height: 36px; border-radius: 4px;" onclick="sendCmd('SHOW_BOARD'); controlShowBoardLocally();">Show chính</button>
-                        <button type="button" style="background: #0284c7; color: white; border-color: #0369a1; padding: 8px 2px; font-size: 11.5px; font-weight: 800; min-height: 36px; border-radius: 4px;" onclick="sendCmd('SHOW_THUMBNAIL')">Thumbnail</button>
-                        <button type="button" class="btn-reset" style="padding: 8px 2px; font-size: 11.5px; font-weight: 800; min-height: 36px; border-radius: 4px;" onclick="sendCmd('HIDE_THUMBNAIL')">Ẩn Thumb</button>
+                        <button type="button" class="btn-standard" style="padding: 8px 2px; font-size: 11px; font-weight: 800; min-height: 36px; border-radius: 4px;" onclick="sendCmd('SHOW_BOARD'); controlShowBoardLocally();">Show chính</button>
+                        <button type="button" class="btn-standard" style="padding: 8px 2px; font-size: 11px; font-weight: 800; min-height: 36px; border-radius: 4px;" onclick="sendCmd('SHOW_THUMBNAIL')">Thumbnail</button>
+                        <button type="button" class="btn-standard" style="padding: 8px 2px; font-size: 11px; font-weight: 800; min-height: 36px; border-radius: 4px;" onclick="sendCmd('HIDE_THUMBNAIL')">Ẩn Thumb</button>
                     </div>
                     <div style="display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 6px;">
-                        <button type="button" class="btn-reveal" style="padding: 9px 2px; font-size: 12px; font-weight: 900; min-height: 38px; border-radius: 4px; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);" onclick="sendCmd('REVEAL_ALL'); setControlBuzzerOpen(false); controlRevealAllLocally();">Mở hết ô</button>
-                        <button type="button" class="btn-tossup" style="padding: 9px 2px; font-size: 12px; font-weight: 900; min-height: 38px; border-radius: 4px; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.3);" onclick="sendCmd('STOP_ALL_SFX')">Dừng SFX</button>
-                        <button type="button" class="btn-reset" style="padding: 9px 2px; font-size: 11.5px; font-weight: 800; min-height: 38px; border-radius: 4px;" onclick="sendCmd('RESET_BOARD'); setControlBuzzerOpen(false); controlResetBoardLocally();">Làm mới</button>
+                        <button type="button" class="btn-standard" style="padding: 9px 2px; font-size: 11.5px; font-weight: 800; min-height: 38px; border-radius: 4px;" onclick="sendCmd('REVEAL_ALL'); setControlBuzzerOpen(false); controlRevealAllLocally();">Mở hết ô</button>
+                        <button type="button" class="btn-danger-action" style="padding: 9px 2px; font-size: 11.5px; font-weight: 800; min-height: 38px; border-radius: 4px;" onclick="sendCmd('STOP_ALL_SFX')">Dừng SFX</button>
+                        <button type="button" class="btn-standard" style="padding: 9px 2px; font-size: 11px; font-weight: 800; min-height: 38px; border-radius: 4px;" onclick="sendCmd('RESET_BOARD'); setControlBuzzerOpen(false); controlResetBoardLocally();">Làm mới</button>
                     </div>
                 </div>
             </div>
@@ -1530,13 +1581,13 @@
                 <div class="console-panel-header" style="background: #10192a;">
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <h2 class="console-panel-title">SOUNDBOARD</h2>
-                        <span id="soundboardCountBadge" style="padding: 1px 5px; border-radius: 2px; font-size: 9px; font-weight: 800; background: #070a10; color: #38bdf8; border: 1px solid #233149;">0 bài</span>
+                        <span id="soundboardCountBadge" style="padding: 1px 5px; border-radius: 2px; font-size: 9px; font-weight: 800; background: #070a10; color: #60a5fa; border: 1px solid #233149;">0 bài</span>
                         <span id="soundboardStatusBadge" style="padding: 1px 6px; border-radius: 2px; font-size: 9px; font-weight: 800; background: #070a10; color: #94a3b8; border: 1px solid #233149;">SẴN SÀNG</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 4px;">
-                        <button type="button" class="btn-main" style="padding: 2px 6px; font-size: 9px; background: #0284c7; border-color: #0ea5e9;" onclick="refreshSoundboardFiles(true)" title="Quét lại toàn bộ file MP3 trong thư mục dự án">Quét</button>
-                        <button type="button" class="btn-tossup" id="btnSoundboardFadeOut" style="padding: 2px 6px; font-size: 9px; background: #b45309; border-color: #f59e0b;" onclick="fadeOutSoundboard(2000)" title="Giảm dần âm lượng nhạc về 0 trong 2 giây rồi dừng">Tắt nhạc</button>
-                        <button type="button" class="btn-emergency-stop" style="padding: 2px 6px; font-size: 9px;" onclick="stopSoundboard(true)" title="Dừng âm thanh Soundboard ngay lập tức">Dừng ngay</button>
+                        <button type="button" class="btn-standard" style="padding: 2px 7px; font-size: 9px;" onclick="refreshSoundboardFiles(true)" title="Quét lại toàn bộ file MP3 trong thư mục dự án">Quét</button>
+                        <button type="button" class="btn-standard" id="btnSoundboardFadeOut" style="padding: 2px 7px; font-size: 9px;" onclick="fadeOutSoundboard(2000)" title="Giảm dần âm lượng nhạc về 0 trong 2 giây rồi dừng">Tắt nhạc</button>
+                        <button type="button" class="btn-danger-action" style="padding: 2px 7px; font-size: 9px;" onclick="stopSoundboard(true)" title="Dừng âm thanh Soundboard ngay lập tức">Dừng ngay</button>
                     </div>
                 </div>
                 <div class="console-panel-body" style="padding: 4px;">
@@ -1564,8 +1615,8 @@
                     <div class="group group-center" id="alphabetContainer" style="gap: 2px; margin-bottom: 3px;"></div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-bottom: 3px;">
-                        <button type="button" class="btn-reset" style="background: #4f46e5; color: white; border-color: #6366f1; padding: 3px 6px; font-size: 9.5px; font-weight: 800;" onclick="triggerSequence('MARK_SEQ')">LẦN 1 (DẤU)</button>
-                        <button type="button" class="btn-tossup" style="padding: 3px 6px; font-size: 9.5px; font-weight: 800;" onclick="triggerSequence('REVEAL_SEQ')">LẦN 2 (MỞ)</button>
+                        <button type="button" class="btn-standard" style="padding: 4px 6px; font-size: 9.5px; font-weight: 800;" onclick="triggerSequence('MARK_SEQ')">LẦN 1 (DẤU)</button>
+                        <button type="button" class="btn-primary-action" style="padding: 4px 6px; font-size: 9.5px; font-weight: 800;" onclick="triggerSequence('REVEAL_SEQ')">LẦN 2 (MỞ)</button>
                     </div>
 
                     <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #1a2538; padding-top: 3px; flex-wrap: wrap; gap: 3px;">
@@ -1584,8 +1635,8 @@
                                     }
                                 </script>
                             </div>
-                            <button type="button" class="btn-main" style="padding: 1px 4px; font-size: 9px;" onclick="confirmExtraLetters()">OK</button>
-                            <button type="button" class="btn-reset" style="padding: 1px 4px; font-size: 9px;" onclick="clearExtraLetters()">XÓA</button>
+                            <button type="button" class="btn-primary-action" style="padding: 2px 7px; font-size: 9px;" onclick="confirmExtraLetters()">OK</button>
+                            <button type="button" class="btn-standard" style="padding: 2px 7px; font-size: 9px;" onclick="clearExtraLetters()">XÓA</button>
                         </div>
                     </div>
                 </div>
@@ -2762,19 +2813,24 @@ Link tham gia: ${fullUrl}`;
             const total = round30SubPuzzles.length;
             for (let i = 0; i < total; i++) {
                 const btn = document.createElement("button");
-                btn.style.cssText = "padding: 5px 2px; font-size: 11px; font-weight: bold; border-radius: 4px;";
+                btn.type = "button";
+                btn.className = "btn-standard";
+                btn.style.cssText = "padding: 4px 2px; font-size: 10px; font-weight: 800; border-radius: 3px;";
                 const isCurrent = (i === currentRound30SubIndex);
                 const isSolved = round30SolvedStatus[i];
                 btn.textContent = `Ô ${i + 1}${isSolved ? ' (Xong)' : ''}`;
                 if (isCurrent) {
-                    btn.style.background = "#fbbf24";
-                    btn.style.color = "#000";
+                    btn.style.background = "#2563eb";
+                    btn.style.color = "#ffffff";
+                    btn.style.borderColor = "#3b82f6";
                 } else if (isSolved) {
-                    btn.style.background = "#10b981";
-                    btn.style.color = "#fff";
+                    btn.style.background = "#0f172a";
+                    btn.style.color = "#64748b";
+                    btn.style.borderColor = "#1e293b";
                 } else {
                     btn.style.background = "#1e293b";
-                    btn.style.color = "#fff";
+                    btn.style.color = "#f1f5f9";
+                    btn.style.borderColor = "#334155";
                 }
                 btn.onclick = () => {
                     clearControlBuzzer();
@@ -3127,24 +3183,26 @@ Link tham gia: ${fullUrl}`;
                 const btn = document.getElementById(`btnPreviewQuiz${i}`);
                 if (btn) {
                     if (i === (index + 1)) {
-                        btn.style.background = "#2ecc71"; btn.style.color = "#000";
-                    } else if (i === 13) {
-                        btn.style.background = "#d35400"; btn.style.color = "#fff";
+                        btn.style.background = "#2563eb";
+                        btn.style.color = "#ffffff";
+                        btn.style.borderColor = "#3b82f6";
                     } else {
-                        btn.style.background = "#192030"; btn.style.color = "#cbd5e1";
+                        btn.style.background = "#1e293b";
+                        btn.style.color = "#94a3b8";
+                        btn.style.borderColor = "#334155";
                     }
                 }
             }
 
             if (index === 12) {
                 let subList = (importedQuizzes[12] && Array.isArray(importedQuizzes[12]) && importedQuizzes[12].length > 0) ? importedQuizzes[12] : [];
-                let html = `<div style="color: #fbbf24; font-weight: bold; margin-bottom: 6px;">TỔ HỢP ${subList.length} Ô CHỮ ĐỀ 13 (VÒNG 30S):</div>`;
+                let html = `<div style="color: #60a5fa; font-weight: 800; margin-bottom: 6px; font-size: 10px;">TỔ HỢP ${subList.length} Ô CHỮ ĐỀ 13 (VÒNG 30S):</div>`;
                 subList.forEach((sub, sIdx) => {
                     const ans = extractAnswerFromLetters(sub);
-                    html += `<div style="display: flex; justify-content: space-between; align-items: center; background: #131927; padding: 4px 8px; border-radius: 4px; margin-bottom: 4px; font-size: 11px;">
-                        <span style="color: #38bdf8; font-weight: bold;">Ô ${sIdx + 1}:</span>
-                        <span style="color: #fff; font-weight: bold; margin-left: 6px; flex: 1;">${ans || "(Trống)"}</span>
-                        <button onclick="selectRound30Sub(${sIdx});" style="background: #10b981; color: #fff; padding: 2px 6px; font-size: 10px;">Chọn</button>
+                    html += `<div style="display: flex; justify-content: space-between; align-items: center; background: #0f172a; border: 1px solid #1e293b; padding: 4px 6px; border-radius: 3px; margin-bottom: 3px; font-size: 10px;">
+                        <span style="color: #60a5fa; font-weight: 800;">Ô ${sIdx + 1}:</span>
+                        <span style="color: #f1f5f9; font-weight: 700; margin-left: 6px; flex: 1;">${ans || "(Trống)"}</span>
+                        <button onclick="selectRound30Sub(${sIdx});" class="btn-standard" style="padding: 2px 7px; font-size: 9px;">Chọn</button>
                     </div>`;
                 });
                 container.innerHTML = html;
@@ -3153,19 +3211,19 @@ Link tham gia: ${fullUrl}`;
 
             const letters = importedQuizzes[index] || [];
             const ans = extractAnswerFromLetters(letters);
-            let html = '<div style="display: flex; flex-direction: column; gap: 3px; padding: 6px; background: #131927; border-radius: 6px;">';
+            let html = '<div style="display: flex; flex-direction: column; gap: 3px; padding: 6px; background: #0f172a; border: 1px solid #1e293b; border-radius: 3px;">';
             const lines = [{ start: 0, end: 12 }, { start: 12, end: 26 }, { start: 26, end: 40 }, { start: 40, end: 52 }];
             lines.forEach(line => {
                 html += '<div style="display: flex; justify-content: center; gap: 2px;">';
                 for (let i = line.start; i < line.end; i++) {
                     const char = letters[i] || "";
                     const isLetter = char.trim() !== "";
-                    html += `<span style="display: inline-block; width: 14px; height: 18px; line-height: 18px; text-align: center; background: ${isLetter ? '#059669' : '#090c14'}; border: 1px solid ${isLetter ? '#10b981' : '#232d42'}; color: #fff; font-weight: bold; border-radius: 2px; font-size: 10px;">${isLetter ? char : " "}</span>`;
+                    html += `<span style="display: inline-block; width: 14px; height: 18px; line-height: 18px; text-align: center; background: ${isLetter ? '#1e3a5f' : '#070a10'}; border: 1px solid ${isLetter ? '#3b82f6' : '#1e293b'}; color: #fff; font-weight: bold; border-radius: 2px; font-size: 10px;">${isLetter ? char : " "}</span>`;
                 }
                 html += '</div>';
             });
             html += '</div>';
-            html += `<div style="margin-top: 6px; padding: 6px 8px; background: #181f2f; border-radius: 4px; font-weight: bold; font-size: 11.5px; color: #fbbf24;">ĐÁP ÁN: ${ans || "(Trống)"}</div>`;
+            html += `<div style="margin-top: 6px; padding: 4px 8px; background: #0f172a; border: 1px solid #1e293b; border-radius: 3px; font-weight: 800; font-size: 10.5px; color: #60a5fa;">ĐÁP ÁN: <span style="color: #f1f5f9;">${ans || "(Trống)"}</span></div>`;
             container.innerHTML = html;
         }
 
@@ -3401,23 +3459,23 @@ Link tham gia: ${fullUrl}`;
             const badge = document.getElementById("wwfBadge");
             if (!btn || !badge) return;
             if (isWWFMode) {
-                btn.style.background = "#0284c7";
-                btn.style.borderColor = "#38bdf8";
+                btn.style.background = "#1e293b";
+                btn.style.borderColor = "#3b82f6";
                 btn.style.color = "#ffffff";
                 btn.style.boxShadow = "none";
                 badge.textContent = "BẬT (ĐỀ 3, 4, 5, 9)";
-                badge.style.background = "#090c14";
-                badge.style.color = "#38bdf8";
-                badge.style.borderColor = "#38bdf8";
+                badge.style.background = "#2563eb";
+                badge.style.color = "#ffffff";
+                badge.style.borderColor = "#3b82f6";
             } else {
-                btn.style.background = "#181f2f";
-                btn.style.borderColor = "#2a354c";
+                btn.style.background = "#1e293b";
+                btn.style.borderColor = "#334155";
                 btn.style.color = "#94a3b8";
                 btn.style.boxShadow = "none";
                 badge.textContent = "ĐANG TẮT";
-                badge.style.background = "#090c14";
-                badge.style.color = "#94a3b8";
-                badge.style.borderColor = "#334155";
+                badge.style.background = "#0f172a";
+                badge.style.color = "#64748b";
+                badge.style.borderColor = "#1e293b";
             }
         }
 
