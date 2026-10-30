@@ -1627,7 +1627,7 @@
                             <button type="button" class="btn-row-reveal" onclick="controlRevealRow(4)">Dòng 4</button>
                         </div>
                         <div style="display: flex; gap: 4px;">
-                            <button type="button" class="btn-board-quick btn-reveal" onclick="sendCmd('REVEAL_ALL'); setControlBuzzerOpen(false); controlRevealAllLocally();" title="Mở toàn bộ ô chữ trên bảng">
+                            <button type="button" class="btn-board-quick btn-reveal" onclick="confirmRevealAll()" title="Mở toàn bộ ô chữ trên bảng">
                                 Mở toàn bảng
                             </button>
                             <button type="button" class="btn-board-quick" style="background: #1e293b; color: #fff; border-color: #334155;" onclick="sendCmd('SHOW_BOARD'); controlShowBoardLocally();" title="Hiện khung trắng tất cả ô chữ cho người chơi đoán">
@@ -1662,7 +1662,7 @@
                         <button type="button" class="btn-primary-action" id="startBtn" style="padding: 5px 0; font-weight: 800;" onclick="clickStartTossup()">Bắt đầu</button>
                         <button type="button" class="btn-standard" id="pauseBtn" style="padding: 5px 0; font-weight: 800;" onclick="clickPauseTossup()">Tạm dừng</button>
                         <button type="button" class="btn-standard" id="playBtn" style="padding: 5px 0; font-weight: 800;" onclick="clickPlayTossup()">Tiếp tục</button>
-                        <button type="button" class="btn-standard" id="solveBtn" style="padding: 5px 0; font-weight: 800;" onclick="solveTossUp()">Giải đáp</button>
+                        <button type="button" class="btn-standard" id="solveBtn" style="padding: 5px 0; font-weight: 800;" onclick="confirmSolveTossUp()">Giải đáp</button>
                     </div>
 
                     <!-- Cài đặt tốc độ lật chữ Toss-Up -->
@@ -1704,7 +1704,7 @@
                     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; margin-bottom: 4px;">
                         <button type="button" id="btnRound30Start" class="btn-primary-action" style="padding: 4px 0; font-size: 10px;" onclick="startRound30()">Bắt đầu</button>
                         <button type="button" id="btnRound30Pause" class="btn-standard" style="padding: 4px 0; font-size: 10px;" onclick="togglePauseRound30()">Tạm dừng</button>
-                        <button type="button" class="btn-standard" style="padding: 4px 0; font-size: 10px;" onclick="revealRound30Answer()">Đáp án</button>
+                        <button type="button" class="btn-standard" style="padding: 4px 0; font-size: 10px;" onclick="confirmRevealRound30Answer()">Đáp án</button>
                         <button type="button" class="btn-standard" style="padding: 4px 0; font-size: 10px;" onclick="nextRound30Puzzle()">Ô tiếp theo</button>
                     </div>
 
@@ -1857,7 +1857,7 @@
                         <button type="button" class="btn-standard" style="padding: 8px 2px; font-size: 11px; font-weight: 800; min-height: 36px; border-radius: 4px;" onclick="sendCmd('HIDE_THUMBNAIL')">Ẩn Thumb</button>
                     </div>
                     <div style="display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 6px;">
-                        <button type="button" class="btn-standard" style="padding: 9px 2px; font-size: 11.5px; font-weight: 800; min-height: 38px; border-radius: 4px;" onclick="sendCmd('REVEAL_ALL'); setControlBuzzerOpen(false); controlRevealAllLocally();">Mở hết ô</button>
+                        <button type="button" class="btn-standard" style="padding: 9px 2px; font-size: 11.5px; font-weight: 800; min-height: 38px; border-radius: 4px;" onclick="confirmRevealAll()">Mở hết ô</button>
                         <button type="button" class="btn-danger-action" style="padding: 9px 2px; font-size: 11.5px; font-weight: 800; min-height: 38px; border-radius: 4px;" onclick="sendCmd('STOP_ALL_SFX')">Dừng SFX</button>
                         <button type="button" class="btn-standard" style="padding: 9px 2px; font-size: 11px; font-weight: 800; min-height: 38px; border-radius: 4px;" onclick="sendCmd('RESET_BOARD'); setControlBuzzerOpen(false); controlResetBoardLocally();">Làm mới</button>
                     </div>
@@ -4322,6 +4322,26 @@ Link tham gia: ${fullUrl}`;
                 pendingConfirmCallback();
             }
             pendingConfirmCallback = null;
+        }
+
+        function confirmSolveTossUp() {
+            showCustomConfirm("Bạn có chắc chắn muốn giải đáp và mở toàn bộ ô chữ Toss-Up không?", () => {
+                solveTossUp();
+            });
+        }
+
+        function confirmRevealAll() {
+            showCustomConfirm("Bạn có chắc chắn muốn mở toàn bộ ô chữ trên bảng không?", () => {
+                sendCmd('REVEAL_ALL');
+                setControlBuzzerOpen(false);
+                controlRevealAllLocally();
+            });
+        }
+
+        function confirmRevealRound30Answer() {
+            showCustomConfirm("Bạn có chắc chắn muốn mở đáp án ô chữ vòng 30 giây không?", () => {
+                revealRound30Answer();
+            });
         }
 
         function escapeHtml(str) {
