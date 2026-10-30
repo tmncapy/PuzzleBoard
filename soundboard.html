@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soundboard Kỹ Thuật (TECH) & Phím Tắt - Broadcast Soundboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="sync-bridge.js"></script>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-master: #0a0d14;
+            --bg-panel: #111622;
+            --bg-panel-header: #151c2c;
+            --bg-subpanel: #0d121b;
+            --bg-input: #070a10;
+            --border-panel: #1e2738;
+            --border-subtle: #27344c;
+            --border-focus: #38bdf8;
+            --text-main: #f1f5f9;
+            --text-muted: #8493a8;
+            --cyan-bright: #38bdf8;
+            --green-tally: #10b981;
+            --red-tally: #ef4444;
+        }
+
+        body {
+            background-color: var(--bg-master);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 8px;
+            font-size: 12px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .font-mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        /* Master Header */
+        .master-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(180deg, #172030 0%, #111724 100%);
+            border: 1px solid var(--border-panel);
+            border-bottom: 2px solid #2a374f;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+
+        button {
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 11px;
+            background: #1e293b;
+            color: #f1f5f9;
+            border: 1px solid var(--border-subtle);
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background 0.12s ease, border-color 0.12s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            text-transform: uppercase;
+            padding: 4px 10px;
+        }
+        button:hover {
+            background: #283548;
+            border-color: #475569;
+            color: #ffffff;
+        }
+        button:active {
+            transform: translateY(1px);
+        }
+
+        /* Soundboard Button Card */
+        .btn-soundboard {
+            background: #131b29;
+            border: 1px solid #233149;
+            border-radius: 4px;
+            padding: 8px;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 64px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-soundboard:hover {
+            background: #1c2738;
+            border-color: #38bdf8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
+        }
+        .btn-soundboard:active {
+            background: #0f172a;
+            transform: translateY(0);
+        }
+        .btn-soundboard.sb-playing {
+            background: #0c2340 !important;
+            border-color: #38bdf8 !important;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+            animation: sbPulse 1s infinite alternate;
+        }
+        @keyframes sbPulse {
+            0% { border-color: #0ea5e9; box-shadow: 0 0 6px rgba(14, 165, 233, 0.3); }
+            100% { border-color: #38bdf8; box-shadow: 0 0 14px rgba(56, 189, 248, 0.6); }
+        }
+
+        .sb-name {
+            font-size: 11.5px;
+            font-weight: 800;
+            color: #f8fafc;
+            line-height: 1.25;
+            word-break: break-word;
+        }
+        .sb-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+            font-size: 9.5px;
+            color: #8493a8;
+        }
+        .sb-shortcut-badge {
+            background: #070a10;
+            border: 1px solid #233149;
+            color: #38bdf8;
+            padding: 1px 5px;
+            border-radius: 2px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+
+        /* Tabs styling */
+        .tab-btn {
+            background: #111622;
+            color: #8493a8;
+            border: 1px solid #1e2738;
+            padding: 6px 16px;
+            font-weight: 800;
+            font-size: 11px;
+            border-radius: 4px 4px 0 0;
+            cursor: pointer;
+        }
+        .tab-btn.active {
+            background: #1e293b;
+            color: #38bdf8;
+            border-bottom: 2px solid #38bdf8;
+            border-color: #334155 #334155 #38bdf8 #334155;
+        }
+
+        .tech-input {
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-main);
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 3px;
+            outline: none;
+        }
+        .tech-input:focus {
+            border-color: var(--cyan-bright);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #27344c;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Master Header -->
+    <header class="master-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 10px; height: 10px; border-radius: 50%; background: var(--green-tally); box-shadow: 0 0 8px var(--green-tally);"></div>
+            <h1 style="font-size: 14px; font-weight: 900; color: #f8fafc; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                TECH SOUNDBOARD & BÀN PHÍM ĐIỀU KHIỂN
+            </h1>
+            <span style="background: #1e293b; color: #38bdf8; font-size: 10px; padding: 2px 6px; border-radius: 3px; border: 1px solid #334155; font-weight: 800;">
+                CHỈ PHÁT TẠI MÀN HÌNH CHÍNH (INDEX)
+            </span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <span style="font-size: 10px; color: var(--text-muted); font-weight: bold;">MÃ PHÒNG:</span>
+                <input type="text" id="roomIdInput" value="123456" class="tech-input font-mono" style="width: 70px; text-align: center; padding: 2px 6px;" onchange="updateRoomId(this.value)">
+            </div>
+            <button type="button" onclick="sendCmd('STOP_SOUNDBOARD')" style="background: #b91c1c; border-color: #ef4444; color: #fff; padding: 4px 10px; font-weight: 800;" title="Dừng toàn bộ âm thanh soundboard ngay lập tức">
+                Dừng âm thanh
+            </button>
+        </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <div style="display: flex; gap: 4px; border-bottom: 1px solid var(--border-panel); margin-bottom: 8px;">
+        <button type="button" id="tabBtnSoundboard" class="tab-btn active" onclick="switchTab('soundboard')">Bảng Soundboard (<span id="tabSoundCount">0</span>)</button>
+        <button type="button" id="tabBtnShortcuts" class="tab-btn" onclick="switchTab('shortcuts')">Cài đặt Phím tắt Bàn phím</button>
+    </div>
+
+    <!-- TAB 1: SOUNDBOARD GRID -->
+    <div id="viewSoundboard" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+        <!-- Toolbar: Search & Filter -->
+        <div style="background: var(--bg-panel); border: 1px solid var(--border-panel); border-radius: 4px; padding: 8px; margin-bottom: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="sbSearchInput" placeholder="Tìm kiếm tên file hoặc âm thanh..." class="tech-input" style="flex: 1; min-width: 200px;" oninput="renderSoundboardGrid()">
+            <select id="sbFolderFilter" class="tech-input" style="width: 150px;" onchange="renderSoundboardGrid()">
+                <option value="ALL">Tất cả thư mục</option>
+                <option value="Thư mục gốc">Thư mục gốc</option>
+                <option value="Nhạc mới">Nhạc mới</option>
+            </select>
+            <button type="button" onclick="refreshSoundboardTracks()">Quét lại file</button>
+            <span id="sbStatusText" style="font-size: 10px; color: #fbbf24; font-weight: 700;">Đã sẵn sàng</span>
+        </div>
+
+        <!-- Sound Buttons Grid -->
+        <div id="soundboardGridContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 6px; overflow-y: auto; flex: 1; padding-bottom: 12px; max-height: calc(100vh - 160px);">
+            <!-- Rendered via JS -->
+        </div>
+    </div>
+
+    <!-- TAB 2: KEYBOARD SHORTCUTS SETTINGS -->
+    <div id="viewShortcuts" style="display: none; flex-direction: column; flex: 1; min-height: 0;">
+        <div style="background: var(--bg-panel); border: 1px solid var(--border-panel); border-radius: 4px; padding: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 style="font-size: 12px; font-weight: 800; color: #38bdf8; margin: 0 0 2px 0;">CÀI ĐẶT PHÍM TẮT ĐIỀU KHIỂN ÂM THANH</h3>
+                <p style="font-size: 10px; color: var(--text-muted); margin: 0;">Click vào nút "Gán phím" rồi bấm phím trên bàn phím để gán cho âm thanh đó. Khi bấm phím tương ứng (ở màn hình này), âm thanh sẽ được phát trên màn hình chính (Index).</p>
+            </div>
+            <div style="display: flex; gap: 6px;">
+                <button type="button" onclick="resetAllShortcuts()" style="background: #334155; font-size: 10px;">Xóa tất cả phím tắt</button>
+                <button type="button" onclick="saveShortcuts()" style="background: #2563eb; font-weight: 800; font-size: 10px;">Lưu cài đặt</button>
+            </div>
+        </div>
+
+        <div style="background: var(--bg-panel); border: 1px solid var(--border-panel); border-radius: 4px; overflow-y: auto; flex: 1; max-height: calc(100vh - 170px);">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 11px;">
+                <thead>
+                    <tr style="background: var(--bg-panel-header); border-bottom: 1px solid var(--border-panel); color: #94a3b8; font-size: 10px; text-transform: uppercase;">
+                        <th style="padding: 8px 12px;">Tên Âm Thanh</th>
+                        <th style="padding: 8px 12px;">File</th>
+                        <th style="padding: 8px 12px; width: 140px;">Phím Tắt Gán</th>
+                        <th style="padding: 8px 12px; width: 120px; text-align: center;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="shortcutsTableBody">
+                    <!-- Rendered via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Notification Alert Popup -->
+    <div id="customPopup" style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 9999;">
+        <div style="background: #111622; border: 1px solid #27344c; border-radius: 6px; padding: 16px 24px; max-width: 360px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.6);">
+            <p id="popupMessage" style="color: #f1f5f9; font-size: 12px; font-weight: 700; margin: 0 0 12px 0;"></p>
+            <button type="button" onclick="closePopup()" style="background: #2563eb; font-weight: 800; padding: 5px 16px;">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // Fallback metadata tracks
+        const FALLBACK_TRACKS_META = [
+            { file: "10s.mp3", name: "10s", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "2nd_ding.wav", name: "2nd_ding", folder: "Thư mục gốc", ext: ".wav" },
+            { file: "30s.mp3", name: "30s", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "30s Fortune Frenzy 4.mp3", name: "30s Fortune Frenzy 4", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "A_Letter_gets_Highlighted.mp3", name: "A_Letter_gets_Highlighted", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "BonusPuzzle.mp3", name: "BonusPuzzle", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "ClearPuzzle.mp3", name: "ClearPuzzle", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "ClearTossUp.mp3", name: "ClearTossUp", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Correct.mp3", name: "Correct", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "FinalSpinBell.wav", name: "FinalSpinBell", folder: "Thư mục gốc", ext: ".wav" },
+            { file: "FULL_CLEAN_OPENING_TITLES.mp3", name: "FULL_CLEAN_OPENING_TITLES", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Host_Entrance.mp3", name: "Host_Entrance", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Letters_Solved.mp3", name: "Letters_Solved", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Lucky.wav", name: "Lucky", folder: "Thư mục gốc", ext: ".wav" },
+            { file: "Main_Theme.mp3", name: "Main_Theme", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Open_a_Letter.mp3", name: "Open_a_Letter", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Phần thưởng.mp3", name: "Phần thưởng", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Reveal_the_Letters.mp3", name: "Reveal_the_Letters", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "SpinBonus.m4a", name: "SpinBonus", folder: "Thư mục gốc", ext: ".m4a" },
+            { file: "SpinFinal.mp3", name: "SpinFinal", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "TossUpStart.mp3", name: "TossUpStart", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Wrong.mp3", name: "Wrong", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "bankrupt.mp3", name: "bankrupt", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "ding.mp3", name: "ding", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "ding.wav", name: "ding (wav)", folder: "Thư mục gốc", ext: ".wav" },
+            { file: "final.mp3", name: "final", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "final spin.mp3", name: "final spin", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "finalspin.mp3", name: "finalspin", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "gameSprite.mp3", name: "gameSprite", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "horn.mp3", name: "horn", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "mystery.mp3", name: "mystery", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "mất lượt.mp3", name: "mất lượt", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "mất điểm.mp3", name: "mất điểm", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "red.mp3", name: "red", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "reveal.mp3", name: "reveal", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "showpuzzle2.mp3", name: "showpuzzle2", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "spin.mp3", name: "spin", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "spin2015.mp3", name: "spin2015", folder: "Thuv mục gốc", ext: ".mp3" },
+            { file: "tosssound.mp3", name: "tosssound", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "tossup.mp3", name: "tossup", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "wrong.mp3", name: "wrong (thư viện)", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "ô bí mật.mp3", name: "ô bí mật", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "nhạc mới/Bankrupt.mp3", name: "Bankrupt (Nhạc mới)", folder: "Nhạc mới", ext: ".mp3" },
+            { file: "nhạc mới/Bed_1.mp3", name: "Bed_1", folder: "Nhạc mới", ext: ".mp3" },
+            { file: "nhạc mới/Bed_2 (1) (1).mp3", name: "Bed_2 (1) (1)", folder: "Nhạc mới", ext: ".mp3" },
+            { file: "nhạc mới/Bed_2 (1).mp3", name: "Bed_2 (1)", folder: "Nhạc mới", ext: ".mp3" },
+            { file: "nhạc mới/Bed_5.mp3", name: "Bed_5", folder: "Nhạc mới", ext: ".mp3" },
+            { file: "nhạc mới/CNKD ACESTUDIO 2.mp3", name: "CNKD ACESTUDIO 2", folder: "Nhạc mới", ext: ".mp3" },
+            { file: "nhạc mới/Final_Round (1).mp3", name: "Final_Round (1)", folder: "Nhạc mới", ext: ".mp3" },
+            { file: "nhạc mới/Final_Round.mp3", name: "Final_Round", folder: "Nhạc mới", ext: ".mp3" },
+            { file: "nhạc mới/Host_Entrance.mp3", name: "Host_Entrance (Nhạc mới)", folder: "Nhạc mới", ext: ".mp3" },
+            { file: "nhạc mới/Letters_Solved.wav", name: "Letters_Solved (wav)", folder: "Nhạc mới", ext: ".wav" },
+            { file: "nhạc mới/Lose_a_Turn (1).mp3", name: "Lose_a_Turn (1)", folder: "Nhạc mới", ext: ".mp3" },
+            { file: "nhạc mới/Lucky.wav", name: "Lucky (wav)", folder: "Nhạc mới", ext: ".wav" },
+            { file: "nhạc mới/Qualifiers_Round.mp3", name: "Qualifiers_Round", folder: "Nhạc mới", ext: ".mp3" },
+            { file: "nhạc mới/The_Special_Round (1).mp3", name: "The_Special_Round (1)", folder: "Nhạc mới", ext: ".mp3" },
+            { file: "nhạc mới/The_Special_Round.mp3", name: "The_Special_Round", folder: "Nhạc mới", ext: ".mp3" },
+            { file: "nhạc mới/Wheel_Spinning_Bed_2012_High-Pitch_2.mp3", name: "Wheel_Spinning_Bed_2012", folder: "Nhạc mới", ext: ".mp3" },
+            { file: "nhạc mới/Wheel_Spinning_Bed_2015 (1).mp3", name: "Wheel_Spinning_Bed_2015 (1)", folder: "Nhạc mới", ext: ".mp3" },
+            { file: "nhạc mới/Wheel_Spinning_Bed_2015.mp3", name: "Wheel_Spinning_Bed_2015", folder: "Nhạc mới", ext: ".mp3" },
+            { file: "nhạc mới/Wrong.wav", name: "Wrong (wav)", folder: "Nhạc mới", ext: ".wav" },
+            { file: "nhạc mới/double.wav", name: "double (wav)", folder: "Nhạc mới", ext: ".wav" }
+        ];
+
+        let soundboardTracks = [...FALLBACK_TRACKS_META];
+        let keyboardBindings = {}; // Map: code/key -> file
+        let activeAssignFile = null; // Currently capturing key for this file
+
+        // Load saved bindings
+        try {
+            const saved = localStorage.getItem('soundboard_keyboard_bindings');
+            if (saved) {
+                keyboardBindings = JSON.parse(saved);
+            }
+        } catch(e) {}
+
+        const roomIdInput = document.getElementById('roomIdInput');
+        let currentRoomId = localStorage.getItem('crossword_room_id') || '123456';
+        roomIdInput.value = currentRoomId;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.GameSync) {
+                window.GameSync.init({ role: 'control', roomId: currentRoomId });
+            }
+            refreshSoundboardTracks();
+            renderShortcutsTable();
+
+            // Global Keydown listener for shortcuts (only plays sound on index.html)
+            window.addEventListener('keydown', (e) => {
+                if (e.target && (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName))) {
+                    return; // Don't trigger when typing in inputs
+                }
+
+                // If currently capturing a shortcut key
+                if (activeAssignFile) {
+                    e.preventDefault();
+                    const code = e.code; // e.g. "KeyA", "Digit1", "F1", "Space"
+                    const displayKey = e.key.toUpperCase();
+                    // Remove old mapping for this code if any
+                    for (const [k, f] of Object.entries(keyboardBindings)) {
+                        if (f === activeAssignFile) delete keyboardBindings[k];
+                    }
+                    keyboardBindings[code] = activeAssignFile;
+                    saveShortcuts();
+                    activeAssignFile = null;
+                    renderShortcutsTable();
+                    renderSoundboardGrid();
+                    showCustomAlert(`Đã gán phím [${displayKey}] cho âm thanh thành công!`);
+                    return;
+                }
+
+                // Normal shortcut trigger
+                const code = e.code;
+                const targetFile = keyboardBindings[code];
+                if (targetFile) {
+                    e.preventDefault();
+                    const track = soundboardTracks.find(t => t.file === targetFile);
+                    if (track) {
+                        playSoundboardOnlyIndex(track.file, track.name);
+                        flashSoundboardButton(track.file);
+                    }
+                }
+            });
+        });
+
+        function updateRoomId(val) {
+            currentRoomId = (val || '123456').trim();
+            localStorage.setItem('crossword_room_id', currentRoomId);
+            if (window.GameSync) {
+                window.GameSync.init({ role: 'control', roomId: currentRoomId });
+            }
+            showCustomAlert(`Đã cập nhật mã phòng: ${currentRoomId}`);
+        }
+
+        function sendCmd(action, data = null) {
+            const payload = {
+                roomid: currentRoomId,
+                event: 'control-to-display',
+                type: action,
+                data: data,
+                ts: Date.now()
+            };
+            if (window.GameSync) {
+                try { window.GameSync.send('control-to-display', payload); } catch(e){}
+            }
+            try {
+                localStorage.setItem('crossword_broadcast_cmd', JSON.stringify(payload));
+            } catch(e){}
+        }
+
+        function playSoundboardOnlyIndex(file, name) {
+            // Sound plays ONLY at index.html (remote display) per user instruction
+            sendCmd('PLAY_SOUNDBOARD', { file: file, name: name });
+            flashSoundboardButton(file);
+        }
+
+        function flashSoundboardButton(file) {
+            const btn = document.getElementById('sb_btn_' + CSS.escape(file));
+            if (btn) {
+                btn.classList.add('sb-playing');
+                setTimeout(() => {
+                    btn.classList.remove('sb-playing');
+                }, 800);
+            }
+        }
+
+        function refreshSoundboardTracks() {
+            const statusEl = document.getElementById('sbStatusText');
+            if (statusEl) statusEl.textContent = 'Đang quét thư mục...';
+            
+            fetch(window.location.origin + '/api/soundboard-files')
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.success && Array.isArray(data.tracks) && data.tracks.length > 0) {
+                        const merged = [...data.tracks];
+                        FALLBACK_TRACKS_META.forEach(f => {
+                            if (!merged.some(m => m.file.toLowerCase() === f.file.toLowerCase())) {
+                                merged.push(f);
+                            }
+                        });
+                        const unique = new Map();
+                        merged.forEach(t => { if (t && t.file) unique.set(t.file.toLowerCase(), t); });
+                        soundboardTracks = Array.from(unique.values());
+                    } else if (data && data.success && Array.isArray(data.files)) {
+                        const trackList = data.files.map(f => {
+                            const isNhacMoi = /^nhạc mới[\/\\]/i.test(f);
+                            return {
+                                file: f,
+                                name: f.replace(/^nhạc mới[\/\\]/i, '').replace(/\.[^.]+$/i, ''),
+                                folder: isNhacMoi ? 'Nhạc mới' : 'Thư mục gốc',
+                                ext: f.match(/\.[^.]+$/i) ? f.match(/\.[^.]+$/i)[0].toLowerCase() : '.mp3'
+                            };
+                        });
+                        FALLBACK_TRACKS_META.forEach(f => {
+                            if (!trackList.some(m => m.file.toLowerCase() === f.file.toLowerCase())) {
+                                trackList.push(f);
+                            }
+                        });
+                        soundboardTracks = trackList;
+                    } else {
+                        soundboardTracks = [...FALLBACK_TRACKS_META];
+                    }
+                    if (statusEl) statusEl.textContent = `Đã quét: ${soundboardTracks.length} âm thanh`;
+                    renderSoundboardGrid();
+                    renderShortcutsTable();
+                })
+                .catch(() => {
+                    soundboardTracks = [...FALLBACK_TRACKS_META];
+                    if (statusEl) statusEl.textContent = `Đã tải ${soundboardTracks.length} âm thanh (Dự phòng)`;
+                    renderSoundboardGrid();
+                    renderShortcutsTable();
+                });
+        }
+
+        function renderSoundboardGrid() {
+            const container = document.getElementById('soundboardGridContainer');
+            const searchVal = (document.getElementById('sbSearchInput').value || '').toLowerCase().trim();
+            const folderFilter = document.getElementById('sbFolderFilter').value;
+            if (!container) return;
+
+            container.innerHTML = '';
+            let count = 0;
+
+            soundboardTracks.forEach(track => {
+                if (folderFilter !== 'ALL' && track.folder !== folderFilter) return;
+                if (searchVal && !track.name.toLowerCase().includes(searchVal) && !track.file.toLowerCase().includes(searchVal)) return;
+                count++;
+
+                // Find assigned key for this track
+                let assignedKey = '';
+                for (const [k, f] of Object.entries(keyboardBindings)) {
+                    if (f === track.file) {
+                        assignedKey = k.replace('Key', '').replace('Digit', '');
+                        break;
+                    }
+                }
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.id = 'sb_btn_' + track.file;
+                btn.className = 'btn-soundboard';
+                btn.onclick = () => playSoundboardOnlyIndex(track.file, track.name);
+                
+                btn.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+                        <span class="sb-name" title="${track.file}">${track.name}</span>
+                        ${assignedKey ? `<span class="sb-shortcut-badge">[${assignedKey}]</span>` : ''}
+                    </div>
+                    <div class="sb-meta">
+                        <span style="opacity: 0.8; font-family: monospace; font-size: 9px;">${track.folder}</span>
+                        <span style="color: #38bdf8; font-weight: 800; font-size: 10px;">▶ PHÁT</span>
+                    </div>
+                `;
+                container.appendChild(btn);
+            });
+
+            const countEl = document.getElementById('tabSoundCount');
+            if (countEl) countEl.textContent = count;
+        }
+
+        function renderShortcutsTable() {
+            const tbody = document.getElementById('shortcutsTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            soundboardTracks.forEach(track => {
+                let assignedCode = '';
+                for (const [k, f] of Object.entries(keyboardBindings)) {
+                    if (f === track.file) {
+                        assignedCode = k;
+                        break;
+                    }
+                }
+                const displayKey = assignedCode ? assignedCode.replace('Key', '').replace('Digit', '') : 'Chưa gán';
+
+                const tr = document.createElement('tr');
+                tr.style.cssText = 'border-bottom: 1px solid var(--border-panel); transition: background 0.1s;';
+                tr.onmouseover = () => tr.style.background = '#151c2c';
+                tr.onmouseout = () => tr.style.background = 'transparent';
+
+                tr.innerHTML = `
+                    <td style="padding: 8px 12px; font-weight: 800; color: #f8fafc;">${track.name}</td>
+                    <td style="padding: 8px 12px; color: #8493a8; font-family: monospace; font-size: 10px;">${track.file}</td>
+                    <td style="padding: 8px 12px;">
+                        <span style="background: ${assignedCode ? '#0c2340' : '#1e293b'}; color: ${assignedCode ? '#38bdf8' : '#8493a8'}; border: 1px solid ${assignedCode ? '#38bdf8' : '#334155'}; padding: 2px 8px; border-radius: 3px; font-weight: bold; font-family: monospace;">
+                            ${displayKey}
+                        </span>
+                    </td>
+                    <td style="padding: 8px 12px; text-align: center;">
+                        <div style="display: flex; gap: 4px; justify-content: center;">
+                            <button type="button" onclick="startAssignKey('${CSS.escape(track.file)}')" style="padding: 2px 8px; font-size: 9.5px; background: ${activeAssignFile === track.file ? '#2563eb' : '#1e293b'}; color: ${activeAssignFile === track.file ? '#fff' : '#38bdf8'}; border-color: #38bdf8;">
+                                ${activeAssignFile === track.file ? 'Đang bấm phím...' : 'Gán phím'}
+                            </button>
+                            ${assignedCode ? `<button type="button" onclick="clearKeyBinding('${CSS.escape(track.file)}')" style="padding: 2px 6px; font-size: 9.5px; background: #b91c1c; border-color: #ef4444; color: #fff;">Xóa</button>` : ''}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function startAssignKey(file) {
+            // Unescape file if needed
+            activeAssignFile = file;
+            renderShortcutsTable();
+            showCustomAlert(`Hãy bấm một phím trên bàn phím để gán cho âm thanh này...`);
+        }
+
+        function clearKeyBinding(file) {
+            for (const [k, f] of Object.entries(keyboardBindings)) {
+                if (f === file) delete keyboardBindings[k];
+            }
+            saveShortcuts();
+            renderShortcutsTable();
+            renderSoundboardGrid();
+            showCustomAlert('Đã xóa phím tắt cho âm thanh này.');
+        }
+
+        function resetAllShortcuts() {
+            if (confirm('Bạn có chắc chắn muốn xóa toàn bộ phím tắt đã cài đặt không?')) {
+                keyboardBindings = {};
+                saveShortcuts();
+                renderShortcutsTable();
+                renderSoundboardGrid();
+                showCustomAlert('Đã xóa toàn bộ phím tắt.');
+            }
+        }
+
+        function saveShortcuts() {
+            try {
+                localStorage.setItem('soundboard_keyboard_bindings', JSON.stringify(keyboardBindings));
+                showCustomAlert('Đã lưu cài đặt phím tắt thành công!');
+            } catch(e) {
+                showCustomAlert('Lỗi khi lưu cài đặt.');
+            }
+        }
+
+        function switchTab(tabName) {
+            const btnSb = document.getElementById('tabBtnSoundboard');
+            const btnSc = document.getElementById('tabBtnShortcuts');
+            const viewSb = document.getElementById('viewSoundboard');
+            const viewSc = document.getElementById('viewShortcuts');
+
+            if (tabName === 'soundboard') {
+                btnSb.className = 'tab-btn active';
+                btnSc.className = 'tab-btn';
+                viewSb.style.display = 'flex';
+                viewSc.style.display = 'none';
+                renderSoundboardGrid();
+            } else {
+                btnSc.className = 'tab-btn active';
+                btnSb.className = 'tab-btn';
+                viewSc.style.display = 'flex';
+                viewSb.style.display = 'none';
+                renderShortcutsTable();
+            }
+        }
+
+        function showCustomAlert(msg) {
+            const box = document.getElementById('customPopup');
+            const p = document.getElementById('popupMessage');
+            if (box && p) {
+                p.textContent = msg;
+                box.style.display = 'flex';
+            } else {
+                alert(msg);
+            }
+        }
+
+        function closePopup() {
+            const box = document.getElementById('customPopup');
+            if (box) box.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
