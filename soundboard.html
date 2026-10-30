@@ -277,6 +277,7 @@
                         <th style="padding: 8px 12px;">Tên Âm Thanh</th>
                         <th style="padding: 8px 12px;">Thư mục</th>
                         <th style="padding: 8px 12px;">File</th>
+                        <th style="padding: 8px 12px; width: 110px; text-align: center;">Nghe thử</th>
                     </tr>
                 </thead>
                 <tbody id="selectionTableBody">
@@ -395,6 +396,7 @@
         let keyboardBindings = {}; // Map: code/key -> file
         let activeSoundboardFiles = new Set(); // Set of active track files
         let activeAssignFile = null; // Currently capturing key for this file
+        let previewAudio = null; // Local preview audio object
 
         // Load saved bindings and active selection
         try {
@@ -485,8 +487,25 @@
             flashSoundboardButton(file);
         }
 
+        function previewTrack(file) {
+            if (previewAudio) {
+                try {
+                    previewAudio.pause();
+                    previewAudio.currentTime = 0;
+                } catch(e) {}
+            }
+            const url = window.location.origin + '/' + file.replace(/^\/+/, '');
+            previewAudio = new Audio(url);
+            previewAudio.volume = 1.0;
+            previewAudio.play().catch(e => {
+                console.log("Preview error:", e);
+                const fallbackUrl = encodeURI(file);
+                const audio2 = new Audio(fallbackUrl);
+                audio2.play().catch(err => console.log("Fallback preview error:", err));
+            });
+        }
+
         function flashSoundboardButton(file) {
-            // CSS escape file for ID selector
             const safeId = 'sb_btn_' + file.replace(/[\/\s\(\)\.]/g, '_');
             const btn = document.getElementById(safeId);
             if (btn) {
@@ -534,7 +553,6 @@
                         soundboardTracks = [...FALLBACK_TRACKS_META];
                     }
 
-                    // If activeSoundboardFiles is empty, initialize to all tracks
                     if (activeSoundboardFiles.size === 0) {
                         activeSoundboardFiles = new Set(soundboardTracks.map(t => t.file));
                     }
@@ -566,7 +584,6 @@
             let count = 0;
 
             soundboardTracks.forEach(track => {
-                // Only render if selected in active selection
                 if (!activeSoundboardFiles.has(track.file)) return;
                 if (folderFilter !== 'ALL' && track.folder !== folderFilter) return;
                 if (searchVal && !track.name.toLowerCase().includes(searchVal) && !track.file.toLowerCase().includes(searchVal)) return;
@@ -635,6 +652,11 @@
                     <td style="padding: 8px 12px; font-weight: 800; color: #f8fafc;">${track.name}</td>
                     <td style="padding: 8px 12px; color: #8493a8; font-family: monospace; font-size: 10px;">${track.folder}</td>
                     <td style="padding: 8px 12px; color: #64748b; font-family: monospace; font-size: 10px;">${track.file}</td>
+                    <td style="padding: 8px 12px; text-align: center;">
+                        <button type="button" onclick="previewTrack('${track.file.replace(/'/g, "\\'")}')" style="padding: 2px 8px; font-size: 9.5px; background: #1e293b; border-color: #38bdf8; color: #38bdf8;" title="Nghe thử âm thanh này">
+                            ▶ Nghe thử
+                        </button>
+                    </td>
                 `;
                 tbody.appendChild(tr);
             });
