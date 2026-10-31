@@ -1864,15 +1864,21 @@
                 </div>
             </div>
 
-            <!-- SOUNDBOARD HIỆU ỨNG ÂM THANH CHƯƠNG TRÌNH (TỰ ĐỘNG BỔ SUNG FILE ÂM THANH) -->
+            <!-- SOUNDBOARD HIỆU ỨNG ÂM THANH CHƯƠNG TRÌNH (ẨN/HIỆN QUA MŨI TÊN) -->
             <div class="console-panel" id="soundboardSection">
-                <div class="console-panel-header" style="background: #10192a;">
+                <div class="console-panel-header" style="background: #10192a; cursor: pointer; user-select: none;" onclick="toggleSoundboardCollapse(event)" title="Bấm vào thanh tiêu đề hoặc mũi tên để Ẩn / Hiện Soundboard">
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        <h2 class="console-panel-title">SOUNDBOARD</h2>
+                        <button type="button" id="btnToggleSoundboardCollapse" class="btn-standard" style="padding: 2px 7px; font-size: 11px; font-weight: 900; background: #1e293b; color: #38bdf8; border-color: #3b82f6; display: flex; align-items: center; gap: 4px;" onclick="event.stopPropagation(); toggleSoundboardCollapse(event);" title="Bấm để Mở rộng / Thu gọn bảng Soundboard">
+                            <span id="soundboardCollapseIcon">▼</span>
+                            <span id="soundboardCollapseBtnText" style="font-size: 9.5px;">HIỆN</span>
+                        </button>
+                        <h2 class="console-panel-title" style="cursor: pointer; display: flex; align-items: center; gap: 4px;">SOUNDBOARD</h2>
+                        <span id="soundboardCollapseStatusText" style="font-size: 9px; color: #64748b; font-weight: 700;">(Đã thu gọn)</span>
                         <span id="soundboardCountBadge" style="padding: 1px 5px; border-radius: 2px; font-size: 9px; font-weight: 800; background: #070a10; color: #60a5fa; border: 1px solid #233149;" title="Số lượng bài đang sử dụng / Tổng số bài trong thư viện">0 / 0 bài</span>
                         <span id="soundboardStatusBadge" style="padding: 1px 6px; border-radius: 2px; font-size: 9px; font-weight: 800; background: #070a10; color: #94a3b8; border: 1px solid #233149;">SẴN SÀNG</span>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 4px;">
+                    <div style="display: flex; align-items: center; gap: 4px;" onclick="event.stopPropagation()">
+                        <a href="soundboard.html" target="_blank" class="btn-standard" style="text-decoration: none; padding: 2px 7px; font-size: 9px; border-color: #0284c7; background: #0c1c2e; color: #38bdf8; font-weight: 800;" title="Mở trang Web Soundboard riêng biệt trong tab mới">🔗 Web Soundboard</a>
                         <button type="button" class="btn-standard" id="btnOpenMusicLibrary" style="padding: 2px 7px; font-size: 9px; border-color: #3b82f6; color: #38bdf8;" onclick="openMusicLibraryModal()" title="Mở bảng Quản lý và lựa chọn danh sách nhạc sử dụng">Quản lý nhạc</button>
                         <button type="button" class="btn-standard" id="btnToggleTechMonitor" style="padding: 2px 7px; font-size: 9px;" onclick="toggleTechAudioMonitor()" title="Bật/Tắt phát âm thanh trực tiếp trên màn hình TECH (Mặc định: Tắt để âm thanh chỉ phát trên Màn hình chính / OBS)">Loa TECH: Tắt</button>
                         <button type="button" class="btn-standard" style="padding: 2px 7px; font-size: 9px;" onclick="refreshSoundboardFiles(true)" title="Quét lại toàn bộ file âm thanh trong thư mục dự án">Quét</button>
@@ -1880,7 +1886,7 @@
                         <button type="button" class="btn-danger-action" style="padding: 2px 7px; font-size: 9px;" onclick="stopSoundboard(true)" title="Dừng âm thanh Soundboard ngay lập tức">Dừng ngay</button>
                     </div>
                 </div>
-                <div class="console-panel-body" style="padding: 4px;">
+                <div class="console-panel-body" id="soundboardSectionBody" style="padding: 4px; display: none;">
                     <!-- THANH ĐIỀU CHỈNH ÂM LƯỢNG TOÀN HỆ THỐNG -->
                     <div class="master-volume-control-bar">
                         <span class="vol-control-label">ÂM LƯỢNG:</span>
@@ -3835,35 +3841,97 @@ Link tham gia: ${fullUrl}`;
             sendCmd("SET_WWF_MODE", { enabled: isWWFMode });
         }
 
+        // --- SOUNDBOARD COLLAPSE / ACCORDION CONTROLLER ---
+        let isSoundboardCollapsed = (function() {
+            try {
+                const stored = localStorage.getItem('control_soundboard_collapsed');
+                // Mặc định: Thu gọn để controller gọn gàng như yêu cầu
+                return stored === null ? true : stored === 'true';
+            } catch(e) {
+                return true;
+            }
+        })();
+
+        function updateSoundboardCollapseUI() {
+            const body = document.getElementById('soundboardSectionBody');
+            const icon = document.getElementById('soundboardCollapseIcon');
+            const btnText = document.getElementById('soundboardCollapseBtnText');
+            const statusText = document.getElementById('soundboardCollapseStatusText');
+            const btn = document.getElementById('btnToggleSoundboardCollapse');
+
+            if (body) {
+                body.style.display = isSoundboardCollapsed ? 'none' : 'block';
+            }
+            if (icon) {
+                icon.textContent = isSoundboardCollapsed ? '▼' : '▲';
+            }
+            if (btnText) {
+                btnText.textContent = isSoundboardCollapsed ? 'HIỆN' : 'ẨN';
+            }
+            if (statusText) {
+                statusText.textContent = isSoundboardCollapsed ? '(Đã thu gọn)' : '(Đang mở)';
+                statusText.style.color = isSoundboardCollapsed ? '#64748b' : '#38bdf8';
+            }
+            if (btn) {
+                btn.title = isSoundboardCollapsed ? 'Bấm để Mở rộng bảng Soundboard' : 'Bấm để Thu gọn bảng Soundboard';
+            }
+        }
+
+        function toggleSoundboardCollapse(e) {
+            if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+            isSoundboardCollapsed = !isSoundboardCollapsed;
+            try {
+                localStorage.setItem('control_soundboard_collapsed', isSoundboardCollapsed ? 'true' : 'false');
+            } catch(e) {}
+            updateSoundboardCollapseUI();
+        }
+
         // --- SOUNDBOARD & MUSIC LIBRARY SELECTION ENGINE ---
-        // Complete Fallback Metadata for all 48 audio assets across root and 'nhạc mới/'
         const FALLBACK_TRACKS_META = [
-            // Thư mục gốc
             { file: "10s.mp3", name: "10s", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "2nd_ding.wav", name: "2nd_ding", folder: "Thư mục gốc", ext: ".wav" },
             { file: "30s.mp3", name: "30s", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "30s Fortune Frenzy 4.mp3", name: "30s Fortune Frenzy 4", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "A_Letter_gets_Highlighted.mp3", name: "A_Letter_gets_Highlighted", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Bankrupt.mp3", name: "Bankrupt", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Bed_1.mp3", name: "Bed_1", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Bed_2.mp3", name: "Bed_2", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Bed_5.mp3", name: "Bed_5", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "BonusPuzzle.mp3", name: "BonusPuzzle", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "CNKD ACESTUDIO 2.mp3", name: "CNKD ACESTUDIO 2", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Chia_doi.mp3", name: "Chia_doi", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "ClearPuzzle.mp3", name: "ClearPuzzle", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "ClearTossUp.mp3", name: "ClearTossUp", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "Correct.mp3", name: "Correct", folder: "Thư mục gốc", ext: ".mp3" },
-            { file: "FinalSpinBell.wav", name: "FinalSpinBell", folder: "Thư mục gốc", ext: ".wav" },
             { file: "FULL_CLEAN_OPENING_TITLES.mp3", name: "FULL_CLEAN_OPENING_TITLES", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "FinalSpinBell.wav", name: "FinalSpinBell", folder: "Thư mục gốc", ext: ".wav" },
+            { file: "Final_Round.mp3", name: "Final_Round", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "Host_Entrance.mp3", name: "Host_Entrance", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "Letters_Solved.mp3", name: "Letters_Solved", folder: "Thư mục gốc", ext: ".mp3" },
-            { file: "Lucky.wav", name: "Lucky", folder: "Thư mục gốc", ext: ".wav" },
+            { file: "Letters_Solved.wav", name: "Letters_Solved (wav)", folder: "Thư mục gốc", ext: ".wav" },
+            { file: "Lose_a_Turn (1).mp3", name: "Lose_a_Turn (1)", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Lucky.mp3", name: "Lucky", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Lucky.wav", name: "Lucky (wav)", folder: "Thư mục gốc", ext: ".wav" },
             { file: "Main_Theme.mp3", name: "Main_Theme", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Main_Theme_5.mp3", name: "Main_Theme_5", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "Open_a_Letter.mp3", name: "Open_a_Letter", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "Phần thưởng.mp3", name: "Phần thưởng", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Qualifiers_Round.mp3", name: "Qualifiers_Round", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "Reveal_the_Letters.mp3", name: "Reveal_the_Letters", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "SpinBonus.m4a", name: "SpinBonus", folder: "Thư mục gốc", ext: ".m4a" },
             { file: "SpinFinal.mp3", name: "SpinFinal", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "The_Special_Round.mp3", name: "The_Special_Round", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "TossUpStart.mp3", name: "TossUpStart", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Wheel_Spinning_Bed_2012_High-Pitch_2.mp3", name: "Wheel_Spinning_Bed_2012", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Wheel_Spinning_Bed_2015.mp3", name: "Wheel_Spinning_Bed_2015", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "Wrong.mp3", name: "Wrong", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "Wrong.wav", name: "Wrong (wav)", folder: "Thư mục gốc", ext: ".wav" },
             { file: "bankrupt.mp3", name: "bankrupt", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "bonus letters.mp3", name: "bonus letters", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "ding.mp3", name: "ding", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "ding.wav", name: "ding (wav)", folder: "Thư mục gốc", ext: ".wav" },
+            { file: "double.mp3", name: "double", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "double.wav", name: "double (wav)", folder: "Thư mục gốc", ext: ".wav" },
             { file: "final.mp3", name: "final", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "final spin.mp3", name: "final spin", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "finalspin.mp3", name: "finalspin", folder: "Thư mục gốc", ext: ".mp3" },
@@ -3872,6 +3940,7 @@ Link tham gia: ${fullUrl}`;
             { file: "mystery.mp3", name: "mystery", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "mất lượt.mp3", name: "mất lượt", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "mất điểm.mp3", name: "mất điểm", folder: "Thư mục gốc", ext: ".mp3" },
+            { file: "phanthuong.mp3", name: "phanthuong", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "red.mp3", name: "red", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "reveal.mp3", name: "reveal", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "showpuzzle2.mp3", name: "showpuzzle2", folder: "Thư mục gốc", ext: ".mp3" },
@@ -3880,28 +3949,7 @@ Link tham gia: ${fullUrl}`;
             { file: "tosssound.mp3", name: "tosssound", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "tossup.mp3", name: "tossup", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "wrong.mp3", name: "wrong (thư viện)", folder: "Thư mục gốc", ext: ".mp3" },
-            { file: "ô bí mật.mp3", name: "ô bí mật", folder: "Thư mục gốc", ext: ".mp3" },
-            // Thư mục 'nhạc mới/'
-            { file: "nhạc mới/Bankrupt.mp3", name: "Bankrupt (Nhạc mới)", folder: "Nhạc mới", ext: ".mp3" },
-            { file: "nhạc mới/Bed_1.mp3", name: "Bed_1", folder: "Nhạc mới", ext: ".mp3" },
-            { file: "nhạc mới/Bed_2 (1) (1).mp3", name: "Bed_2 (1) (1)", folder: "Nhạc mới", ext: ".mp3" },
-            { file: "nhạc mới/Bed_2 (1).mp3", name: "Bed_2 (1)", folder: "Nhạc mới", ext: ".mp3" },
-            { file: "nhạc mới/Bed_5.mp3", name: "Bed_5", folder: "Nhạc mới", ext: ".mp3" },
-            { file: "nhạc mới/CNKD ACESTUDIO 2.mp3", name: "CNKD ACESTUDIO 2", folder: "Nhạc mới", ext: ".mp3" },
-            { file: "nhạc mới/Final_Round (1).mp3", name: "Final_Round (1)", folder: "Nhạc mới", ext: ".mp3" },
-            { file: "nhạc mới/Final_Round.mp3", name: "Final_Round", folder: "Nhạc mới", ext: ".mp3" },
-            { file: "nhạc mới/Host_Entrance.mp3", name: "Host_Entrance (Nhạc mới)", folder: "Nhạc mới", ext: ".mp3" },
-            { file: "nhạc mới/Letters_Solved.wav", name: "Letters_Solved (wav)", folder: "Nhạc mới", ext: ".wav" },
-            { file: "nhạc mới/Lose_a_Turn (1).mp3", name: "Lose_a_Turn (1)", folder: "Nhạc mới", ext: ".mp3" },
-            { file: "nhạc mới/Lucky.wav", name: "Lucky (wav)", folder: "Nhạc mới", ext: ".wav" },
-            { file: "nhạc mới/Qualifiers_Round.mp3", name: "Qualifiers_Round", folder: "Nhạc mới", ext: ".mp3" },
-            { file: "nhạc mới/The_Special_Round (1).mp3", name: "The_Special_Round (1)", folder: "Nhạc mới", ext: ".mp3" },
-            { file: "nhạc mới/The_Special_Round.mp3", name: "The_Special_Round", folder: "Nhạc mới", ext: ".mp3" },
-            { file: "nhạc mới/Wheel_Spinning_Bed_2012_High-Pitch_2.mp3", name: "Wheel_Spinning_Bed_2012", folder: "Nhạc mới", ext: ".mp3" },
-            { file: "nhạc mới/Wheel_Spinning_Bed_2015 (1).mp3", name: "Wheel_Spinning_Bed_2015 (1)", folder: "Nhạc mới", ext: ".mp3" },
-            { file: "nhạc mới/Wheel_Spinning_Bed_2015.mp3", name: "Wheel_Spinning_Bed_2015", folder: "Nhạc mới", ext: ".mp3" },
-            { file: "nhạc mới/Wrong.wav", name: "Wrong (wav)", folder: "Nhạc mới", ext: ".wav" },
-            { file: "nhạc mới/double.wav", name: "double (wav)", folder: "Nhạc mới", ext: ".wav" }
+            { file: "ô bí mật.mp3", name: "ô bí mật", folder: "Thư mục gốc", ext: ".mp3" }
         ];
 
         // 1. Thư viện nhạc toàn bộ (Music Library)
@@ -4172,6 +4220,7 @@ Link tham gia: ${fullUrl}`;
                 tabRoot.classList.toggle('active', currentLibFolderFilter === 'root');
             }
             if (tabNhacMoi) {
+                tabNhacMoi.style.display = nhacMoiCount > 0 ? 'inline-block' : 'none';
                 tabNhacMoi.textContent = `Nhạc mới (${nhacMoiCount})`;
                 tabNhacMoi.classList.toggle('active', currentLibFolderFilter === 'nhacmoi');
             }
@@ -4514,31 +4563,28 @@ Link tham gia: ${fullUrl}`;
         }
 
         function refreshSoundboardFiles(userInitiated = false) {
-            fetch(getApiUrl('api/soundboard-files'))
+            fetch(getApiUrl('api/soundboard-files?t=' + Date.now()))
                 .then(r => r.json())
                 .then(data => {
                     if (data && data.success && Array.isArray(data.tracks) && data.tracks.length > 0) {
-                        // Cập nhật thư viện từ server
-                        const serverTracks = data.tracks;
-                        const mergedTracks = [...serverTracks];
-                        FALLBACK_TRACKS_META.forEach(f => {
-                            if (!mergedTracks.some(m => m.file.toLowerCase() === f.file.toLowerCase())) {
-                                mergedTracks.push(f);
-                            }
-                        });
-                        const uniqueMap = new Map();
-                        mergedTracks.forEach(t => {
-                            if (t && t.file) {
-                                uniqueMap.set(t.file.toLowerCase(), t);
-                            }
-                        });
-                        fullMusicLibrary = Array.from(uniqueMap.values());
+                        // Cập nhật thư viện từ server (không merge FALLBACK_TRACKS_META để tránh hồi sinh file đã xóa)
+                        fullMusicLibrary = data.tracks.filter(t => !t.file.toLowerCase().startsWith('nhạc mới/'));
 
-                        // Nếu chưa từng có active tracks, kích hoạt tất cả
-                        if (!isSelectionInitialized || activeSoundboardTrackFiles.size === 0) {
-                            activeSoundboardTrackFiles = new Set(fullMusicLibrary.map(t => t.file));
-                            saveActiveTrackSelection();
+                        // Prune deleted tracks from active selection
+                        const validMap = new Map();
+                        fullMusicLibrary.forEach(t => validMap.set(t.file.toLowerCase(), t.file));
+                        const pruned = new Set();
+                        for (const f of activeSoundboardTrackFiles) {
+                            const real = validMap.get(f.toLowerCase());
+                            if (real) pruned.add(real);
                         }
+
+                        // Nếu chưa từng có active tracks, kích hoạt tất cả các bản nhạc đang có
+                        if (!isSelectionInitialized || pruned.size === 0) {
+                            fullMusicLibrary.forEach(t => pruned.add(t.file));
+                        }
+                        activeSoundboardTrackFiles = pruned;
+                        saveActiveTrackSelection();
 
                         renderSoundboardButtons();
                         if (userInitiated) {
@@ -4546,22 +4592,15 @@ Link tham gia: ${fullUrl}`;
                         }
                     } else if (data && data.success && Array.isArray(data.files)) {
                         // Fallback nếu server trả mảng files
-                        const fileList = data.files;
-                        const trackList = fileList.map(f => {
-                            const isNhacMoi = /^nhạc mới[\/\\]/i.test(f);
-                            return {
+                        fullMusicLibrary = data.files
+                            .filter(f => !f.toLowerCase().startsWith('nhạc mới/'))
+                            .map(f => ({
                                 file: f,
-                                name: f.replace(/^nhạc mới[\/\\]/i, '').replace(/\.[^.]+$/i, ''),
-                                folder: isNhacMoi ? 'Nhạc mới' : 'Thư mục gốc',
+                                name: f.replace(/\.[^.]+$/i, ''),
+                                folder: 'Thư mục gốc',
                                 ext: f.match(/\.[^.]+$/i) ? f.match(/\.[^.]+$/i)[0].toLowerCase() : '.mp3'
-                            };
-                        });
-                        FALLBACK_TRACKS_META.forEach(f => {
-                            if (!trackList.some(m => m.file.toLowerCase() === f.file.toLowerCase())) {
-                                trackList.push(f);
-                            }
-                        });
-                        fullMusicLibrary = trackList;
+                            }));
+
                         if (!isSelectionInitialized || activeSoundboardTrackFiles.size === 0) {
                             activeSoundboardTrackFiles = new Set(fullMusicLibrary.map(t => t.file));
                             saveActiveTrackSelection();
@@ -4583,6 +4622,7 @@ Link tham gia: ${fullUrl}`;
 
         // Initialize on DOM load
         window.addEventListener('DOMContentLoaded', () => {
+            updateSoundboardCollapseUI();
             renderControlBoard();
             updateWWFButtonUI();
             updateTechMonitorUI();
