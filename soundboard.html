@@ -58,6 +58,8 @@
             border-radius: 4px;
             margin-bottom: 8px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
         button {
@@ -211,12 +213,18 @@
                 CHỈ PHÁT TẠI MÀN HÌNH CHÍNH (INDEX)
             </span>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <!-- Volume Slider Control -->
+            <div style="display: flex; align-items: center; gap: 4px; background: #0c121d; padding: 3px 8px; border-radius: 3px; border: 1px solid #233149;">
+                <span style="font-size: 9.5px; color: var(--text-muted); font-weight: bold;">ÂM LƯỢNG:</span>
+                <input type="range" id="masterVolumeRange" min="0" max="1" step="0.05" value="1" oninput="updateMasterVolume(this.value)" style="width: 75px; cursor: pointer;">
+                <span id="masterVolumeVal" class="font-mono" style="font-size: 10px; color: #38bdf8; min-width: 30px; text-align: right;">100%</span>
+            </div>
             <div style="display: flex; align-items: center; gap: 4px;">
                 <span style="font-size: 10px; color: var(--text-muted); font-weight: bold;">MÃ PHÒNG:</span>
-                <input type="text" id="roomIdInput" value="123456" class="tech-input font-mono" style="width: 70px; text-align: center; padding: 2px 6px;" onchange="updateRoomId(this.value)">
+                <input type="text" id="roomIdInput" value="123456" class="tech-input font-mono" style="width: 65px; text-align: center; padding: 2px 6px;" onchange="updateRoomId(this.value)">
             </div>
-            <button type="button" onclick="sendCmd('STOP_SOUNDBOARD')" style="background: #b91c1c; border-color: #ef4444; color: #fff; padding: 4px 10px; font-weight: 800;" title="Dừng toàn bộ âm thanh soundboard ngay lập tức">
+            <button type="button" onclick="stopAllSoundboard()" style="background: #b91c1c; border-color: #ef4444; color: #fff; padding: 4px 10px; font-weight: 800;" title="Dừng toàn bộ âm thanh soundboard ngay lập tức">
                 Dừng âm thanh
             </button>
         </div>
@@ -277,7 +285,7 @@
                         <th style="padding: 8px 12px;">Tên Âm Thanh</th>
                         <th style="padding: 8px 12px;">Thư mục</th>
                         <th style="padding: 8px 12px;">File</th>
-                        <th style="padding: 8px 12px; width: 110px; text-align: center;">Nghe thử</th>
+                        <th style="padding: 8px 12px; width: 180px; text-align: center;">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody id="selectionTableBody">
@@ -395,10 +403,13 @@
         let soundboardTracks = [...FALLBACK_TRACKS_META];
         let keyboardBindings = {}; // Map: code/key -> file
         let activeSoundboardFiles = new Set(); // Set of active track files
+        let customNames = {}; // Map: file -> custom display name
         let activeAssignFile = null; // Currently capturing key for this file
         let previewAudio = null; // Local preview audio object
+        let currentPlayingFile = null; // Track currently playing sound on index
+        let currentMasterVol = 1.0;
 
-        // Load saved bindings and active selection
+        // Load saved bindings, active selection, custom names, volume
         try {
             const savedBindings = localStorage.getItem('soundboard_keyboard_bindings');
             if (savedBindings) keyboardBindings = JSON.parse(savedBindings);
@@ -407,6 +418,16 @@
             if (savedSel) {
                 const parsed = JSON.parse(savedSel);
                 if (Array.isArray(parsed)) activeSoundboardFiles = new Set(parsed);
+            }
+
+            const savedNames = localStorage.getItem('soundboard_custom_names');
+            if (savedNames) customNames = JSON.parse(savedNames);
+
+            const savedVol = localStorage.getItem('soundboard_master_volume');
+            if (savedVol !== null) {
+                currentMasterVol = parseFloat(savedVol);
+                document.getElementById('masterVolumeRange').value = currentMasterVol;
+                document.getElementById('masterVolumeVal').textContent = Math.round(currentMasterVol * 100) + '%';
             }
         } catch(e) {}
 
@@ -423,13 +444,12 @@
             // Global Keydown listener for shortcuts (only plays sound on index.html)
             window.addEventListener('keydown', (e) => {
                 if (e.target && (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName))) {
-                    return; // Don't trigger when typing in inputs
+                    return;
                 }
 
-                // If currently capturing a shortcut key
                 if (activeAssignFile) {
                     e.preventDefault();
-                    const code = e.code; // e.g. "KeyA", "Digit1", "F1", "Space"
+                    const code = e.code;
                     const displayKey = e.key.toUpperCase();
                     for (const [k, f] of Object.entries(keyboardBindings)) {
                         if (f === activeAssignFile) delete keyboardBindings[k];
@@ -443,15 +463,13 @@
                     return;
                 }
 
-                // Normal shortcut trigger
                 const code = e.code;
                 const targetFile = keyboardBindings[code];
                 if (targetFile) {
                     e.preventDefault();
                     const track = soundboardTracks.find(t => t.file === targetFile);
                     if (track && activeSoundboardFiles.has(track.file)) {
-                        playSoundboardOnlyIndex(track.file, track.name);
-                        flashSoundboardButton(track.file);
+                        handleSoundButtonClick(track.file, getTrackDisplayName(track));
                     }
                 }
             });
@@ -464,6 +482,13 @@
                 window.GameSync.init({ role: 'control', roomId: currentRoomId });
             }
             showCustomAlert(`Đã cập nhật mã phòng: ${currentRoomId}`);
+        }
+
+        function updateMasterVolume(val) {
+            currentMasterVol = parseFloat(val);
+            document.getElementById('masterVolumeVal').textContent = Math.round(currentMasterVol * 100) + '%';
+            try { localStorage.setItem('soundboard_master_volume', currentMasterVol.toString()); } catch(e){}
+            sendCmd('SET_MASTER_VOLUME', { volume: currentMasterVol });
         }
 
         function sendCmd(action, data = null) {
@@ -482,9 +507,34 @@
             } catch(e){}
         }
 
-        function playSoundboardOnlyIndex(file, name) {
-            sendCmd('PLAY_SOUNDBOARD', { file: file, name: name });
-            flashSoundboardButton(file);
+        function getTrackDisplayName(track) {
+            return (customNames && customNames[track.file]) ? customNames[track.file] : track.name;
+        }
+
+        function handleSoundButtonClick(file, name) {
+            const track = soundboardTracks.find(t => t.file === file);
+            const displayName = track ? getTrackDisplayName(track) : name;
+
+            if (currentPlayingFile === file) {
+                // Clicked second time while playing -> Fade out gradually
+                sendCmd('FADE_OUT_BGM', { durationMs: 1500 });
+                currentPlayingFile = null;
+                clearSoundboardPlayingUI();
+                showCustomAlert(`Đang giảm dần âm lượng (Fade out) cho: ${displayName}`);
+            } else {
+                // Play sound
+                clearSoundboardPlayingUI();
+                sendCmd('PLAY_SOUNDBOARD', { file: file, name: displayName });
+                currentPlayingFile = file;
+                highlightSoundboardButton(file);
+            }
+        }
+
+        function stopAllSoundboard() {
+            sendCmd('STOP_SOUNDBOARD');
+            currentPlayingFile = null;
+            clearSoundboardPlayingUI();
+            showCustomAlert('Đã dừng toàn bộ âm thanh.');
         }
 
         function previewTrack(file) {
@@ -496,24 +546,50 @@
             }
             const url = window.location.origin + '/' + file.replace(/^\/+/, '');
             previewAudio = new Audio(url);
-            previewAudio.volume = 1.0;
+            previewAudio.volume = currentMasterVol;
             previewAudio.play().catch(e => {
                 console.log("Preview error:", e);
                 const fallbackUrl = encodeURI(file);
                 const audio2 = new Audio(fallbackUrl);
+                audio2.volume = currentMasterVol;
                 audio2.play().catch(err => console.log("Fallback preview error:", err));
             });
         }
 
-        function flashSoundboardButton(file) {
+        function renameTrackPrompt(file) {
+            const track = soundboardTracks.find(t => t.file === file);
+            const currentName = track ? getTrackDisplayName(track) : file;
+            const newName = prompt(`Nhập tên hiển thị mới cho âm thanh (${file}):`, currentName);
+            if (newName !== null) {
+                const trimmed = newName.trim();
+                if (trimmed) {
+                    customNames[file] = trimmed;
+                } else {
+                    delete customNames[file];
+                }
+                try {
+                    localStorage.setItem('soundboard_custom_names', JSON.stringify(customNames));
+                } catch(e){}
+                renderSoundboardGrid();
+                renderSelectionTable();
+                renderShortcutsTable();
+                showCustomAlert('Đã đổi tên âm thanh thành công!');
+            }
+        }
+
+        function highlightSoundboardButton(file) {
+            clearSoundboardPlayingUI();
             const safeId = 'sb_btn_' + file.replace(/[\/\s\(\)\.]/g, '_');
             const btn = document.getElementById(safeId);
             if (btn) {
                 btn.classList.add('sb-playing');
-                setTimeout(() => {
-                    btn.classList.remove('sb-playing');
-                }, 800);
             }
+        }
+
+        function clearSoundboardPlayingUI() {
+            document.querySelectorAll('.btn-soundboard').forEach(el => {
+                el.classList.remove('sb-playing');
+            });
         }
 
         function refreshSoundboardTracks() {
@@ -585,8 +661,9 @@
 
             soundboardTracks.forEach(track => {
                 if (!activeSoundboardFiles.has(track.file)) return;
+                const displayName = getTrackDisplayName(track);
                 if (folderFilter !== 'ALL' && track.folder !== folderFilter) return;
-                if (searchVal && !track.name.toLowerCase().includes(searchVal) && !track.file.toLowerCase().includes(searchVal)) return;
+                if (searchVal && !displayName.toLowerCase().includes(searchVal) && !track.file.toLowerCase().includes(searchVal)) return;
                 count++;
 
                 let assignedKey = '';
@@ -601,17 +678,17 @@
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.id = safeId;
-                btn.className = 'btn-soundboard';
-                btn.onclick = () => playSoundboardOnlyIndex(track.file, track.name);
+                btn.className = 'btn-soundboard' + (currentPlayingFile === track.file ? ' sb-playing' : '');
+                btn.onclick = () => handleSoundButtonClick(track.file, displayName);
                 
                 btn.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
-                        <span class="sb-name" title="${track.file}">${track.name}</span>
+                        <span class="sb-name" title="${track.file}">${displayName}</span>
                         ${assignedKey ? `<span class="sb-shortcut-badge">[${assignedKey}]</span>` : ''}
                     </div>
                     <div class="sb-meta">
                         <span style="opacity: 0.8; font-family: monospace; font-size: 9px;">${track.folder}</span>
-                        <span style="color: #38bdf8; font-weight: 800; font-size: 10px;">▶ PHÁT</span>
+                        <span style="color: #38bdf8; font-weight: 800; font-size: 10px;">${currentPlayingFile === track.file ? '⏸ FADE OUT' : '▶ PHÁT'}</span>
                     </div>
                 `;
                 container.appendChild(btn);
@@ -633,8 +710,9 @@
             let visibleCheckedCount = 0;
 
             soundboardTracks.forEach(track => {
+                const displayName = getTrackDisplayName(track);
                 if (folderFilter !== 'ALL' && track.folder !== folderFilter) return;
-                if (searchVal && !track.name.toLowerCase().includes(searchVal) && !track.file.toLowerCase().includes(searchVal)) return;
+                if (searchVal && !displayName.toLowerCase().includes(searchVal) && !track.file.toLowerCase().includes(searchVal)) return;
                 
                 visibleCount++;
                 const isChecked = activeSoundboardFiles.has(track.file);
@@ -649,13 +727,18 @@
                     <td style="padding: 8px 12px; text-align: center;">
                         <input type="checkbox" data-file="${track.file}" ${isChecked ? 'checked' : ''} onchange="onTrackCheckboxChange(this)">
                     </td>
-                    <td style="padding: 8px 12px; font-weight: 800; color: #f8fafc;">${track.name}</td>
+                    <td style="padding: 8px 12px; font-weight: 800; color: #f8fafc;">${displayName}</td>
                     <td style="padding: 8px 12px; color: #8493a8; font-family: monospace; font-size: 10px;">${track.folder}</td>
                     <td style="padding: 8px 12px; color: #64748b; font-family: monospace; font-size: 10px;">${track.file}</td>
                     <td style="padding: 8px 12px; text-align: center;">
-                        <button type="button" onclick="previewTrack('${track.file.replace(/'/g, "\\'")}')" style="padding: 2px 8px; font-size: 9.5px; background: #1e293b; border-color: #38bdf8; color: #38bdf8;" title="Nghe thử âm thanh này">
-                            ▶ Nghe thử
-                        </button>
+                        <div style="display: flex; gap: 4px; justify-content: center;">
+                            <button type="button" onclick="previewTrack('${track.file.replace(/'/g, "\\'")}')" style="padding: 2px 6px; font-size: 9px; background: #1e293b; border-color: #38bdf8; color: #38bdf8;" title="Nghe thử">
+                                ▶ Nghe
+                            </button>
+                            <button type="button" onclick="renameTrackPrompt('${track.file.replace(/'/g, "\\'")}')" style="padding: 2px 6px; font-size: 9px; background: #1e293b; border-color: #f59e0b; color: #fbbf24;" title="Đổi tên sound">
+                                Đổi tên
+                            </button>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -683,8 +766,9 @@
             const folderFilter = document.getElementById('selFolderFilter').value;
 
             soundboardTracks.forEach(track => {
+                const displayName = getTrackDisplayName(track);
                 if (folderFilter !== 'ALL' && track.folder !== folderFilter) return;
-                if (searchVal && !track.name.toLowerCase().includes(searchVal) && !track.file.toLowerCase().includes(searchVal)) return;
+                if (searchVal && !displayName.toLowerCase().includes(searchVal) && !track.file.toLowerCase().includes(searchVal)) return;
                 
                 if (select) {
                     activeSoundboardFiles.add(track.file);
@@ -723,6 +807,7 @@
             tbody.innerHTML = '';
 
             soundboardTracks.forEach(track => {
+                const displayName = getTrackDisplayName(track);
                 let assignedCode = '';
                 for (const [k, f] of Object.entries(keyboardBindings)) {
                     if (f === track.file) {
@@ -738,7 +823,7 @@
                 tr.onmouseout = () => tr.style.background = 'transparent';
 
                 tr.innerHTML = `
-                    <td style="padding: 8px 12px; font-weight: 800; color: #f8fafc;">${track.name}</td>
+                    <td style="padding: 8px 12px; font-weight: 800; color: #f8fafc;">${displayName}</td>
                     <td style="padding: 8px 12px; color: #8493a8; font-family: monospace; font-size: 10px;">${track.file}</td>
                     <td style="padding: 8px 12px;">
                         <span style="background: ${assignedCode ? '#0c2340' : '#1e293b'}; color: ${assignedCode ? '#38bdf8' : '#8493a8'}; border: 1px solid ${assignedCode ? '#38bdf8' : '#334155'}; padding: 2px 8px; border-radius: 3px; font-weight: bold; font-family: monospace;">
