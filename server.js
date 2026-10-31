@@ -86,6 +86,7 @@ function getRoomConfig(roomid) {
 
 // Soundboard audio dynamic file scanner (supports root and nhạc mới subdirectories)
 app.get('/api/soundboard-files', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   try {
     const isAudio = (f) => /\.(mp3|wav|m4a|ogg)$/i.test(f);
     const rootFiles = fs.existsSync(__dirname)

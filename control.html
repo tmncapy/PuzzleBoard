@@ -4073,9 +4073,15 @@ Link tham gia: ${fullUrl}`;
                 return;
             }
 
+            let customNamesMap = {};
+            try {
+                const savedCustom = localStorage.getItem('soundboard_custom_names');
+                if (savedCustom) customNamesMap = JSON.parse(savedCustom) || {};
+            } catch(e) {}
+
             activeTracks.forEach(track => {
                 const file = track.file;
-                const displayName = track.name;
+                const displayName = customNamesMap[file] || track.name;
                 const btnId = getSoundboardId(file);
                 const isCurrentlyPlaying = (activeSoundboardFile === file && activeSoundboardAudio && !activeSoundboardAudio.paused);
 
