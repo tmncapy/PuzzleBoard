@@ -98,11 +98,15 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            min-height: 64px;
+            min-height: 66px;
             cursor: pointer;
             transition: all 0.15s ease;
             position: relative;
             overflow: hidden;
+            outline: none;
+        }
+        .btn-soundboard:focus {
+            outline: none;
         }
         .btn-soundboard:hover {
             background: #1c2738;
@@ -131,12 +135,13 @@
             color: #f8fafc;
             line-height: 1.25;
             word-break: break-word;
+            flex: 1;
         }
         .sb-meta {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 4px;
+            margin-top: 6px;
             font-size: 9.5px;
             color: #8493a8;
         }
@@ -148,6 +153,23 @@
             border-radius: 2px;
             font-size: 9px;
             font-weight: bold;
+        }
+
+        .btn-rename-quick {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid #334155;
+            color: #94a3b8;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-size: 9px;
+            cursor: pointer;
+            line-height: 1;
+            transition: all 0.12s;
+        }
+        .btn-rename-quick:hover {
+            background: #2563eb;
+            color: #ffffff;
+            border-color: #38bdf8;
         }
 
         /* Tabs styling */
@@ -247,7 +269,7 @@
                 <option value="Thư mục gốc">Thư mục gốc</option>
                 <option value="Nhạc mới">Nhạc mới</option>
             </select>
-            <button type="button" onclick="refreshSoundboardTracks()">Quét lại file</button>
+            <button type="button" onclick="refreshSoundboardTracks(true)">Quét lại file</button>
             <span id="sbStatusText" style="font-size: 10px; color: #fbbf24; font-weight: 700;">Đã sẵn sàng</span>
         </div>
 
@@ -271,7 +293,7 @@
             <div style="display: flex; gap: 6px;">
                 <button type="button" onclick="selectAllTracks(true)" style="background: #1e293b; font-size: 10px;">Chọn tất cả</button>
                 <button type="button" onclick="selectAllTracks(false)" style="background: #1e293b; font-size: 10px;">Bỏ chọn tất cả</button>
-                <button type="button" onclick="saveActiveSelection()" style="background: #2563eb; font-weight: 800; font-size: 10px;">Áp dụng & Lưu</button>
+                <button type="button" onclick="saveActiveSelection(true)" style="background: #2563eb; font-weight: 800; font-size: 10px;">Áp dụng & Lưu</button>
             </div>
         </div>
 
@@ -285,7 +307,7 @@
                         <th style="padding: 8px 12px;">Tên Âm Thanh</th>
                         <th style="padding: 8px 12px;">Thư mục</th>
                         <th style="padding: 8px 12px;">File</th>
-                        <th style="padding: 8px 12px; width: 180px; text-align: center;">Thao tác</th>
+                        <th style="padding: 8px 12px; width: 170px; text-align: center;">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody id="selectionTableBody">
@@ -325,16 +347,11 @@
         </div>
     </div>
 
-    <!-- Notification Alert Popup -->
-    <div id="customPopup" style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 9999;">
-        <div style="background: #111622; border: 1px solid #27344c; border-radius: 6px; padding: 16px 24px; max-width: 360px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.6);">
-            <p id="popupMessage" style="color: #f1f5f9; font-size: 12px; font-weight: 700; margin: 0 0 12px 0;"></p>
-            <button type="button" onclick="closePopup()" style="background: #2563eb; font-weight: 800; padding: 5px 16px;">OK</button>
-        </div>
-    </div>
+    <!-- Toast Notification (Non-blocking) -->
+    <div id="techToast" style="position: fixed; bottom: 20px; right: 20px; background: #111622; border: 1px solid #38bdf8; color: #f8fafc; padding: 8px 16px; border-radius: 4px; font-size: 11px; font-weight: 700; box-shadow: 0 4px 16px rgba(0,0,0,0.6); z-index: 99999; display: none; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease; opacity: 0; transform: translateY(8px);"></div>
 
     <script>
-        // Fallback metadata tracks
+        // Fallback metadata tracks for all assets in root and 'nhạc mới/'
         const FALLBACK_TRACKS_META = [
             { file: "10s.mp3", name: "10s", folder: "Thư mục gốc", ext: ".mp3" },
             { file: "2nd_ding.wav", name: "2nd_ding", folder: "Thư mục gốc", ext: ".wav" },
@@ -403,43 +420,82 @@
         let soundboardTracks = [...FALLBACK_TRACKS_META];
         let keyboardBindings = {}; // Map: code/key -> file
         let activeSoundboardFiles = new Set(); // Set of active track files
+        let isSelectionLoadedFromStorage = false;
         let customNames = {}; // Map: file -> custom display name
         let activeAssignFile = null; // Currently capturing key for this file
         let previewAudio = null; // Local preview audio object
         let currentPlayingFile = null; // Track currently playing sound on index
         let currentMasterVol = 1.0;
+        let currentActiveTab = 'soundboard';
 
-        // Load saved bindings, active selection, custom names, volume
-        try {
-            const savedBindings = localStorage.getItem('soundboard_keyboard_bindings');
-            if (savedBindings) keyboardBindings = JSON.parse(savedBindings);
+        // 1. Initial State Load from LocalStorage
+        function loadSavedState() {
+            try {
+                // Keyboard Bindings
+                const savedBindings = localStorage.getItem('soundboard_keyboard_bindings');
+                if (savedBindings) {
+                    const parsed = JSON.parse(savedBindings);
+                    if (parsed && typeof parsed === 'object') keyboardBindings = parsed;
+                }
 
-            const savedSel = localStorage.getItem('soundboard_active_selection');
-            if (savedSel) {
-                const parsed = JSON.parse(savedSel);
-                if (Array.isArray(parsed)) activeSoundboardFiles = new Set(parsed);
+                // Active Selection
+                const savedSel = localStorage.getItem('soundboard_active_selection') || localStorage.getItem('soundboard_active_tracks');
+                if (savedSel !== null && savedSel !== undefined) {
+                    const parsed = JSON.parse(savedSel);
+                    if (Array.isArray(parsed)) {
+                        activeSoundboardFiles = new Set(parsed);
+                        isSelectionLoadedFromStorage = true;
+                    }
+                }
+
+                // Custom Sound Names
+                const savedNames = localStorage.getItem('soundboard_custom_names');
+                if (savedNames) {
+                    const parsed = JSON.parse(savedNames);
+                    if (parsed && typeof parsed === 'object') customNames = parsed;
+                }
+
+                // Master Volume
+                const savedVol = localStorage.getItem('soundboard_master_volume');
+                if (savedVol !== null) {
+                    const v = parseFloat(savedVol);
+                    if (!isNaN(v)) currentMasterVol = Math.max(0, Math.min(1, v));
+                }
+
+                // Saved Tab
+                const savedTab = localStorage.getItem('soundboard_active_tab');
+                if (savedTab && ['soundboard', 'selection', 'shortcuts'].includes(savedTab)) {
+                    currentActiveTab = savedTab;
+                }
+            } catch(e) {
+                console.error("[Soundboard] Lỗi khi nạp dữ liệu từ localStorage:", e);
             }
+        }
 
-            const savedNames = localStorage.getItem('soundboard_custom_names');
-            if (savedNames) customNames = JSON.parse(savedNames);
-
-            const savedVol = localStorage.getItem('soundboard_master_volume');
-            if (savedVol !== null) {
-                currentMasterVol = parseFloat(savedVol);
-                document.getElementById('masterVolumeRange').value = currentMasterVol;
-                document.getElementById('masterVolumeVal').textContent = Math.round(currentMasterVol * 100) + '%';
-            }
-        } catch(e) {}
+        loadSavedState();
 
         const roomIdInput = document.getElementById('roomIdInput');
         let currentRoomId = localStorage.getItem('crossword_room_id') || '123456';
-        roomIdInput.value = currentRoomId;
+        if (roomIdInput) roomIdInput.value = currentRoomId;
 
         window.addEventListener('DOMContentLoaded', () => {
+            // Restore UI for controls
+            const volRange = document.getElementById('masterVolumeRange');
+            const volVal = document.getElementById('masterVolumeVal');
+            if (volRange) volRange.value = currentMasterVol;
+            if (volVal) volVal.textContent = Math.round(currentMasterVol * 100) + '%';
+
+            const roomInp = document.getElementById('roomIdInput');
+            if (roomInp) roomInp.value = currentRoomId;
+
             if (window.GameSync) {
                 window.GameSync.init({ role: 'control', roomId: currentRoomId });
             }
-            refreshSoundboardTracks();
+
+            // Restore active tab
+            switchTab(currentActiveTab, false);
+
+            refreshSoundboardTracks(false);
 
             // Global Keydown listener for shortcuts (only plays sound on index.html)
             window.addEventListener('keydown', (e) => {
@@ -467,8 +523,8 @@
                 const targetFile = keyboardBindings[code];
                 if (targetFile) {
                     e.preventDefault();
-                    const track = soundboardTracks.find(t => t.file === targetFile);
-                    if (track && activeSoundboardFiles.has(track.file)) {
+                    const track = soundboardTracks.find(t => t.file === targetFile || t.file.toLowerCase() === targetFile.toLowerCase());
+                    if (track && isTrackActive(track.file)) {
                         handleSoundButtonClick(track.file, getTrackDisplayName(track));
                     }
                 }
@@ -486,8 +542,11 @@
 
         function updateMasterVolume(val) {
             currentMasterVol = parseFloat(val);
-            document.getElementById('masterVolumeVal').textContent = Math.round(currentMasterVol * 100) + '%';
-            try { localStorage.setItem('soundboard_master_volume', currentMasterVol.toString()); } catch(e){}
+            const volVal = document.getElementById('masterVolumeVal');
+            if (volVal) volVal.textContent = Math.round(currentMasterVol * 100) + '%';
+            try { 
+                localStorage.setItem('soundboard_master_volume', currentMasterVol.toString()); 
+            } catch(e){}
             sendCmd('SET_MASTER_VOLUME', { volume: currentMasterVol });
         }
 
@@ -507,26 +566,64 @@
             } catch(e){}
         }
 
+        // Get custom display name or default name with case-insensitive matching fallback
         function getTrackDisplayName(track) {
-            return (customNames && customNames[track.file]) ? customNames[track.file] : track.name;
+            if (!track) return '';
+            const file = track.file || '';
+            if (customNames && customNames[file]) {
+                return customNames[file];
+            }
+            const fLower = file.toLowerCase();
+            for (const [k, v] of Object.entries(customNames || {})) {
+                if (k.toLowerCase() === fLower) return v;
+            }
+            return track.name || file;
+        }
+
+        // Check if track is active in activeSoundboardFiles
+        function isTrackActive(file) {
+            if (!file) return false;
+            if (activeSoundboardFiles.has(file)) return true;
+            const fLower = file.toLowerCase();
+            for (const f of activeSoundboardFiles) {
+                if (f.toLowerCase() === fLower) return true;
+            }
+            return false;
+        }
+
+        let statusClearTimeout = null;
+        function updateStatusText(msg) {
+            const statusEl = document.getElementById('sbStatusText');
+            if (statusEl) {
+                statusEl.textContent = msg;
+                if (statusClearTimeout) clearTimeout(statusClearTimeout);
+                statusClearTimeout = setTimeout(() => {
+                    if (statusEl.textContent === msg) {
+                        statusEl.textContent = `Đã sẵn sàng (${soundboardTracks.length} âm thanh)`;
+                    }
+                }, 2500);
+            }
         }
 
         function handleSoundButtonClick(file, name) {
-            const track = soundboardTracks.find(t => t.file === file);
+            const track = soundboardTracks.find(t => t.file === file || t.file.toLowerCase() === file.toLowerCase());
             const displayName = track ? getTrackDisplayName(track) : name;
 
-            if (currentPlayingFile === file) {
-                // Clicked second time while playing -> Fade out gradually
-                sendCmd('FADE_OUT_BGM', { durationMs: 1500 });
+            const isCurrentlyPlayingThis = currentPlayingFile && (currentPlayingFile === file || currentPlayingFile.toLowerCase() === file.toLowerCase());
+
+            if (isCurrentlyPlayingThis) {
+                // Clicked second time while playing -> Immediately turn off highlight and fade out without popup
                 currentPlayingFile = null;
                 clearSoundboardPlayingUI();
-                showCustomAlert(`Đang giảm dần âm lượng (Fade out) cho: ${displayName}`);
+                sendCmd('FADE_OUT_BGM', { durationMs: 1500 });
+                updateStatusText(`Fade out: ${displayName}`);
             } else {
                 // Play sound
                 clearSoundboardPlayingUI();
                 sendCmd('PLAY_SOUNDBOARD', { file: file, name: displayName });
                 currentPlayingFile = file;
                 highlightSoundboardButton(file);
+                updateStatusText(`Đang phát: ${displayName}`);
             }
         }
 
@@ -534,7 +631,7 @@
             sendCmd('STOP_SOUNDBOARD');
             currentPlayingFile = null;
             clearSoundboardPlayingUI();
-            showCustomAlert('Đã dừng toàn bộ âm thanh.');
+            updateStatusText('Đã dừng toàn bộ âm thanh');
         }
 
         function previewTrack(file) {
@@ -556,43 +653,66 @@
             });
         }
 
+        // Rename Sound with Immediate LocalStorage Persistence
         function renameTrackPrompt(file) {
-            const track = soundboardTracks.find(t => t.file === file);
-            const currentName = track ? getTrackDisplayName(track) : file;
-            const newName = prompt(`Nhập tên hiển thị mới cho âm thanh (${file}):`, currentName);
+            const track = soundboardTracks.find(t => t.file === file || t.file.toLowerCase() === file.toLowerCase()) || { file: file, name: file };
+            const currentName = getTrackDisplayName(track);
+            const promptMsg = `Nhập tên hiển thị mới cho âm thanh:\n(${file})\n\n(Để trống để khôi phục tên gốc)`;
+            const newName = prompt(promptMsg, currentName);
             if (newName !== null) {
                 const trimmed = newName.trim();
-                if (trimmed) {
+                const fLower = file.toLowerCase();
+                // Clean up any case variations
+                for (const k of Object.keys(customNames)) {
+                    if (k.toLowerCase() === fLower) delete customNames[k];
+                }
+                if (trimmed && trimmed !== track.name) {
                     customNames[file] = trimmed;
-                } else {
-                    delete customNames[file];
                 }
                 try {
                     localStorage.setItem('soundboard_custom_names', JSON.stringify(customNames));
-                } catch(e){}
+                } catch(e){
+                    console.error("Lỗi khi lưu tên tùy chỉnh:", e);
+                }
                 renderSoundboardGrid();
                 renderSelectionTable();
                 renderShortcutsTable();
-                showCustomAlert('Đã đổi tên âm thanh thành công!');
+                showCustomAlert(`Đã cập nhật tên: "${trimmed || track.name}"`);
             }
         }
 
         function highlightSoundboardButton(file) {
             clearSoundboardPlayingUI();
-            const safeId = 'sb_btn_' + file.replace(/[\/\s\(\)\.]/g, '_');
-            const btn = document.getElementById(safeId);
-            if (btn) {
-                btn.classList.add('sb-playing');
-            }
-        }
-
-        function clearSoundboardPlayingUI() {
-            document.querySelectorAll('.btn-soundboard').forEach(el => {
-                el.classList.remove('sb-playing');
+            if (!file) return;
+            const fLower = file.toLowerCase();
+            document.querySelectorAll('.btn-soundboard').forEach(btn => {
+                const btnFile = btn.dataset.file || '';
+                if (btnFile === file || btnFile.toLowerCase() === fLower) {
+                    btn.classList.add('sb-playing');
+                    const label = btn.querySelector('.sb-action-label');
+                    if (label) {
+                        label.textContent = '⏸ FADE OUT';
+                        label.style.color = '#f59e0b';
+                    }
+                }
             });
         }
 
-        function refreshSoundboardTracks() {
+        function clearSoundboardPlayingUI() {
+            document.querySelectorAll('.btn-soundboard').forEach(btn => {
+                btn.classList.remove('sb-playing');
+                const label = btn.querySelector('.sb-action-label');
+                if (label) {
+                    label.textContent = '▶ PHÁT';
+                    label.style.color = '#38bdf8';
+                }
+            });
+            if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('btn-soundboard')) {
+                document.activeElement.blur();
+            }
+        }
+
+        function refreshSoundboardTracks(userInitiated = false) {
             const statusEl = document.getElementById('sbStatusText');
             if (statusEl) statusEl.textContent = 'Đang quét thư mục...';
             
@@ -629,19 +749,25 @@
                         soundboardTracks = [...FALLBACK_TRACKS_META];
                     }
 
-                    if (activeSoundboardFiles.size === 0) {
+                    // ONLY initialize default all tracks if user has never configured a selection
+                    if (!isSelectionLoadedFromStorage) {
                         activeSoundboardFiles = new Set(soundboardTracks.map(t => t.file));
+                        saveActiveSelectionToStorage(false);
                     }
 
-                    if (statusEl) statusEl.textContent = `Đã quét: ${soundboardTracks.length} âm thanh`;
+                    if (statusEl) statusEl.textContent = `Đã sẵn sàng (${soundboardTracks.length} âm thanh)`;
                     renderSoundboardGrid();
                     renderSelectionTable();
                     renderShortcutsTable();
+                    if (userInitiated) {
+                        showCustomAlert(`Đã quét lại thành công ${soundboardTracks.length} âm thanh trong dự án!`);
+                    }
                 })
                 .catch(() => {
                     soundboardTracks = [...FALLBACK_TRACKS_META];
-                    if (activeSoundboardFiles.size === 0) {
+                    if (!isSelectionLoadedFromStorage) {
                         activeSoundboardFiles = new Set(soundboardTracks.map(t => t.file));
+                        saveActiveSelectionToStorage(false);
                     }
                     if (statusEl) statusEl.textContent = `Đã tải ${soundboardTracks.length} âm thanh (Dự phòng)`;
                     renderSoundboardGrid();
@@ -650,17 +776,18 @@
                 });
         }
 
+        // Render Soundboard Grid (Tab 1)
         function renderSoundboardGrid() {
             const container = document.getElementById('soundboardGridContainer');
-            const searchVal = (document.getElementById('sbSearchInput').value || '').toLowerCase().trim();
-            const folderFilter = document.getElementById('sbFolderFilter').value;
+            const searchVal = (document.getElementById('sbSearchInput')?.value || '').toLowerCase().trim();
+            const folderFilter = document.getElementById('sbFolderFilter')?.value || 'ALL';
             if (!container) return;
 
             container.innerHTML = '';
             let count = 0;
 
             soundboardTracks.forEach(track => {
-                if (!activeSoundboardFiles.has(track.file)) return;
+                if (!isTrackActive(track.file)) return;
                 const displayName = getTrackDisplayName(track);
                 if (folderFilter !== 'ALL' && track.folder !== folderFilter) return;
                 if (searchVal && !displayName.toLowerCase().includes(searchVal) && !track.file.toLowerCase().includes(searchVal)) return;
@@ -668,7 +795,7 @@
 
                 let assignedKey = '';
                 for (const [k, f] of Object.entries(keyboardBindings)) {
-                    if (f === track.file) {
+                    if (f === track.file || f.toLowerCase() === track.file.toLowerCase()) {
                         assignedKey = k.replace('Key', '').replace('Digit', '');
                         break;
                     }
@@ -678,19 +805,34 @@
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.id = safeId;
-                btn.className = 'btn-soundboard' + (currentPlayingFile === track.file ? ' sb-playing' : '');
+                btn.dataset.file = track.file;
+                const isPlaying = currentPlayingFile && (currentPlayingFile === track.file || currentPlayingFile.toLowerCase() === track.file.toLowerCase());
+                btn.className = 'btn-soundboard' + (isPlaying ? ' sb-playing' : '');
                 btn.onclick = () => handleSoundButtonClick(track.file, displayName);
                 
                 btn.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; gap: 4px;">
                         <span class="sb-name" title="${track.file}">${displayName}</span>
-                        ${assignedKey ? `<span class="sb-shortcut-badge">[${assignedKey}]</span>` : ''}
+                        <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                            <span class="btn-rename-quick" title="Đổi tên sound này">✏️</span>
+                            ${assignedKey ? `<span class="sb-shortcut-badge">[${assignedKey}]</span>` : ''}
+                        </div>
                     </div>
                     <div class="sb-meta">
                         <span style="opacity: 0.8; font-family: monospace; font-size: 9px;">${track.folder}</span>
-                        <span style="color: #38bdf8; font-weight: 800; font-size: 10px;">${currentPlayingFile === track.file ? '⏸ FADE OUT' : '▶ PHÁT'}</span>
+                        <span class="sb-action-label" style="color: ${isPlaying ? '#f59e0b' : '#38bdf8'}; font-weight: 800; font-size: 10px;">${isPlaying ? '⏸ FADE OUT' : '▶ PHÁT'}</span>
                     </div>
                 `;
+
+                // Attach direct click listener to rename icon
+                const renameIcon = btn.querySelector('.btn-rename-quick');
+                if (renameIcon) {
+                    renameIcon.onclick = (e) => {
+                        e.stopPropagation();
+                        renameTrackPrompt(track.file);
+                    };
+                }
+
                 container.appendChild(btn);
             });
 
@@ -699,10 +841,11 @@
             updateSelectedCounterBadge();
         }
 
+        // Render Selection Table (Tab 2)
         function renderSelectionTable() {
             const tbody = document.getElementById('selectionTableBody');
-            const searchVal = (document.getElementById('selSearchInput').value || '').toLowerCase().trim();
-            const folderFilter = document.getElementById('selFolderFilter').value;
+            const searchVal = (document.getElementById('selSearchInput')?.value || '').toLowerCase().trim();
+            const folderFilter = document.getElementById('selFolderFilter')?.value || 'ALL';
             if (!tbody) return;
 
             tbody.innerHTML = '';
@@ -715,7 +858,7 @@
                 if (searchVal && !displayName.toLowerCase().includes(searchVal) && !track.file.toLowerCase().includes(searchVal)) return;
                 
                 visibleCount++;
-                const isChecked = activeSoundboardFiles.has(track.file);
+                const isChecked = isTrackActive(track.file);
                 if (isChecked) visibleCheckedCount++;
 
                 const tr = document.createElement('tr');
@@ -725,22 +868,43 @@
 
                 tr.innerHTML = `
                     <td style="padding: 8px 12px; text-align: center;">
-                        <input type="checkbox" data-file="${track.file}" ${isChecked ? 'checked' : ''} onchange="onTrackCheckboxChange(this)">
+                        <input type="checkbox" class="track-row-cb" ${isChecked ? 'checked' : ''}>
                     </td>
                     <td style="padding: 8px 12px; font-weight: 800; color: #f8fafc;">${displayName}</td>
                     <td style="padding: 8px 12px; color: #8493a8; font-family: monospace; font-size: 10px;">${track.folder}</td>
                     <td style="padding: 8px 12px; color: #64748b; font-family: monospace; font-size: 10px;">${track.file}</td>
                     <td style="padding: 8px 12px; text-align: center;">
                         <div style="display: flex; gap: 4px; justify-content: center;">
-                            <button type="button" onclick="previewTrack('${track.file.replace(/'/g, "\\'")}')" style="padding: 2px 6px; font-size: 9px; background: #1e293b; border-color: #38bdf8; color: #38bdf8;" title="Nghe thử">
+                            <button type="button" class="btn-preview-action" style="padding: 2px 7px; font-size: 9.5px; background: #1e293b; border-color: #38bdf8; color: #38bdf8;" title="Nghe thử âm thanh">
                                 ▶ Nghe
                             </button>
-                            <button type="button" onclick="renameTrackPrompt('${track.file.replace(/'/g, "\\'")}')" style="padding: 2px 6px; font-size: 9px; background: #1e293b; border-color: #f59e0b; color: #fbbf24;" title="Đổi tên sound">
-                                Đổi tên
+                            <button type="button" class="btn-rename-action" style="padding: 2px 7px; font-size: 9.5px; background: #1e293b; border-color: #f59e0b; color: #fbbf24;" title="Đổi tên hiển thị cho sound">
+                                ✏️ Đổi tên
                             </button>
                         </div>
                     </td>
                 `;
+
+                // Checkbox event
+                const cb = tr.querySelector('.track-row-cb');
+                if (cb) {
+                    cb.onchange = () => {
+                        onTrackCheckboxChange(track.file, cb.checked);
+                    };
+                }
+
+                // Preview button event
+                const btnPrev = tr.querySelector('.btn-preview-action');
+                if (btnPrev) {
+                    btnPrev.onclick = () => previewTrack(track.file);
+                }
+
+                // Rename button event
+                const btnRen = tr.querySelector('.btn-rename-action');
+                if (btnRen) {
+                    btnRen.onclick = () => renameTrackPrompt(track.file);
+                }
+
                 tbody.appendChild(tr);
             });
 
@@ -751,31 +915,38 @@
             updateSelectedCounterBadge();
         }
 
-        function onTrackCheckboxChange(cb) {
-            const file = cb.getAttribute('data-file');
-            if (cb.checked) {
-                activeSoundboardFiles.add(file);
-            } else {
-                activeSoundboardFiles.delete(file);
+        function onTrackCheckboxChange(file, isChecked) {
+            const fLower = file.toLowerCase();
+            for (const f of Array.from(activeSoundboardFiles)) {
+                if (f.toLowerCase() === fLower) activeSoundboardFiles.delete(f);
             }
+            if (isChecked) {
+                activeSoundboardFiles.add(file);
+            }
+            // Auto-save immediately to localStorage so F5 will preserve it
+            saveActiveSelectionToStorage(false);
             updateSelectedCounterBadge();
         }
 
         function selectAllTracks(select) {
-            const searchVal = (document.getElementById('selSearchInput').value || '').toLowerCase().trim();
-            const folderFilter = document.getElementById('selFolderFilter').value;
+            const searchVal = (document.getElementById('selSearchInput')?.value || '').toLowerCase().trim();
+            const folderFilter = document.getElementById('selFolderFilter')?.value || 'ALL';
 
             soundboardTracks.forEach(track => {
                 const displayName = getTrackDisplayName(track);
                 if (folderFilter !== 'ALL' && track.folder !== folderFilter) return;
                 if (searchVal && !displayName.toLowerCase().includes(searchVal) && !track.file.toLowerCase().includes(searchVal)) return;
                 
+                const fLower = track.file.toLowerCase();
+                for (const f of Array.from(activeSoundboardFiles)) {
+                    if (f.toLowerCase() === fLower) activeSoundboardFiles.delete(f);
+                }
                 if (select) {
                     activeSoundboardFiles.add(track.file);
-                } else {
-                    activeSoundboardFiles.delete(track.file);
                 }
             });
+            // Auto-save immediately to localStorage
+            saveActiveSelectionToStorage(false);
             renderSelectionTable();
         }
 
@@ -783,15 +954,25 @@
             selectAllTracks(cb.checked);
         }
 
-        function saveActiveSelection() {
+        function saveActiveSelectionToStorage(showAlert = false) {
             try {
                 const arr = Array.from(activeSoundboardFiles);
                 localStorage.setItem('soundboard_active_selection', JSON.stringify(arr));
+                localStorage.setItem('soundboard_active_tracks', JSON.stringify(arr));
+                isSelectionLoadedFromStorage = true;
                 renderSoundboardGrid();
-                showCustomAlert(`Đã lưu danh sách nhạc sử dụng (${activeSoundboardFiles.size} / ${soundboardTracks.length} bản nhạc)!`);
+                updateSelectedCounterBadge();
+                if (showAlert) {
+                    showCustomAlert(`Đã lưu danh sách nhạc sử dụng (${activeSoundboardFiles.size} / ${soundboardTracks.length} bản nhạc)!`);
+                }
             } catch(e) {
-                showCustomAlert('Lỗi khi lưu danh sách nhạc.');
+                console.error("Lỗi khi lưu danh sách nhạc sử dụng:", e);
+                if (showAlert) showCustomAlert('Lỗi khi lưu danh sách nhạc.');
             }
+        }
+
+        function saveActiveSelection(showAlert = true) {
+            saveActiveSelectionToStorage(showAlert);
         }
 
         function updateSelectedCounterBadge() {
@@ -801,6 +982,7 @@
             }
         }
 
+        // Render Shortcuts Table (Tab 3)
         function renderShortcutsTable() {
             const tbody = document.getElementById('shortcutsTableBody');
             if (!tbody) return;
@@ -810,7 +992,7 @@
                 const displayName = getTrackDisplayName(track);
                 let assignedCode = '';
                 for (const [k, f] of Object.entries(keyboardBindings)) {
-                    if (f === track.file) {
+                    if (f === track.file || f.toLowerCase() === track.file.toLowerCase()) {
                         assignedCode = k;
                         break;
                     }
@@ -832,13 +1014,24 @@
                     </td>
                     <td style="padding: 8px 12px; text-align: center;">
                         <div style="display: flex; gap: 4px; justify-content: center;">
-                            <button type="button" onclick="startAssignKey('${track.file.replace(/'/g, "\\'")}')" style="padding: 2px 8px; font-size: 9.5px; background: ${activeAssignFile === track.file ? '#2563eb' : '#1e293b'}; color: ${activeAssignFile === track.file ? '#fff' : '#38bdf8'}; border-color: #38bdf8;">
+                            <button type="button" class="btn-assign-key" style="padding: 2px 8px; font-size: 9.5px; background: ${activeAssignFile === track.file ? '#2563eb' : '#1e293b'}; color: ${activeAssignFile === track.file ? '#fff' : '#38bdf8'}; border-color: #38bdf8;">
                                 ${activeAssignFile === track.file ? 'Đang bấm phím...' : 'Gán phím'}
                             </button>
-                            ${assignedCode ? `<button type="button" onclick="clearKeyBinding('${track.file.replace(/'/g, "\\'")}')" style="padding: 2px 6px; font-size: 9.5px; background: #b91c1c; border-color: #ef4444; color: #fff;">Xóa</button>` : ''}
+                            ${assignedCode ? `<button type="button" class="btn-clear-key" style="padding: 2px 6px; font-size: 9.5px; background: #b91c1c; border-color: #ef4444; color: #fff;">Xóa</button>` : ''}
                         </div>
                     </td>
                 `;
+
+                const btnAssign = tr.querySelector('.btn-assign-key');
+                if (btnAssign) {
+                    btnAssign.onclick = () => startAssignKey(track.file);
+                }
+
+                const btnClear = tr.querySelector('.btn-clear-key');
+                if (btnClear) {
+                    btnClear.onclick = () => clearKeyBinding(track.file);
+                }
+
                 tbody.appendChild(tr);
             });
         }
@@ -850,8 +1043,9 @@
         }
 
         function clearKeyBinding(file) {
+            const fLower = file.toLowerCase();
             for (const [k, f] of Object.entries(keyboardBindings)) {
-                if (f === file) delete keyboardBindings[k];
+                if (f === file || f.toLowerCase() === fLower) delete keyboardBindings[k];
             }
             saveShortcuts();
             renderShortcutsTable();
@@ -872,13 +1066,19 @@
         function saveShortcuts() {
             try {
                 localStorage.setItem('soundboard_keyboard_bindings', JSON.stringify(keyboardBindings));
-                showCustomAlert('Đã lưu cài đặt phím tắt thành công!');
             } catch(e) {
-                showCustomAlert('Lỗi khi lưu cài đặt.');
+                console.error("Lỗi khi lưu phím tắt:", e);
             }
         }
 
-        function switchTab(tabName) {
+        function switchTab(tabName, shouldSave = true) {
+            currentActiveTab = tabName;
+            if (shouldSave) {
+                try {
+                    localStorage.setItem('soundboard_active_tab', tabName);
+                } catch(e){}
+            }
+
             const btnSb = document.getElementById('tabBtnSoundboard');
             const btnSel = document.getElementById('tabBtnSelection');
             const btnSc = document.getElementById('tabBtnShortcuts');
@@ -887,42 +1087,50 @@
             const viewSel = document.getElementById('viewSelection');
             const viewSc = document.getElementById('viewShortcuts');
 
-            btnSb.className = 'tab-btn';
-            btnSel.className = 'tab-btn';
-            btnSc.className = 'tab-btn';
-            viewSb.style.display = 'none';
-            viewSel.style.display = 'none';
-            viewSc.style.display = 'none';
+            if (btnSb) btnSb.className = 'tab-btn' + (tabName === 'soundboard' ? ' active' : '');
+            if (btnSel) btnSel.className = 'tab-btn' + (tabName === 'selection' ? ' active' : '');
+            if (btnSc) btnSc.className = 'tab-btn' + (tabName === 'shortcuts' ? ' active' : '');
+
+            if (viewSb) viewSb.style.display = (tabName === 'soundboard' ? 'flex' : 'none');
+            if (viewSel) viewSel.style.display = (tabName === 'selection' ? 'flex' : 'none');
+            if (viewSc) viewSc.style.display = (tabName === 'shortcuts' ? 'flex' : 'none');
 
             if (tabName === 'soundboard') {
-                btnSb.className = 'tab-btn active';
-                viewSb.style.display = 'flex';
                 renderSoundboardGrid();
             } else if (tabName === 'selection') {
-                btnSel.className = 'tab-btn active';
-                viewSel.style.display = 'flex';
                 renderSelectionTable();
             } else {
-                btnSc.className = 'tab-btn active';
-                viewSc.style.display = 'flex';
                 renderShortcutsTable();
             }
         }
 
+        let toastTimeout = null;
+        function showToast(msg) {
+            const toast = document.getElementById('techToast');
+            if (!toast) return;
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateY(0)';
+            }, 10);
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(8px)';
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 250);
+            }, 2000);
+        }
+
         function showCustomAlert(msg) {
-            const box = document.getElementById('customPopup');
-            const p = document.getElementById('popupMessage');
-            if (box && p) {
-                p.textContent = msg;
-                box.style.display = 'flex';
-            } else {
-                alert(msg);
-            }
+            showToast(msg);
         }
 
         function closePopup() {
-            const box = document.getElementById('customPopup');
-            if (box) box.style.display = 'none';
+            const toast = document.getElementById('techToast');
+            if (toast) toast.style.display = 'none';
         }
     </script>
 </body>
