@@ -2491,7 +2491,10 @@ Link tham gia: ${fullUrl}`;
 
         function setControlBuzzerOpen(isOpen, shouldBroadcast = true) {
             isBuzzerCurrentlyOpen = !!isOpen;
-            try { localStorage.setItem('tossup-buzzer-open_' + roomId, isBuzzerCurrentlyOpen ? '1' : '0'); } catch(e){}
+            try { 
+                localStorage.setItem('tossup-buzzer-open_' + roomId, isBuzzerCurrentlyOpen ? '1' : '0'); 
+                localStorage.setItem('tossup-buzzer-open', isBuzzerCurrentlyOpen ? '1' : '0'); 
+            } catch(e){}
             if (shouldBroadcast) sendCmd('SET_BUZZER_STATE', { state: isBuzzerCurrentlyOpen ? 'OPEN' : 'LOCKED' });
 
             const badge = document.getElementById("buzzerStateBadge");
@@ -2510,19 +2513,44 @@ Link tham gia: ${fullUrl}`;
 
         function handlePlayerBuzz(playerNum) {
             if (!playerNum || activeBuzzerWinner !== null) return;
-            activeBuzzerWinner = playerNum;
+            const pNum = parseInt(playerNum);
+            activeBuzzerWinner = pNum;
             
             const box = document.getElementById("controlBuzzerBox");
             const text = document.getElementById("controlBuzzerText");
             if (box && text) {
-                text.textContent = `Người chơi ${playerNum} đã bấm chuông!`;
+                text.textContent = `Người chơi ${pNum} đã bấm chuông!`;
                 box.style.display = "flex";
             }
 
             isTossupRunning = false;
             clearTimeout(tossupTimeout);
-            setControlBuzzerOpen(false, false);
-            sendCmd('PLAYER_BUZZ_WIN', { playerNum: playerNum });
+
+            // In Round 30 (Fortune Frenzy / Đề 13), pause 30s countdown and music while player answers
+            if (round30TimerInterval) {
+                clearInterval(round30TimerInterval);
+                round30TimerInterval = null;
+            }
+            sendCmd('PAUSE_ROUND30_MUSIC');
+
+            // Strictly lock the buzzer locally and broadcast SET_BUZZER_STATE: LOCKED to all devices
+            setControlBuzzerOpen(false, true);
+
+            try {
+                localStorage.setItem('tossup-buzzer-winner_' + roomId, pNum.toString());
+                localStorage.setItem('tossup-buzzer-winner', pNum.toString());
+                localStorage.setItem('tossup-buzzer-open_' + roomId, '0');
+                localStorage.setItem('tossup-buzzer-open', '0');
+            } catch(e){}
+
+            // Update server configuration so server rejects any other incoming buzzes
+            fetch(getApiUrl('api/set-room-config'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomid: roomId, buzzerOpen: false })
+            }).catch(() => {});
+
+            sendCmd('PLAYER_BUZZ_WIN', { playerNum: pNum });
         }
 
         function clearControlBuzzer() {
@@ -2541,8 +2569,9 @@ Link tham gia: ${fullUrl}`;
                 body: JSON.stringify({ roomid: roomId })
             }).catch(() => {});
             if (currentControlQuizIndex === 12) {
-                setControlBuzzerOpen(true);
-                sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
+                setControlBuzzerOpen(true, true);
+            } else {
+                setControlBuzzerOpen(false, true);
             }
         }
 
@@ -3392,10 +3421,31 @@ Link tham gia: ${fullUrl}`;
                 clearControlBuzzer();
                 setControlBuzzerOpen(true);
                 sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
-                if (isRound30Running && round30Seconds > 0) {
+                if (round30Seconds > 0) {
+                    isRound30Running = true;
                     isTossupRunning = true;
                     clearTimeout(tossupTimeout);
                     tossupTimeout = setTimeout(controlRevealRandomCell, getLetterRevealDelay());
+                    if (!round30TimerInterval) {
+                        sendCmd('RESUME_ROUND30_MUSIC');
+                        round30TimerInterval = setInterval(() => {
+                            round30Seconds -= 0.1;
+                            if (round30Seconds <= 0.05) {
+                                round30Seconds = 0;
+                                clearInterval(round30TimerInterval);
+                                round30TimerInterval = null;
+                                isRound30Running = false;
+                                isTossupRunning = false;
+                                clearTimeout(tossupTimeout);
+                                setControlBuzzerOpen(true);
+                                sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
+                                updateRound30TimerUI();
+                                showCustomAlert("HẾT GIỜ 30 GIÂY!");
+                                return;
+                            }
+                            updateRound30TimerUI();
+                        }, 100);
+                    }
                 }
             }
         }

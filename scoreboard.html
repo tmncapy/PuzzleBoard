@@ -195,16 +195,27 @@
             return Number(val).toLocaleString('vi-VN');
         }
 
-        function triggerBuzzer(playerNum) {
-            const p = parseInt(playerNum);
-            const lEl = document.getElementById(`buzzerL${p}`);
-            const rEl = document.getElementById(`buzzerR${p}`);
-            if (lEl) lEl.classList.add('active');
-            if (rEl) rEl.classList.add('active');
-            setTimeout(() => {
+        let currentScoreboardWinner = null;
+        function clearScoreboardBuzzer() {
+            currentScoreboardWinner = null;
+            for (let i = 1; i <= 3; i++) {
+                const lEl = document.getElementById(`buzzerL${i}`);
+                const rEl = document.getElementById(`buzzerR${i}`);
                 if (lEl) lEl.classList.remove('active');
                 if (rEl) rEl.classList.remove('active');
-            }, 8000);
+            }
+        }
+
+        function triggerBuzzer(playerNum) {
+            const p = parseInt(playerNum);
+            if (!p || (currentScoreboardWinner !== null && currentScoreboardWinner !== p)) return;
+            currentScoreboardWinner = p;
+            for (let i = 1; i <= 3; i++) {
+                const lEl = document.getElementById(`buzzerL${i}`);
+                const rEl = document.getElementById(`buzzerR${i}`);
+                if (lEl) lEl.classList.toggle('active', i === p);
+                if (rEl) rEl.classList.toggle('active', i === p);
+            }
         }
 
         function handleCommand(msg) {
@@ -228,6 +239,10 @@
                         if (scoreData.p3.score !== undefined) scoreP3El.textContent = formatScore(scoreData.p3.score);
                     }
                 }
+            }
+
+            if (type === 'CLEAR_BUZZER' || type === 'RESET_BUZZ' || type === 'START_TOSSUP' || type === 'START_ROUND30' || (type === 'SET_BUZZER_STATE' && data && data.state === 'OPEN')) {
+                clearScoreboardBuzzer();
             }
 
             if (msg.event === 'player-buzz' || type === 'PLAYER_BUZZ_WIN' || type === 'PLAYER_BUZZ' || type === 'BELL') {

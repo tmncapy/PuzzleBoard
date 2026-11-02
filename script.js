@@ -1503,6 +1503,9 @@ function handleControlCommand(payload) {
             handlePlayerBuzz(data.playerNum);
         }
     }
+    else if (type === "CLEAR_BUZZER" || (type === "SET_BUZZER_STATE" && data && data.state === "OPEN")) {
+        clearBuzzerHighlights();
+    }
 }
 
 let lastProcessedControlTs = 0;
@@ -1550,29 +1553,40 @@ function handleControlCommandWrapper(payload, ts, msgId) {
     handleControlCommand(payload);
 }
 
+let lastBuzzedPlayer = null;
+let lastBuzzedTime = 0;
+let isBuzzerLockedOnDisplay = false;
+
 function clearBuzzerHighlights() {
+    isBuzzerLockedOnDisplay = false;
+    lastBuzzedPlayer = null;
     document.querySelectorAll('.player-box').forEach(box => box.classList.remove('buzzed-active'));
     try {
         localStorage.removeItem('tossup-buzzer-winner');
+        if (typeof currentActiveRoomId !== "undefined" && currentActiveRoomId) {
+            localStorage.removeItem('tossup-buzzer-winner_' + currentActiveRoomId);
+        }
     } catch(e){}
 }
-
-let lastBuzzedPlayer = null;
-let lastBuzzedTime = 0;
 
 function handlePlayerBuzz(playerNum) {
     if (!playerNum) return;
     const now = Date.now();
-    if (now - lastBuzzedTime < 800 && lastBuzzedPlayer === playerNum) {
-        return; // prevent duplicate buzz trigger
+    const pNum = parseInt(playerNum);
+
+    // CRITICAL: If a player is already locked as the winner for this round, strictly ignore any other buzzes!
+    if (isBuzzerLockedOnDisplay && lastBuzzedPlayer !== null) {
+        return;
     }
+
+    isBuzzerLockedOnDisplay = true;
     lastBuzzedTime = now;
-    lastBuzzedPlayer = playerNum;
+    lastBuzzedPlayer = pNum;
 
     clearAllTossupTimeouts();
-    // Ở các vòng đoán nhanh & vòng 30s, nhạc nền tiếp tục phát khi người chơi bấm chuông cho đến khi mở toàn bộ ô chữ
+    // Highlight ONLY the fastest player who won
     document.querySelectorAll('.player-box').forEach(box => box.classList.remove('buzzed-active'));
-    const pBox = document.querySelector(`.player-box.player-${playerNum}`);
+    const pBox = document.querySelector(`.player-box.player-${pNum}`);
     if (pBox) {
         pBox.classList.add('buzzed-active');
     }

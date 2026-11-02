@@ -710,7 +710,7 @@
 
         // Function to establish a real-time SSE connection with specific room and selected role
         function connectSSE(roleNum = 0) {
-            if (typeof EventSource === "undefined" || isServerApiAvailable !== true) {
+            if (typeof EventSource === "undefined") {
                 updateConnectionStatusUI(false);
                 return;
             }
@@ -718,11 +718,15 @@
                 try { sse.close(); } catch(e){}
                 sse = null;
             }
-            if (playerSSEFailCount > 2) return;
+            if (playerSSEReconnectTimer) {
+                clearTimeout(playerSSEReconnectTimer);
+                playerSSEReconnectTimer = null;
+            }
             try {
                 sse = new EventSource(getApiUrl(`api/events?roomid=${encodeURIComponent(roomId)}&clientId=${encodeURIComponent(clientId)}&role=${roleNum}`));
                 sse.onopen = () => {
                     playerSSEFailCount = 0;
+                    isServerApiAvailable = true;
                     updateConnectionStatusUI(true);
                 };
                 sse.onmessage = (e) => {
@@ -732,21 +736,29 @@
                         updateConnectionStatusUI(true);
 
                         if (msg.event === 'buzzer-state-update') {
-                            if (isFortuneFrenzyActive) {
-                                isBuzzerOpen = true;
+                            if (msg.latestWinner !== null && msg.latestWinner !== undefined) {
+                                isBuzzerOpen = false;
+                                try {
+                                    localStorage.setItem('tossup-buzzer-winner_' + roomId, msg.latestWinner.toString());
+                                    localStorage.setItem('tossup-buzzer-winner', msg.latestWinner.toString());
+                                    localStorage.setItem('tossup-buzzer-open_' + roomId, '0');
+                                    localStorage.setItem('tossup-buzzer-open', '0');
+                                } catch(e){}
+                                syncBuzzerState();
                             } else {
-                                isBuzzerOpen = !!msg.isOpen;
-                            }
-                            if (msg.latestWinner === null || msg.isOpen) {
+                                if (isFortuneFrenzyActive) {
+                                    isBuzzerOpen = (msg.isOpen !== false);
+                                } else {
+                                    isBuzzerOpen = !!msg.isOpen;
+                                }
                                 try {
                                     localStorage.removeItem('tossup-buzzer-winner_' + roomId);
                                     localStorage.removeItem('tossup-buzzer-winner');
+                                    localStorage.setItem('tossup-buzzer-open_' + roomId, isBuzzerOpen ? '1' : '0');
+                                    localStorage.setItem('tossup-buzzer-open', isBuzzerOpen ? '1' : '0');
                                 } catch(e){}
+                                syncBuzzerState();
                             }
-                            try {
-                                localStorage.setItem('tossup-buzzer-open_' + roomId, isBuzzerOpen ? '1' : '0');
-                            } catch(e){}
-                            syncBuzzerState();
                         } else if (msg.event === 'roles-update' && msg.occupiedRoles) {
                             updateOccupiedColorsUI(msg.occupiedRoles);
                         } else if (msg.event === 'player-buzz' && msg.payload && msg.payload.playerNum) {
@@ -760,8 +772,11 @@
                     try { sse.close(); } catch(e){}
                     sse = null;
                     playerSSEFailCount++;
-                    isServerApiAvailable = false;
                     updateConnectionStatusUI(false);
+                    const delay = Math.min(10000, 1000 * Math.pow(1.5, Math.min(playerSSEFailCount, 6)));
+                    playerSSEReconnectTimer = setTimeout(() => {
+                        connectSSE(PLAYER_NUM || roleNum);
+                    }, delay);
                 };
             } catch(e) {}
         }
@@ -1032,10 +1047,14 @@
         }
 
         function handleIncomingBuzz(pNum) {
+            if (!pNum) return;
+            const winnerNum = parseInt(pNum);
             isBuzzerOpen = false;
             try {
                 localStorage.setItem('tossup-buzzer-open_' + roomId, '0');
-                localStorage.setItem('tossup-buzzer-winner_' + roomId, pNum);
+                localStorage.setItem('tossup-buzzer-open', '0');
+                localStorage.setItem('tossup-buzzer-winner_' + roomId, winnerNum.toString());
+                localStorage.setItem('tossup-buzzer-winner', winnerNum.toString());
             } catch(e){}
             syncBuzzerState();
         }
@@ -1056,110 +1075,94 @@
                 } else if (typeof data?.index === 'number') {
                     isFortuneFrenzyActive = (data.index === 12);
                 }
-            } else if (type === 'START_ROUND30' || type === 'UPDATE_ROUND30_TIMER') {
+            } else if (type === 'START_ROUND30') {
                 isFortuneFrenzyActive = true;
             } else if (type === 'START_TOSSUP' || type === 'PLAY_TOSSUP') {
                 isFortuneFrenzyActive = false;
             }
 
-            // Ở vòng Fortune Frenzy, chuông luôn luôn mở bất cứ lúc nào!
-            if (isFortuneFrenzyActive) {
-                isBuzzerOpen = true;
-                try {
-                    localStorage.setItem('tossup-buzzer-open_' + roomId, '1');
-                    localStorage.removeItem('tossup-buzzer-winner_' + roomId);
-                    localStorage.removeItem('tossup-buzzer-winner');
-                } catch(e){}
-                syncBuzzerState();
-                return;
-            }
-
+            // Lệnh xóa chuông từ MC
             if (type === 'CLEAR_BUZZER') {
                 try {
                     localStorage.removeItem('tossup-buzzer-winner_' + roomId);
                     localStorage.removeItem('tossup-buzzer-winner');
                 } catch(e){}
-                isBuzzerOpen = true;
+                if (isFortuneFrenzyActive) {
+                    isBuzzerOpen = true;
+                    try {
+                        localStorage.setItem('tossup-buzzer-open_' + roomId, '1');
+                        localStorage.setItem('tossup-buzzer-open', '1');
+                    } catch(e){}
+                } else {
+                    const savedOpen = localStorage.getItem('tossup-buzzer-open_' + roomId) || localStorage.getItem('tossup-buzzer-open');
+                    isBuzzerOpen = (savedOpen === '1');
+                }
                 syncBuzzerState();
                 return;
             }
 
-            if (type === 'START_TOSSUP' || type === 'PLAY_TOSSUP' || type === 'PAUSE_TOSSUP' || type === 'START_ROUND30' || type === 'RESUME_ROUND30_MUSIC' || type === 'PAUSE_ROUND30_MUSIC' || (type === 'SET_BUZZER_STATE' && data && data.state === 'OPEN')) {
-                isBuzzerOpen = true;
+            // Lệnh mở chuông từ MC (START_TOSSUP, PLAY_TOSSUP, START_ROUND30, hoặc mở chuông rõ ràng)
+            if (type === 'START_TOSSUP' || type === 'PLAY_TOSSUP' || type === 'START_ROUND30' || (type === 'SET_BUZZER_STATE' && data && data.state === 'OPEN')) {
                 try {
-                    localStorage.setItem('tossup-buzzer-open_' + roomId, '1');
                     localStorage.removeItem('tossup-buzzer-winner_' + roomId);
+                    localStorage.removeItem('tossup-buzzer-winner');
+                    localStorage.setItem('tossup-buzzer-open_' + roomId, '1');
+                    localStorage.setItem('tossup-buzzer-open', '1');
                 } catch(e){}
+                isBuzzerOpen = true;
                 syncBuzzerState();
             } else if (type === 'REVEAL_ALL' || type === 'LOAD_QUIZ' || type === 'RESET_BOARD' || type === 'SHOW_MANUAL_TEXT' || type === 'PLAYER_BUZZ_WIN' || (type === 'SET_BUZZER_STATE' && data && data.state === 'LOCKED')) {
                 isBuzzerOpen = false;
                 try {
                     localStorage.setItem('tossup-buzzer-open_' + roomId, '0');
+                    localStorage.setItem('tossup-buzzer-open', '0');
                 } catch(e){}
-                syncBuzzerState();
+                if (type === 'PLAYER_BUZZ_WIN' && data && data.playerNum) {
+                    handleIncomingBuzz(data.playerNum);
+                } else {
+                    syncBuzzerState();
+                }
             }
         }
 
         // Polling from server only if API is verified available
         let playerPollFails = 0;
         setInterval(() => {
-            if (!roomId || isServerApiAvailable !== true) return;
+            if (!roomId) return;
             fetch(getApiUrl('api/get-room-state?roomid=' + encodeURIComponent(roomId)))
                 .then(r => {
-                    if (!r.ok) {
-                        isServerApiAvailable = false;
-                        return null;
-                    }
+                    if (!r.ok) return null;
                     return r.json();
                 })
                 .then(data => {
                     if (!data) return;
-                    if (data.isFortuneFrenzy) {
-                        isFortuneFrenzyActive = true;
+                    if (data.isFortuneFrenzy !== undefined) {
+                        isFortuneFrenzyActive = !!data.isFortuneFrenzy;
                     }
-                    if (isFortuneFrenzyActive) {
-                        isBuzzerOpen = true;
-                        if (!data.latestWinner) {
+
+                    // Nếu có người đã thắng chuông trên server
+                    if (data.latestWinner) {
+                        isBuzzerOpen = false;
+                        handleIncomingBuzz(data.latestWinner);
+                    } else {
+                        // Không có người thắng chuông
+                        const wasWinner = localStorage.getItem('tossup-buzzer-winner_' + roomId) || localStorage.getItem('tossup-buzzer-winner');
+                        if (wasWinner) {
                             try {
                                 localStorage.removeItem('tossup-buzzer-winner_' + roomId);
                                 localStorage.removeItem('tossup-buzzer-winner');
                             } catch(e){}
                         }
-                        syncBuzzerState();
-                    } else if (typeof data.buzzerOpen === 'boolean') {
-                        if (isBuzzerOpen !== data.buzzerOpen) {
+                        if (typeof data.buzzerOpen === 'boolean') {
                             isBuzzerOpen = data.buzzerOpen;
-                            try {
-                                localStorage.setItem('tossup-buzzer-open_' + roomId, isBuzzerOpen ? '1' : '0');
-                                if (isBuzzerOpen) {
-                                    localStorage.removeItem('tossup-buzzer-winner_' + roomId);
-                                    localStorage.removeItem('tossup-buzzer-winner');
-                                }
-                            } catch(e){}
-                            syncBuzzerState();
-                        }
-                    }
-                    if (data && data.latestWinner && data.latestBuzzTs) {
-                        const currentWinner = localStorage.getItem('tossup-buzzer-winner_' + roomId);
-                        const winDuration = isFortuneFrenzyActive ? 3000 : 12000;
-                        if (!currentWinner && Date.now() - data.latestBuzzTs < winDuration) {
-                            handleIncomingBuzz(data.latestWinner);
-                        }
-                    } else if (data && !data.latestWinner) {
-                        try {
-                            localStorage.removeItem('tossup-buzzer-winner_' + roomId);
-                            localStorage.removeItem('tossup-buzzer-winner');
-                        } catch(e){}
-                        if (isFortuneFrenzyActive) {
+                        } else if (isFortuneFrenzyActive) {
                             isBuzzerOpen = true;
                         }
                         syncBuzzerState();
                     }
                 })
-                .catch(() => {
-                    isServerApiAvailable = false;
-                });
-        }, 1500);
+                .catch(() => {});
+        }, 1200);
 
         let localDingAudio = null;
         function initLocalDingAudio() {
@@ -1183,95 +1186,24 @@
             } catch(e) {}
         }
 
-        function buzz() {
-            if (!PLAYER_NUM) return;
+        let isBuzzingLocked = false;
 
-            // Strict lock check: chuông chỉ mở khi có lệnh START hoặc PLAY
-            if (!isBuzzerOpen) {
-                return;
-            }
-
-            const btn = document.getElementById("buzzerBtn");
-            if (btn.classList.contains("disabled") || btn.classList.contains("success")) {
-                return;
-            }
-
-            // Check if someone else already won
-            const winner = localStorage.getItem('tossup-buzzer-winner_' + roomId);
-            if (winner) {
-                syncBuzzerState();
-                return;
-            }
-
-            // Lock buzzer immediately upon buzz
-            isBuzzerOpen = false;
-            try {
-                localStorage.setItem('tossup-buzzer-open_' + roomId, '0');
-            } catch(e){}
-
-            // Write to localStorage
-            localStorage.setItem('tossup-buzzer-winner', PLAYER_NUM);
-            if (roomId) localStorage.setItem('tossup-buzzer-winner_' + roomId, PLAYER_NUM);
-
-            if (navigator.vibrate) {
-                navigator.vibrate([180]);
-            }
-
-            playLocalDing();
-            setBuzzerSuccess();
-
-            const payload = { playerNum: PLAYER_NUM, ts: Date.now() };
-            const msgObj = { event: 'player-buzz', payload: payload, ts: Date.now(), roomid: roomId };
-
-            // Universal Multi-Transport Broadcast (Socket.IO + WebRTC + SSE + REST + BroadcastChannel)
+        function broadcastBuzz(payload, msgObj) {
             if (window.GameSync) {
                 try { window.GameSync.send('player-buzz', payload); } catch(e){}
             }
-
-            // 1. Post to Server API (Both /api/buzz and /api/broadcast for multi-device guarantee)
-            if (isServerApiAvailable === true) {
-                try {
-                    fetch(getApiUrl('api/buzz'), {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ roomid: roomId, playerNum: PLAYER_NUM, ts: Date.now() })
-                    }).catch(() => {});
-                } catch(e) {}
-
-                try {
-                    fetch(getApiUrl('api/broadcast'), {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(msgObj)
-                    }).catch(() => {});
-                } catch(e) {}
-            }
-
-            // 2. Send via Supabase Realtime (both room channel & global channel)
             if (channel) {
-                try {
-                    channel.send({ type: 'broadcast', event: 'player-buzz', payload: payload });
-                } catch(e){}
+                try { channel.send({ type: 'broadcast', event: 'player-buzz', payload: payload }); } catch(e){}
             }
             if (globalChannel) {
-                try {
-                    globalChannel.send({ type: 'broadcast', event: 'player-buzz', payload: payload });
-                } catch(e){}
+                try { globalChannel.send({ type: 'broadcast', event: 'player-buzz', payload: payload }); } catch(e){}
             }
-
-            // 3. Local BroadcastChannel
             if (roomBC) {
-                try {
-                    roomBC.postMessage(msgObj);
-                } catch(e){}
+                try { roomBC.postMessage(msgObj); } catch(e){}
             }
             if (localBC) {
-                try {
-                    localBC.postMessage(msgObj);
-                } catch(e){}
+                try { localBC.postMessage(msgObj); } catch(e){}
             }
-
-            // 4. LocalStorage
             try {
                 localStorage.setItem('player-buzz-msg', JSON.stringify(msgObj));
                 localStorage.removeItem('player-buzz-msg');
@@ -1280,13 +1212,72 @@
                     localStorage.removeItem('player-buzz-msg_' + roomId);
                 }
             } catch(e){}
-
-            // 5. Post message
             try {
                 window.postMessage(msgObj, "*");
                 if (window.opener) window.opener.postMessage(msgObj, "*");
                 if (window.parent && window.parent !== window) window.parent.postMessage(msgObj, "*");
             } catch(e){}
+        }
+
+        function buzz() {
+            if (!PLAYER_NUM) return;
+
+            // Strict lock check: chuông chỉ mở khi có hiệu lệnh
+            if (!isBuzzerOpen) {
+                return;
+            }
+
+            const btn = document.getElementById("buzzerBtn");
+            if (btn.classList.contains("disabled") || btn.classList.contains("success") || isBuzzingLocked) {
+                return;
+            }
+
+            // Check if someone else already won
+            const currentWinner = localStorage.getItem('tossup-buzzer-winner_' + roomId) || localStorage.getItem('tossup-buzzer-winner');
+            if (currentWinner) {
+                syncBuzzerState();
+                return;
+            }
+
+            isBuzzingLocked = true;
+            btn.classList.add("disabled"); // Prevent rapid double click
+
+            const payload = { playerNum: PLAYER_NUM, ts: Date.now() };
+            const msgObj = { event: 'player-buzz', payload: payload, ts: Date.now(), roomid: roomId };
+
+            // Primary atomic lock via server
+            fetch(getApiUrl('api/buzz'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomid: roomId, playerNum: PLAYER_NUM, ts: Date.now() })
+            })
+            .then(r => r.json())
+            .then(res => {
+                isBuzzingLocked = false;
+                if (res && res.won) {
+                    handleIncomingBuzz(PLAYER_NUM);
+                    playLocalDing();
+                    if (navigator.vibrate) navigator.vibrate([200]);
+                    broadcastBuzz(payload, msgObj);
+                } else if (res && res.winner) {
+                    // Another player buzzed first
+                    handleIncomingBuzz(res.winner);
+                } else {
+                    syncBuzzerState();
+                }
+            })
+            .catch(() => {
+                isBuzzingLocked = false;
+                const existingWinner = localStorage.getItem('tossup-buzzer-winner_' + roomId) || localStorage.getItem('tossup-buzzer-winner');
+                if (!existingWinner) {
+                    handleIncomingBuzz(PLAYER_NUM);
+                    playLocalDing();
+                    if (navigator.vibrate) navigator.vibrate([200]);
+                    broadcastBuzz(payload, msgObj);
+                } else {
+                    syncBuzzerState();
+                }
+            });
         }
 
         function setBuzzerSuccess() {
@@ -1359,7 +1350,7 @@
 
         function syncBuzzerState() {
             if (!PLAYER_NUM) return;
-            const winner = localStorage.getItem('tossup-buzzer-winner_' + roomId);
+            const winner = localStorage.getItem('tossup-buzzer-winner_' + roomId) || localStorage.getItem('tossup-buzzer-winner');
             if (winner) {
                 if (parseInt(winner) === PLAYER_NUM) {
                     setBuzzerSuccess();

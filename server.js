@@ -136,11 +136,11 @@ app.get('/api/get-room-config', (req, res) => {
 });
 
 app.get('/api/get-buzzer-state', (req, res) => {
-  const roomid = req.query.roomid || activeRoomId || 'default';
+  const roomid = normalizeRoomId(req.query.roomid || activeRoomId || 'default');
   const config = getRoomConfig(roomid);
   res.json({
     roomid,
-    buzzerOpen: config.isFortuneFrenzy ? true : !!config.buzzerOpen,
+    buzzerOpen: config.latestWinner ? false : (config.isFortuneFrenzy ? true : !!config.buzzerOpen),
     latestWinner: config.latestWinner,
     latestBuzzTs: config.latestBuzzTs,
     isFortuneFrenzy: !!config.isFortuneFrenzy
@@ -148,11 +148,11 @@ app.get('/api/get-buzzer-state', (req, res) => {
 });
 
 app.get('/api/get-room-state', (req, res) => {
-  const roomid = req.query.roomid || activeRoomId || 'default';
+  const roomid = normalizeRoomId(req.query.roomid || activeRoomId || 'default');
   const config = getRoomConfig(roomid);
   res.json({
     roomid,
-    buzzerOpen: config.isFortuneFrenzy ? true : !!config.buzzerOpen,
+    buzzerOpen: config.latestWinner ? false : (config.isFortuneFrenzy ? true : !!config.buzzerOpen),
     latestWinner: config.latestWinner || null,
     latestBuzzTs: config.latestBuzzTs || 0,
     pass: config.pass || '',
@@ -162,14 +162,14 @@ app.get('/api/get-room-state', (req, res) => {
 
 app.post('/api/set-room-config', (req, res) => {
   const { roomid, pass, buzzerOpen } = req.body;
-  const targetRoom = roomid || 'default';
+  const targetRoom = normalizeRoomId(roomid || 'default');
   activeRoomId = targetRoom;
   const config = getRoomConfig(targetRoom);
   if (pass !== undefined && pass !== null) config.pass = pass.toString();
   if (buzzerOpen !== undefined) config.buzzerOpen = !!buzzerOpen;
   
   // Notify connected clients of buzzer state update and active room changes
-  const stateMsg = JSON.stringify({ event: 'buzzer-state-update', isOpen: !!config.buzzerOpen, roomid: targetRoom });
+  const stateMsg = JSON.stringify({ event: 'buzzer-state-update', isOpen: !!config.buzzerOpen, roomid: targetRoom, latestWinner: config.latestWinner });
   const roomMsg = JSON.stringify({ event: 'active-room-changed', activeRoomId: targetRoom });
   for (const client of sseClients) {
     try {
@@ -184,95 +184,128 @@ app.post('/api/set-room-config', (req, res) => {
 });
 
 app.get('/api/verify-room-pass', (req, res) => {
-  const roomid = req.query.roomid || activeRoomId || '123456';
+  const roomid = normalizeRoomId(req.query.roomid || activeRoomId || '123456');
   const playerPass = (req.query.pass || '').toString().trim();
   const config = getRoomConfig(roomid);
   // If player did not specify a pass, allow them in with active room's pass
   if (!playerPass || !config.pass || config.pass.trim() === playerPass) {
-    return res.json({ valid: true, requiresPass: false, buzzerOpen: !!config.buzzerOpen, roomid, pass: config.pass });
+    return res.json({ valid: true, requiresPass: false, buzzerOpen: !config.latestWinner && (config.isFortuneFrenzy ? true : !!config.buzzerOpen), roomid, pass: config.pass });
   }
   // If player explicitly typed an incorrect password
-  res.json({ valid: false, requiresPass: true, buzzerOpen: !!config.buzzerOpen, roomid });
+  res.json({ valid: false, requiresPass: true, buzzerOpen: !config.latestWinner && (config.isFortuneFrenzy ? true : !!config.buzzerOpen), roomid });
 });
 
 app.post('/api/set-active-room', (req, res) => {
   const { roomid, pass } = req.body;
   if (roomid) {
-    activeRoomId = roomid;
-    const config = getRoomConfig(roomid);
+    activeRoomId = normalizeRoomId(roomid);
+    const config = getRoomConfig(activeRoomId);
     if (pass !== undefined) config.pass = pass.toString();
   }
   res.json({ ok: true, activeRoomId });
 });
 
-// Dedicated fast endpoint for contestant buzz
+// Dedicated fast endpoint for contestant buzz - Atomic First-Come-First-Served locking
 app.post('/api/buzz', (req, res) => {
   const { roomid, playerNum, ts } = req.body;
-  const targetRoom = roomid || activeRoomId || 'default';
+  const targetRoom = normalizeRoomId(roomid || activeRoomId || 'default');
   const config = getRoomConfig(targetRoom);
   const pNum = parseInt(playerNum) || 1;
   const now = Date.now();
 
   let won = false;
-  // If buzzer is open or no winner yet within last 8 seconds (or 1.5s in Fortune Frenzy)
-  const windowMs = config.isFortuneFrenzy ? 1500 : 8000;
-  if (!config.latestWinner || (now - config.latestBuzzTs > windowMs)) {
+  // An active winner strictly holds the buzzer lock. Only grant win if NO active winner (or timeout safety 12s)
+  if (!config.latestWinner || (now - config.latestBuzzTs > 12000)) {
     config.latestWinner = pNum;
     config.latestBuzzTs = now;
-    config.buzzerOpen = config.isFortuneFrenzy ? true : false;
+    config.buzzerOpen = false; // BUZZER IS NOW LOCKED TO THIS WINNER!
     won = true;
   }
 
-  // Broadcast to all SSE clients in this room (controller, display, other players)
-  const msgObj = {
-    event: 'player-buzz',
-    payload: { playerNum: config.latestWinner, ts: config.latestBuzzTs },
-    ts: config.latestBuzzTs,
-    roomid: targetRoom
-  };
-  const msgStr = JSON.stringify(msgObj);
+  if (won) {
+    // Broadcast player-buzz with the CONFIRMED WINNER
+    const msgObj = {
+      event: 'player-buzz',
+      payload: { playerNum: config.latestWinner, ts: config.latestBuzzTs, won: true },
+      ts: config.latestBuzzTs,
+      roomid: targetRoom
+    };
+    const msgStr = JSON.stringify(msgObj);
 
-  for (const client of sseClients) {
-    if (client.roomid === targetRoom || client.roomid === 'default' || targetRoom === 'default') {
-      try {
-        client.write(`data: ${msgStr}\n\n`);
-      } catch (err) {
-        sseClients.delete(client);
+    for (const client of sseClients) {
+      if (normalizeRoomId(client.roomid) === targetRoom || client.roomid === 'default' || targetRoom === 'default') {
+        try {
+          client.write(`data: ${msgStr}\n\n`);
+        } catch (err) {
+          sseClients.delete(client);
+        }
       }
     }
-  }
 
-  // Also broadcast buzzer lock state to all players (in Fortune Frenzy keep open)
-  const lockMsg = JSON.stringify({ event: 'buzzer-state-update', isOpen: config.isFortuneFrenzy ? true : false, roomid: targetRoom, latestWinner: config.latestWinner });
-  for (const client of sseClients) {
-    if (client.roomid === targetRoom || client.roomid === 'default' || targetRoom === 'default') {
-      try {
-        client.write(`data: ${lockMsg}\n\n`);
-      } catch (err) {}
+    // Broadcast buzzer lock state to all players
+    const lockMsg = JSON.stringify({ 
+      event: 'buzzer-state-update', 
+      isOpen: false, 
+      roomid: targetRoom, 
+      latestWinner: config.latestWinner 
+    });
+    for (const client of sseClients) {
+      if (normalizeRoomId(client.roomid) === targetRoom || client.roomid === 'default' || targetRoom === 'default') {
+        try {
+          client.write(`data: ${lockMsg}\n\n`);
+        } catch (err) {}
+      }
     }
+
+    // Socket.IO emission
+    io.to(targetRoom).emit('player-buzz', msgObj);
+    io.to('crossword_broadcast_room_' + targetRoom).emit('player-buzz', msgObj);
+    io.to('default').emit('player-buzz', msgObj);
+    io.emit('broadcast', msgObj);
+
+    console.log(`[BUZZ WINNER LOCKED] Room ${targetRoom}: Player ${pNum} won the buzzer!`);
+  } else {
+    console.log(`[BUZZ REJECTED] Room ${targetRoom}: Player ${pNum} buzzed late. Winner is already Player ${config.latestWinner}`);
   }
 
-  console.log(`[BUZZ] Room ${targetRoom}: Player ${pNum} buzzed! Winner: ${config.latestWinner}`);
   res.json({ ok: true, won, winner: config.latestWinner, latestBuzzTs: config.latestBuzzTs });
 });
 
 // Reset buzzer winner state
 app.post('/api/reset-buzz', (req, res) => {
-  const targetRoom = req.body.roomid || activeRoomId || 'default';
+  const targetRoom = normalizeRoomId(req.body.roomid || activeRoomId || 'default');
   const config = getRoomConfig(targetRoom);
   config.latestWinner = null;
   config.latestBuzzTs = 0;
   if (config.isFortuneFrenzy) {
     config.buzzerOpen = true;
+  } else {
+    config.buzzerOpen = false;
   }
-  const resetMsg = JSON.stringify({ event: 'buzzer-state-update', isOpen: config.isFortuneFrenzy ? true : !!config.buzzerOpen, roomid: targetRoom, latestWinner: null });
+  const resetMsg = JSON.stringify({ 
+    event: 'buzzer-state-update', 
+    isOpen: !!config.buzzerOpen, 
+    roomid: targetRoom, 
+    latestWinner: null 
+  });
   for (const client of sseClients) {
-    if (client.roomid === targetRoom || client.roomid === 'default' || targetRoom === 'default') {
+    if (normalizeRoomId(client.roomid) === targetRoom || client.roomid === 'default' || targetRoom === 'default') {
       try {
         client.write(`data: ${resetMsg}\n\n`);
       } catch (err) {}
     }
   }
+
+  const socketData = { 
+    event: 'buzzer-state-update', 
+    isOpen: !!config.buzzerOpen, 
+    roomid: targetRoom, 
+    latestWinner: null 
+  };
+  io.to(targetRoom).emit('buzzer-state-update', socketData);
+  io.to('crossword_broadcast_room_' + targetRoom).emit('buzzer-state-update', socketData);
+  io.to('default').emit('buzzer-state-update', socketData);
+
   res.json({ ok: true });
 });
 
@@ -368,16 +401,26 @@ setInterval(() => {
 // Broadcast API endpoint for any device to broadcast to all other devices in the same room
 app.post('/api/broadcast', (req, res) => {
   const { event, payload, ts, id, roomid } = req.body;
-  const targetRoom = roomid || 'default';
+  const targetRoom = normalizeRoomId(roomid || 'default');
 
   // Update room buzzer state based on command type
   const currentConfig = getRoomConfig(targetRoom);
   if (event === 'player-buzz') {
-    if (!currentConfig.isFortuneFrenzy) {
+    const pNum = payload?.playerNum ? parseInt(payload.playerNum) : 1;
+    const now = Date.now();
+    // Only accept if NO active winner (or timeout safety 12s)
+    if (!currentConfig.latestWinner || (now - currentConfig.latestBuzzTs > 12000)) {
+      currentConfig.latestWinner = pNum;
+      currentConfig.latestBuzzTs = now;
       currentConfig.buzzerOpen = false;
+      if (payload) {
+        payload.playerNum = pNum;
+        payload.won = true;
+      }
+    } else {
+      // Reject duplicate/late buzzes: DO NOT broadcast conflicting winner!
+      return res.json({ ok: true, won: false, winner: currentConfig.latestWinner, rejected: true });
     }
-    currentConfig.latestWinner = payload?.playerNum ? parseInt(payload.playerNum) : 1;
-    currentConfig.latestBuzzTs = Date.now();
   } else if (payload && payload.type) {
     const t = payload.type;
     const isFortuneFrenzyCmd = payload.isFortuneFrenzy || payload.data?.isFortuneFrenzy || payload.index === 12 || payload.data?.index === 12 || (t === 'UPDATE_QUIZ_ACTIVE' && (payload.data === 12 || payload.data === '12')) || t === 'START_ROUND30' || t === 'UPDATE_ROUND30_TIMER' || t === 'PAUSE_ROUND30_MUSIC' || t === 'RESUME_ROUND30_MUSIC' || t === 'STOP_ROUND30_MUSIC';
@@ -389,11 +432,13 @@ app.post('/api/broadcast', (req, res) => {
     }
 
     if (currentConfig.isFortuneFrenzy) {
-      // Vòng Fortune Frenzy luôn luôn mở chuông bất cứ lúc nào!
-      currentConfig.buzzerOpen = true;
+      // In Fortune Frenzy, buzzer opens between questions or when cleared
       if (t === 'LOAD_QUIZ' || t === 'CLEAR_BUZZER' || t === 'START_ROUND30' || t === 'PAUSE_ROUND30_MUSIC' || t === 'RESUME_ROUND30_MUSIC' || (t === 'SET_BUZZER_STATE' && payload.data?.state === 'OPEN')) {
         currentConfig.latestWinner = null;
         currentConfig.latestBuzzTs = 0;
+        currentConfig.buzzerOpen = true;
+      } else if (t === 'PLAYER_BUZZ_WIN' || (t === 'SET_BUZZER_STATE' && payload.data?.state === 'LOCKED')) {
+        currentConfig.buzzerOpen = false;
       }
     } else {
       if (t === 'START_TOSSUP' || t === 'PLAY_TOSSUP' || t === 'PAUSE_TOSSUP' || t === 'CLEAR_BUZZER' || (t === 'SET_BUZZER_STATE' && payload.data && payload.data.state === 'OPEN')) {
@@ -409,7 +454,7 @@ app.post('/api/broadcast', (req, res) => {
   const msgStr = JSON.stringify({ event, payload, ts: ts || Date.now(), id, roomid: targetRoom });
   
   for (const client of sseClients) {
-    if (client.roomid === targetRoom || client.roomid === 'default' || targetRoom === 'default') {
+    if (normalizeRoomId(client.roomid) === targetRoom || client.roomid === 'default' || targetRoom === 'default') {
       try {
         client.write(`data: ${msgStr}\n\n`);
       } catch (err) {
@@ -469,23 +514,38 @@ io.on('connection', (socket) => {
     const config = getRoomConfig(targetRoom);
     const pNum = parseInt(data.playerNum) || 1;
     const now = Date.now();
-    let won = false;
-    if (!config.latestWinner || (now - config.latestBuzzTs > 8000)) {
+    if (!config.latestWinner || (now - config.latestBuzzTs > 12000)) {
       config.latestWinner = pNum;
       config.latestBuzzTs = now;
       config.buzzerOpen = false;
-      won = true;
+      const buzzPayload = {
+        event: 'player-buzz',
+        payload: { playerNum: config.latestWinner, ts: config.latestBuzzTs, won: true },
+        ts: config.latestBuzzTs,
+        roomid: targetRoom
+      };
+      io.to(targetRoom).emit('player-buzz', buzzPayload);
+      io.to('crossword_broadcast_room_' + targetRoom).emit('player-buzz', buzzPayload);
+      io.to('default').emit('player-buzz', buzzPayload);
+      socket.broadcast.emit('player-buzz', buzzPayload);
+
+      const lockMsg = {
+        event: 'buzzer-state-update',
+        isOpen: false,
+        roomid: targetRoom,
+        latestWinner: config.latestWinner
+      };
+      io.to(targetRoom).emit('buzzer-state-update', lockMsg);
+      io.to('crossword_broadcast_room_' + targetRoom).emit('buzzer-state-update', lockMsg);
+      io.to('default').emit('buzzer-state-update', lockMsg);
+      for (const client of sseClients) {
+        if (normalizeRoomId(client.roomid) === targetRoom || client.roomid === 'default' || targetRoom === 'default') {
+          try {
+            client.write(`data: ${JSON.stringify(lockMsg)}\n\n`);
+          } catch (err) {}
+        }
+      }
     }
-    const buzzPayload = {
-      event: 'player-buzz',
-      payload: { playerNum: config.latestWinner, ts: config.latestBuzzTs, won },
-      ts: config.latestBuzzTs,
-      roomid: targetRoom
-    };
-    io.to(targetRoom).emit('player-buzz', buzzPayload);
-    io.to('crossword_broadcast_room_' + targetRoom).emit('player-buzz', buzzPayload);
-    io.to('default').emit('player-buzz', buzzPayload);
-    socket.broadcast.emit('player-buzz', buzzPayload);
   });
 });
 
