@@ -1755,6 +1755,14 @@
                 </div>
 
                 <div class="console-panel-body">
+                    <!-- Nút Mở/Khóa chuông khẩn cấp nổi bật -->
+                    <div style="margin-bottom: 4px;">
+                        <button type="button" id="btnEmergencyBuzzer" onclick="toggleEmergencyBuzzer()" style="width: 100%; padding: 6px 10px; font-weight: 800; font-size: 11px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: #1e293b; border: 1px solid #334155; color: #fff; transition: all 0.15s ease;" title="Nút mở/khóa chuông khẩn cấp">
+                            <span style="display: flex; align-items: center; gap: 6px; color: #38bdf8;">⚡ ĐIỀU KHIỂN CHUÔNG KHẨN CẤP</span>
+                            <span id="emergencyBuzzerLabel" style="padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 800; background: #7f1d1d; color: #f87171; border: 1px solid #991b1b;">ĐANG KHÓA (CLICK ĐỂ MỞ)</span>
+                        </button>
+                    </div>
+
                     <!-- Buzzer Alert Box -->
                     <div id="controlBuzzerBox" style="display: none; background: #dc2626; color: white; padding: 3px 6px; border-radius: 3px; margin-bottom: 3px; font-weight: bold; align-items: center; justify-content: space-between;">
                         <span id="controlBuzzerText" style="font-size: 10px;">P1 đã bấm chuông!</span>
@@ -2510,6 +2518,24 @@ Link tham gia: ${fullUrl}`;
                     badge.textContent = "Chuông khóa";
                     badge.style.background = "#090c14";
                     badge.style.color = "#f87171";
+                }
+            }
+
+            const emLabel = document.getElementById("emergencyBuzzerLabel");
+            const emBtn = document.getElementById("btnEmergencyBuzzer");
+            if (emLabel && emBtn) {
+                if (isBuzzerCurrentlyOpen) {
+                    emLabel.textContent = "ĐANG MỞ (CLICK ĐỂ KHÓA)";
+                    emLabel.style.background = "#064e3b";
+                    emLabel.style.color = "#4ade80";
+                    emLabel.style.borderColor = "#059669";
+                    emBtn.style.borderColor = "#059669";
+                } else {
+                    emLabel.textContent = "ĐANG KHÓA (CLICK ĐỂ MỞ)";
+                    emLabel.style.background = "#7f1d1d";
+                    emLabel.style.color = "#f87171";
+                    emLabel.style.borderColor = "#991b1b";
+                    emBtn.style.borderColor = "#334155";
                 }
             }
         }
