@@ -216,6 +216,13 @@
                 if (lEl) lEl.classList.toggle('active', i === p);
                 if (rEl) rEl.classList.toggle('active', i === p);
             }
+            try {
+                const audio = new Audio("ding.wav");
+                audio.play().catch(() => {
+                    const fallback = new Audio("ding.mp3");
+                    fallback.play().catch(() => {});
+                });
+            } catch(e) {}
         }
 
         function handleCommand(msg) {
@@ -263,17 +270,62 @@
             if ((e.key === 'control-to-display-msg' || e.key === 'control-to-display-msg_' + roomId) && e.newValue) {
                 try { handleCommand(JSON.parse(e.newValue)); } catch(err) {}
             }
+            if ((e.key === 'player-buzz-msg' || e.key === 'player-buzz-msg_' + roomId) && e.newValue) {
+                try {
+                    const parsed = JSON.parse(e.newValue);
+                    const pNum = parsed?.payload?.playerNum || parsed?.playerNum;
+                    if (pNum) triggerBuzzer(pNum);
+                } catch(err) {}
+            }
         });
 
         // 2. BroadcastChannel
         try {
             if (typeof BroadcastChannel !== 'undefined') {
                 const bc = new BroadcastChannel('broadcast_channel_' + roomId);
-                bc.onmessage = (e) => { if (e.data) handleCommand(e.data.payload || e.data); };
+                bc.onmessage = (e) => { 
+                    if (e.data) {
+                        if (e.data.event === 'player-buzz' && e.data.payload?.playerNum) {
+                            triggerBuzzer(e.data.payload.playerNum);
+                        } else {
+                            handleCommand(e.data.payload || e.data);
+                        }
+                    }
+                };
             }
         } catch(e) {}
 
-        // 3. MultiSyncBridge
+        // 3. SSE Connection (/api/events)
+        function connectScoreboardSSE() {
+            if (typeof EventSource === "undefined") return;
+            try {
+                const sse = new EventSource(`api/events?roomid=${encodeURIComponent(roomId)}&role=0`);
+                sse.onmessage = (e) => {
+                    try {
+                        const msg = JSON.parse(e.data);
+                        if (!msg) return;
+                        if (msg.event === 'player-buzz' && msg.payload?.playerNum) {
+                            triggerBuzzer(msg.payload.playerNum);
+                        } else if (msg.event === 'buzzer-state-update') {
+                            if (msg.latestWinner) {
+                                triggerBuzzer(msg.latestWinner);
+                            } else if (msg.isOpen) {
+                                clearScoreboardBuzzer();
+                            }
+                        } else if (msg.payload) {
+                            handleCommand(msg.payload);
+                        }
+                    } catch(err){}
+                };
+                sse.onerror = () => {
+                    try { sse.close(); } catch(e){}
+                    setTimeout(connectScoreboardSSE, 3000);
+                };
+            } catch(e) {}
+        }
+        connectScoreboardSSE();
+
+        // 4. MultiSyncBridge
         if (window.GameSync) {
             window.GameSync.init({
                 role: 'scoreboard',

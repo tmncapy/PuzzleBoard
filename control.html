@@ -1746,8 +1746,11 @@
             <div class="console-panel">
                 <div class="console-panel-header">
                     <h2 class="console-panel-title">BẢNG ĐIỂM & CHUÔNG BÁO</h2>
-                    <div id="buzzerStateBadge" style="padding: 2px 7px; border-radius: 3px; font-size: 9.5px; font-weight: 800; background: #070a10; color: #f87171; border: 1px solid #233149;">
-                        Chuông khóa
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <button type="button" onclick="toggleEmergencyBuzzer()" style="padding: 2px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 800; background: #1e293b; color: #38bdf8; border: 1px solid #334155; cursor: pointer;" title="Mở/Khóa chuông khẩn cấp">Mở/Khóa khẩn cấp</button>
+                        <div id="buzzerStateBadge" style="padding: 2px 7px; border-radius: 3px; font-size: 9.5px; font-weight: 800; background: #070a10; color: #f87171; border: 1px solid #233149;">
+                            Chuông khóa
+                        </div>
                     </div>
                 </div>
 
@@ -2568,11 +2571,14 @@ Link tham gia: ${fullUrl}`;
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ roomid: roomId })
             }).catch(() => {});
-            if (currentControlQuizIndex === 12) {
-                setControlBuzzerOpen(true, true);
-            } else {
-                setControlBuzzerOpen(false, true);
-            }
+            // Keep buzzer locked unless explicit Start/Next button is pressed
+            setControlBuzzerOpen(false, true);
+        }
+
+        function toggleEmergencyBuzzer() {
+            const newState = !isBuzzerCurrentlyOpen;
+            setControlBuzzerOpen(newState, true);
+            showCustomAlert(newState ? "Đã MỞ chuông khẩn cấp!" : "Đã KHÓA chuông khẩn cấp!");
         }
 
         // ==========================================
@@ -3120,7 +3126,7 @@ Link tham gia: ${fullUrl}`;
         function clickPauseTossup() {
             isTossupRunning = false;
             clearTimeout(tossupTimeout);
-            setControlBuzzerOpen(true);
+            setControlBuzzerOpen(false);
             sendCmd("PAUSE_TOSSUP");
         }
 
@@ -3270,10 +3276,8 @@ Link tham gia: ${fullUrl}`;
             sendCmd('LOAD_QUIZ', { index: 12, letters: subLetters, isFortuneFrenzy: true });
             sendCmd('UPDATE_ROUND30_TIMER', { seconds: Math.ceil(round30Seconds), visible: true, subTitle: `Ô CHỮ ${subIndex + 1}/${total}` });
 
-            // Ở vòng Fortune Frenzy luôn luôn mở chuông bất cứ lúc nào
             clearControlBuzzer();
-            setControlBuzzerOpen(true);
-            sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
+            setControlBuzzerOpen(false);
 
             if (isRound30Running && round30Seconds > 0) {
                 isTossupRunning = true;
@@ -3341,12 +3345,12 @@ Link tham gia: ${fullUrl}`;
                 if (round30TimerInterval) { clearInterval(round30TimerInterval); round30TimerInterval = null; }
                 clearTimeout(tossupTimeout);
                 sendCmd('PAUSE_ROUND30_MUSIC');
-                setControlBuzzerOpen(true);
+                setControlBuzzerOpen(false, true);
             } else if (round30Seconds > 0) {
                 isRound30Running = true;
                 isTossupRunning = true;
                 clearControlBuzzer();
-                setControlBuzzerOpen(true);
+                setControlBuzzerOpen(false, true);
                 sendCmd('RESUME_ROUND30_MUSIC');
                 round30TimerInterval = setInterval(() => {
                     round30Seconds -= 0.1;
@@ -3357,8 +3361,7 @@ Link tham gia: ${fullUrl}`;
                         isRound30Running = false;
                         isTossupRunning = false;
                         clearTimeout(tossupTimeout);
-                        setControlBuzzerOpen(true);
-                        sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
+                        setControlBuzzerOpen(false, true);
                         updateRound30TimerUI();
                         return;
                     }
@@ -3375,8 +3378,7 @@ Link tham gia: ${fullUrl}`;
             controlRevealAllLocally();
             sendCmd('REVEAL_ALL', { isFortuneFrenzy: true });
             clearControlBuzzer();
-            setControlBuzzerOpen(true);
-            sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
+            setControlBuzzerOpen(false, true);
         }
 
         function nextRound30Puzzle() {
@@ -3384,8 +3386,7 @@ Link tham gia: ${fullUrl}`;
             const total = round30SubPuzzles.length || 8;
             currentRound30SubIndex = (currentRound30SubIndex + 1) % total;
             selectRound30Sub(currentRound30SubIndex);
-            setControlBuzzerOpen(true);
-            sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
+            setControlBuzzerOpen(true, true);
         }
 
         function resetRound30Timer() {
@@ -3400,8 +3401,7 @@ Link tham gia: ${fullUrl}`;
             selectRound30Sub(0);
             controlResetBoardLocally();
             clearControlBuzzer();
-            setControlBuzzerOpen(true);
-            sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
+            setControlBuzzerOpen(false, true);
             sendCmd('STOP_ROUND30_MUSIC');
             sendCmd('UPDATE_ROUND30_TIMER', { seconds: 30, visible: true, subTitle: `Ô CHỮ 1/${total}` });
         }
@@ -3413,14 +3413,12 @@ Link tham gia: ${fullUrl}`;
                 sendCmd('PLAY_SFX', 'FlashGreen.mp3');
                 revealRound30Answer();
                 clearControlBuzzer();
-                setControlBuzzerOpen(true);
-                sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
+                setControlBuzzerOpen(false, true);
             } else {
                 sendCmd('PLAY_SFX', 'wrong.mp3');
                 sendCmd('PLAY_SFX', 'FlashRed.mp3');
                 clearControlBuzzer();
-                setControlBuzzerOpen(true);
-                sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
+                setControlBuzzerOpen(false, true);
                 if (round30Seconds > 0) {
                     isRound30Running = true;
                     isTossupRunning = true;
@@ -3437,8 +3435,7 @@ Link tham gia: ${fullUrl}`;
                                 isRound30Running = false;
                                 isTossupRunning = false;
                                 clearTimeout(tossupTimeout);
-                                setControlBuzzerOpen(true);
-                                sendCmd('SET_BUZZER_STATE', { state: 'OPEN' });
+                                setControlBuzzerOpen(false, true);
                                 updateRound30TimerUI();
                                 showCustomAlert("HẾT GIỜ 30 GIÂY!");
                                 return;
