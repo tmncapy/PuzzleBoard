@@ -232,18 +232,22 @@
 
             if (type === 'UPDATE_SCOREBOARD' || type === 'UPDATE_SCORE') {
                 const scoreData = data || msg.payload;
+                const showTotal = !!(scoreData && scoreData.showTotal);
                 if (scoreData) {
                     if (scoreData.p1) {
                         if (scoreData.p1.name) nameP1El.textContent = scoreData.p1.name.toUpperCase();
-                        if (scoreData.p1.score !== undefined) scoreP1El.textContent = formatScore(scoreData.p1.score);
+                        const val1 = showTotal ? (Number(scoreData.p1.total) || 0) : (Number(scoreData.p1.score) || 0);
+                        scoreP1El.textContent = formatScore(val1);
                     }
                     if (scoreData.p2) {
                         if (scoreData.p2.name) nameP2El.textContent = scoreData.p2.name.toUpperCase();
-                        if (scoreData.p2.score !== undefined) scoreP2El.textContent = formatScore(scoreData.p2.score);
+                        const val2 = showTotal ? (Number(scoreData.p2.total) || 0) : (Number(scoreData.p2.score) || 0);
+                        scoreP2El.textContent = formatScore(val2);
                     }
                     if (scoreData.p3) {
                         if (scoreData.p3.name) nameP3El.textContent = scoreData.p3.name.toUpperCase();
-                        if (scoreData.p3.score !== undefined) scoreP3El.textContent = formatScore(scoreData.p3.score);
+                        const val3 = showTotal ? (Number(scoreData.p3.total) || 0) : (Number(scoreData.p3.score) || 0);
+                        scoreP3El.textContent = formatScore(val3);
                     }
                 }
             }

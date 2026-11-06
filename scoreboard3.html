@@ -375,10 +375,12 @@
             // 1. Cập nhật bảng điểm
             if (type === 'UPDATE_SCOREBOARD' || type === 'UPDATE_SCORE') {
                 const scoreData = data || msg.payload;
+                const showTotal = !!(scoreData && scoreData.showTotal);
                 if (scoreData) {
                     if (scoreData.p3) {
                         if (scoreData.p3.name !== undefined) setTeamName(scoreData.p3.name);
-                        if (scoreData.p3.score !== undefined) setScore(scoreData.p3.score);
+                        const val = showTotal ? (Number(scoreData.p3.total) || 0) : (Number(scoreData.p3.score) || 0);
+                        setScore(val);
                     } else if (scoreData.player3 !== undefined) {
                         setScore(scoreData.player3);
                     }

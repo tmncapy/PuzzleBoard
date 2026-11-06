@@ -901,22 +901,23 @@ function handleControlCommand(payload) {
     if (!type) return;
 
     if (type === "UPDATE_SCOREBOARD") {
+        const showTotal = !!(data && data.showTotal);
         if (data && data.p1 && document.getElementById("playerName1")) document.getElementById("playerName1").textContent = data.p1.name;
         if (data && data.p1 && document.getElementById("playerScore1")) {
-            const score1 = Number(data.p1.score) || 0;
-            document.getElementById("playerScore1").textContent = score1.toLocaleString('vi-VN');
+            const val1 = showTotal ? (Number(data.p1.total) || 0) : (Number(data.p1.score) || 0);
+            document.getElementById("playerScore1").textContent = val1.toLocaleString('vi-VN');
         }
         
         if (data && data.p2 && document.getElementById("playerName2")) document.getElementById("playerName2").textContent = data.p2.name;
         if (data && data.p2 && document.getElementById("playerScore2")) {
-            const score2 = Number(data.p2.score) || 0;
-            document.getElementById("playerScore2").textContent = score2.toLocaleString('vi-VN');
+            const val2 = showTotal ? (Number(data.p2.total) || 0) : (Number(data.p2.score) || 0);
+            document.getElementById("playerScore2").textContent = val2.toLocaleString('vi-VN');
         }
         
         if (data && data.p3 && document.getElementById("playerName3")) document.getElementById("playerName3").textContent = data.p3.name;
         if (data && data.p3 && document.getElementById("playerScore3")) {
-            const score3 = Number(data.p3.score) || 0;
-            document.getElementById("playerScore3").textContent = score3.toLocaleString('vi-VN');
+            const val3 = showTotal ? (Number(data.p3.total) || 0) : (Number(data.p3.score) || 0);
+            document.getElementById("playerScore3").textContent = val3.toLocaleString('vi-VN');
         }
     }
     else if (type === "LOAD_QUIZ") {
