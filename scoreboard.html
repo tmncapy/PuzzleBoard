@@ -68,7 +68,7 @@
             justify-content: center;
             min-height: 180px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.25);
-            transition: transform 0.2s ease;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease, border-color 0.25s ease;
         }
 
         .card-p1 {
@@ -84,6 +84,37 @@
         .card-p3 {
             background-color: #1d64f2 !important;
             border: 3px solid #60a5fa;
+        }
+
+        /* Khi một người chơi bấm chuông nhanh nhất: Thẻ người chơi đó sáng rực rỡ, không nhấp nháy */
+        .scoreboard-card.buzzer-winner {
+            transform: translateY(-8px) scale(1.05) !important;
+            border-color: #ffffff !important;
+            border-width: 4px !important;
+            z-index: 35 !important;
+            animation: none !important;
+        }
+
+        .scoreboard-card.card-p1.buzzer-winner {
+            background-color: #ff2222 !important;
+            box-shadow: 0 0 35px #ffffff, 0 0 70px #ff3b30, 0 20px 45px rgba(0,0,0,0.7) !important;
+        }
+
+        .scoreboard-card.card-p2.buzzer-winner {
+            background-color: #ffaa00 !important;
+            box-shadow: 0 0 35px #ffffff, 0 0 70px #fde047, 0 20px 45px rgba(0,0,0,0.7) !important;
+        }
+
+        .scoreboard-card.card-p3.buzzer-winner {
+            background-color: #1a62ff !important;
+            box-shadow: 0 0 35px #ffffff, 0 0 70px #60a5fa, 0 20px 45px rgba(0,0,0,0.7) !important;
+        }
+
+        /* 2 đội còn lại giảm nhẹ độ mờ để tôn lên đội bấm chuông */
+        .scoreboard-card.buzzer-dimmed {
+            opacity: 0.45 !important;
+            transform: scale(0.97) !important;
+            filter: grayscale(25%);
         }
 
         .team-title {
@@ -115,7 +146,7 @@
             white-space: nowrap;
         }
 
-        /* Ký hiệu bấm chuông dạng hình ảnh mũi tên đôi trên scoreboard */
+        /* Ký hiệu bấm chuông dạng mũi tên đôi trên scoreboard (không nhấp nháy) */
         .buzzer-arrow {
             position: absolute;
             top: 50%;
@@ -123,30 +154,32 @@
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            z-index: 25;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            z-index: 40;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .buzzer-arrow.left { left: 8px; }
-        .buzzer-arrow.right { right: 8px; }
+        .buzzer-arrow.left { left: 10px; }
+        .buzzer-arrow.right { right: 10px; }
 
         .buzzer-arrow.active {
-            opacity: 1;
-            visibility: visible;
-            animation: none;
+            opacity: 1 !important;
+            visibility: visible !important;
+            animation: none !important;
+        }
+
+        .buzzer-svg {
+            width: clamp(48px, 6.5vw, 76px);
+            height: auto;
+            filter: drop-shadow(0 0 10px #ffffff) drop-shadow(0 0 22px rgba(255,255,255,0.95));
+            pointer-events: none;
+            user-select: none;
         }
 
         .buzzer-symbol-img {
-            width: clamp(48px, 6vw, 78px);
-            height: auto;
-            object-fit: contain;
-            mix-blend-mode: screen;
-            filter: drop-shadow(0 0 14px rgba(255,255,255,1)) drop-shadow(0 0 28px rgba(255,255,255,0.85));
-            pointer-events: none;
-            user-select: none;
+            display: none;
         }
     </style>
 </head>
@@ -156,10 +189,16 @@
         <!-- ĐỘI ĐỎ -->
         <div class="scoreboard-card card-p1" id="cardP1">
             <div id="buzzerL1" class="buzzer-arrow left">
-                <img src="/public/assets/aistudio/image_c4c7eda7.png" class="buzzer-symbol-img" alt="Buzzer" onerror="this.src='/public/assets/aistudio/image_c4c7eda7_transparent.png'">
+                <svg viewBox="0 0 80 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="36,4 36,40 4,22" fill="#ffffff" />
+                    <polygon points="44,4 44,40 76,22" fill="#ffffff" />
+                </svg>
             </div>
             <div id="buzzerR1" class="buzzer-arrow right">
-                <img src="/public/assets/aistudio/image_c4c7eda7.png" class="buzzer-symbol-img" alt="Buzzer" onerror="this.src='/public/assets/aistudio/image_c4c7eda7_transparent.png'">
+                <svg viewBox="0 0 80 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="36,4 36,40 4,22" fill="#ffffff" />
+                    <polygon points="44,4 44,40 76,22" fill="#ffffff" />
+                </svg>
             </div>
             <div class="team-title" id="nameP1">ĐỘI ĐỎ</div>
             <div class="number-text" id="scoreP1">0</div>
@@ -168,10 +207,16 @@
         <!-- ĐỘI VÀNG -->
         <div class="scoreboard-card card-p2" id="cardP2">
             <div id="buzzerL2" class="buzzer-arrow left">
-                <img src="/public/assets/aistudio/image_c4c7eda7.png" class="buzzer-symbol-img" alt="Buzzer" onerror="this.src='/public/assets/aistudio/image_c4c7eda7_transparent.png'">
+                <svg viewBox="0 0 80 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="36,4 36,40 4,22" fill="#ffffff" />
+                    <polygon points="44,4 44,40 76,22" fill="#ffffff" />
+                </svg>
             </div>
             <div id="buzzerR2" class="buzzer-arrow right">
-                <img src="/public/assets/aistudio/image_c4c7eda7.png" class="buzzer-symbol-img" alt="Buzzer" onerror="this.src='/public/assets/aistudio/image_c4c7eda7_transparent.png'">
+                <svg viewBox="0 0 80 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="36,4 36,40 4,22" fill="#ffffff" />
+                    <polygon points="44,4 44,40 76,22" fill="#ffffff" />
+                </svg>
             </div>
             <div class="team-title" id="nameP2">ĐỘI VÀNG</div>
             <div class="number-text" id="scoreP2">0</div>
@@ -180,10 +225,16 @@
         <!-- ĐỘI LAM -->
         <div class="scoreboard-card card-p3" id="cardP3">
             <div id="buzzerL3" class="buzzer-arrow left">
-                <img src="/public/assets/aistudio/image_c4c7eda7.png" class="buzzer-symbol-img" alt="Buzzer" onerror="this.src='/public/assets/aistudio/image_c4c7eda7_transparent.png'">
+                <svg viewBox="0 0 80 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="36,4 36,40 4,22" fill="#ffffff" />
+                    <polygon points="44,4 44,40 76,22" fill="#ffffff" />
+                </svg>
             </div>
             <div id="buzzerR3" class="buzzer-arrow right">
-                <img src="/public/assets/aistudio/image_c4c7eda7.png" class="buzzer-symbol-img" alt="Buzzer" onerror="this.src='/public/assets/aistudio/image_c4c7eda7_transparent.png'">
+                <svg viewBox="0 0 80 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="36,4 36,40 4,22" fill="#ffffff" />
+                    <polygon points="44,4 44,40 76,22" fill="#ffffff" />
+                </svg>
             </div>
             <div class="team-title" id="nameP3">ĐỘI LAM</div>
             <div class="number-text" id="scoreP3">0</div>
@@ -192,7 +243,7 @@
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const roomId = urlParams.get('roomid') || 'default_room';
+        let roomId = urlParams.get('roomid') || localStorage.getItem('crossword_control_roomid') || localStorage.getItem('crossword_player_roomid') || '123456';
         const singleP = urlParams.get('p');
 
         // Nếu chỉ định ?p=1 hoặc 2 hoặc 3, chuyển hướng hoặc chỉ hiển thị đội đó
@@ -220,8 +271,13 @@
         function clearScoreboardBuzzer() {
             currentScoreboardWinner = null;
             for (let i = 1; i <= 3; i++) {
+                const card = document.getElementById(`cardP${i}`);
                 const lEl = document.getElementById(`buzzerL${i}`);
                 const rEl = document.getElementById(`buzzerR${i}`);
+                if (card) {
+                    card.classList.remove('buzzer-winner');
+                    card.classList.remove('buzzer-dimmed');
+                }
                 if (lEl) lEl.classList.remove('active');
                 if (rEl) rEl.classList.remove('active');
             }
@@ -234,8 +290,18 @@
             currentScoreboardWinner = p;
             for (let i = 1; i <= 3; i++) {
                 const isWinner = (i === p);
+                const card = document.getElementById(`cardP${i}`);
                 const lEl = document.getElementById(`buzzerL${i}`);
                 const rEl = document.getElementById(`buzzerR${i}`);
+                if (card) {
+                    if (isWinner) {
+                        card.classList.add('buzzer-winner');
+                        card.classList.remove('buzzer-dimmed');
+                    } else {
+                        card.classList.remove('buzzer-winner');
+                        card.classList.add('buzzer-dimmed');
+                    }
+                }
                 if (lEl) lEl.classList.toggle('active', isWinner);
                 if (rEl) rEl.classList.toggle('active', isWinner);
             }
@@ -279,21 +345,25 @@
                 clearScoreboardBuzzer();
             }
 
-            if (msg.event === 'player-buzz' || type === 'PLAYER_BUZZ_WIN' || type === 'PLAYER_BUZZ' || type === 'BELL') {
-                const pNum = msg.payload?.playerNum || msg.data?.playerNum || data?.playerNum || msg.playerNum;
+            if (msg.event === 'player-buzz' || type === 'PLAYER_BUZZ_WIN' || type === 'PLAYER_BUZZ' || type === 'BELL' || type === 'BUZZER' || msg.latestWinner) {
+                const pNum = msg.latestWinner || msg.payload?.playerNum || msg.data?.playerNum || data?.playerNum || msg.playerNum;
                 if (pNum) triggerBuzzer(pNum);
             }
         }
 
-        // 1. LocalStorage
+        // 1. LocalStorage & High Frequency Polling
         function loadInitial() {
             try {
                 const raw = localStorage.getItem('control-to-display-msg_' + roomId) || localStorage.getItem('control-to-display-msg');
                 if (raw) handleCommand(JSON.parse(raw));
+                const initWinner = localStorage.getItem('tossup-buzzer-winner_' + roomId) || localStorage.getItem('tossup-buzzer-winner');
+                if (initWinner) triggerBuzzer(initWinner);
             } catch(e) {}
         }
         loadInitial();
+
         window.addEventListener('storage', (e) => {
+            if (!e.key) return;
             if ((e.key === 'control-to-display-msg' || e.key === 'control-to-display-msg_' + roomId) && e.newValue) {
                 try { handleCommand(JSON.parse(e.newValue)); } catch(err) {}
             }
@@ -304,35 +374,104 @@
                     if (pNum) triggerBuzzer(pNum);
                 } catch(err) {}
             }
+            if (e.key === 'tossup-buzzer-winner' || e.key === 'tossup-buzzer-winner_' + roomId) {
+                if (e.newValue) {
+                    triggerBuzzer(e.newValue);
+                } else {
+                    clearScoreboardBuzzer();
+                }
+            }
+            if ((e.key === 'tossup-buzzer-open' || e.key === 'tossup-buzzer-open_' + roomId) && e.newValue === '1') {
+                clearScoreboardBuzzer();
+            }
         });
 
-        // 2. BroadcastChannel
+        // 80ms Polling fallback for instant synchronization across tabs
+        setInterval(() => {
+            try {
+                const winner = localStorage.getItem('tossup-buzzer-winner_' + roomId) || localStorage.getItem('tossup-buzzer-winner');
+                if (winner) {
+                    const wNum = parseInt(winner);
+                    if (wNum && currentScoreboardWinner !== wNum) {
+                        triggerBuzzer(wNum);
+                    }
+                } else if (currentScoreboardWinner !== null) {
+                    const isOpen = localStorage.getItem('tossup-buzzer-open_' + roomId) === '1' || localStorage.getItem('tossup-buzzer-open') === '1';
+                    if (isOpen || !winner) {
+                        clearScoreboardBuzzer();
+                    }
+                }
+            } catch(e) {}
+        }, 80);
+
+        // 2. BroadcastChannel (All room variants)
         try {
             if (typeof BroadcastChannel !== 'undefined') {
-                const bc = new BroadcastChannel('broadcast_channel_' + roomId);
-                bc.onmessage = (e) => { 
-                    if (e.data) {
-                        if (e.data.event === 'player-buzz' && e.data.payload?.playerNum) {
-                            triggerBuzzer(e.data.payload.playerNum);
-                        } else {
-                            handleCommand(e.data.payload || e.data);
-                        }
-                    }
-                };
+                const channels = [
+                    'crossword_broadcast_room_' + roomId,
+                    'crossword_broadcast_room_123456',
+                    'crossword_broadcast_room',
+                    'broadcast_channel_' + roomId
+                ];
+                channels.forEach(name => {
+                    try {
+                        const bc = new BroadcastChannel(name);
+                        bc.onmessage = (e) => {
+                            if (!e.data) return;
+                            const d = e.data;
+                            if (d.event === 'player-buzz' || d.type === 'PLAYER_BUZZ_WIN' || d.type === 'PLAYER_BUZZ') {
+                                const p = d.payload?.playerNum || d.data?.playerNum || d.playerNum;
+                                if (p) triggerBuzzer(p);
+                            } else {
+                                handleCommand(d.payload || d);
+                            }
+                        };
+                    } catch(err) {}
+                });
             }
         } catch(e) {}
 
-        // 3. SSE Connection (/api/events)
+        // 3. Socket.IO Transport
+        if (typeof io !== 'undefined') {
+            try {
+                const socket = io({
+                    transports: ['websocket', 'polling'],
+                    query: { roomid: roomId }
+                });
+                socket.emit('join-room', roomId);
+                socket.emit('join-room', '123456');
+                socket.emit('join-room', 'default');
+                socket.on('player-buzz', (data) => {
+                    const pNum = data?.payload?.playerNum || data?.playerNum || data?.latestWinner;
+                    if (pNum) triggerBuzzer(pNum);
+                });
+                socket.on('buzzer-state-update', (data) => {
+                    if (data?.latestWinner) triggerBuzzer(data.latestWinner);
+                    else if (data?.isOpen) clearScoreboardBuzzer();
+                });
+                socket.on('control-command', (data) => {
+                    if (data) handleCommand(data.payload || data);
+                });
+                socket.on('control-to-display', (data) => {
+                    if (data) handleCommand(data.payload || data);
+                });
+                socket.on('broadcast', (data) => {
+                    if (data) handleCommand(data.payload || data);
+                });
+            } catch(e) {}
+        }
+
+        // 4. SSE Connection (/api/events)
         function connectScoreboardSSE() {
             if (typeof EventSource === "undefined") return;
             try {
-                const sse = new EventSource(`api/events?roomid=${encodeURIComponent(roomId)}&role=0`);
+                const sse = new EventSource(`/api/events?roomid=${encodeURIComponent(roomId)}&role=0`);
                 sse.onmessage = (e) => {
                     try {
                         const msg = JSON.parse(e.data);
                         if (!msg) return;
-                        if (msg.event === 'player-buzz' && msg.payload?.playerNum) {
-                            triggerBuzzer(msg.payload.playerNum);
+                        if (msg.event === 'player-buzz' && (msg.payload?.playerNum || msg.playerNum)) {
+                            triggerBuzzer(msg.payload?.playerNum || msg.playerNum);
                         } else if (msg.event === 'buzzer-state-update') {
                             if (msg.latestWinner) {
                                 triggerBuzzer(msg.latestWinner);
@@ -341,18 +480,20 @@
                             }
                         } else if (msg.payload) {
                             handleCommand(msg.payload);
+                        } else {
+                            handleCommand(msg);
                         }
                     } catch(err){}
                 };
                 sse.onerror = () => {
                     try { sse.close(); } catch(e){}
-                    setTimeout(connectScoreboardSSE, 3000);
+                    setTimeout(connectScoreboardSSE, 2500);
                 };
             } catch(e) {}
         }
         connectScoreboardSSE();
 
-        // 4. MultiSyncBridge
+        // 5. MultiSyncBridge
         if (window.GameSync) {
             window.GameSync.init({
                 role: 'scoreboard',
@@ -360,12 +501,35 @@
                 onMessage: (msg) => {
                     if (msg.event === 'control-to-display' && msg.payload) {
                         handleCommand(msg.payload);
-                    } else if (msg.event === 'player-buzz' && msg.payload?.playerNum) {
-                        triggerBuzzer(msg.payload.playerNum);
+                    } else if (msg.event === 'player-buzz' && (msg.payload?.playerNum || msg.playerNum)) {
+                        triggerBuzzer(msg.payload?.playerNum || msg.playerNum);
+                    } else {
+                        handleCommand(msg);
                     }
                 }
             });
         }
+
+        // 6. Server Room State Query
+        fetch(`/api/get-room-state?roomid=${encodeURIComponent(roomId)}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data && data.latestWinner) {
+                    triggerBuzzer(data.latestWinner);
+                }
+            }).catch(() => {});
+
+        // 7. Testing shortcuts (Press 1, 2, 3 or Space)
+        window.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT') return;
+            if (e.key === '1') triggerBuzzer(1);
+            else if (e.key === '2') triggerBuzzer(2);
+            else if (e.key === '3') triggerBuzzer(3);
+            else if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') clearScoreboardBuzzer();
+            else if (e.code === 'Space' || e.key === 'b' || e.key === 'B') {
+                e.preventDefault();
+                triggerBuzzer(1);
+            }
     </script>
 </body>
 </html>

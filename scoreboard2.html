@@ -167,12 +167,18 @@
     <!-- LỚP NỀN CỐ ĐỊNH CHỐNG MẤT MÀU KHI ADD VÀO OBS STUDIO BROWSER SOURCE -->
     <div id="scoreboardBgLayer" class="scoreboard-bg-layer" style="background-color: #f2a900 !important; background: #f2a900 !important;"></div>
 
-    <!-- 2 MŨI TÊN CHỚP TỪ TỪ Ở 2 CẠNH BÊN SCOREBOARD -->
+    <!-- 2 MŨI TÊN Ở 2 CẠNH BÊN SCOREBOARD -->
     <div id="buzzerArrowLeft" class="buzzer-arrow left" aria-hidden="true">
-        <img src="/public/assets/aistudio/image_c4c7eda7.png" class="buzzer-symbol-img" alt="Buzzer" onerror="this.src='/public/assets/aistudio/image_c4c7eda7_transparent.png'">
+        <svg viewBox="0 0 80 44" class="buzzer-svg" width="90" height="50" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="36,4 36,40 4,22" fill="#ffffff" />
+            <polygon points="44,4 44,40 76,22" fill="#ffffff" />
+        </svg>
     </div>
     <div id="buzzerArrowRight" class="buzzer-arrow right" aria-hidden="true">
-        <img src="/public/assets/aistudio/image_c4c7eda7.png" class="buzzer-symbol-img" alt="Buzzer" onerror="this.src='/public/assets/aistudio/image_c4c7eda7_transparent.png'">
+        <svg viewBox="0 0 80 44" class="buzzer-svg" width="90" height="50" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="36,4 36,40 4,22" fill="#ffffff" />
+            <polygon points="44,4 44,40 76,22" fill="#ffffff" />
+        </svg>
     </div>
 
     <main class="flex flex-col items-center justify-center w-full h-full select-none relative" style="position: relative; z-index: 10;">
@@ -185,7 +191,7 @@
         const MY_PLAYER_NUM = 2;
         const TEAM_COLOR = '#f2a900';
         const urlParams = new URLSearchParams(window.location.search);
-        const roomId = urlParams.get('roomid') || 'default_room';
+        let roomId = urlParams.get('roomid') || localStorage.getItem('crossword_control_roomid') || localStorage.getItem('crossword_player_roomid') || '123456';
 
         // Bảo vệ màu nền của Scoreboard chống bị OBS Custom CSS ('body { background-color: rgba(0,0,0,0); }') ghi đè làm mất màu
         function enforceScoreboardColor() {
@@ -427,6 +433,10 @@
         let lastMsgTs = 0;
         setInterval(() => {
             try {
+                const winner = localStorage.getItem('tossup-buzzer-winner_' + roomId) || localStorage.getItem('tossup-buzzer-winner');
+                if (winner) {
+                    handleBuzzerEvent(winner);
+                }
                 const raw = localStorage.getItem('control-to-display-msg_' + roomId) || localStorage.getItem('control-to-display-msg');
                 if (raw) {
                     const parsed = JSON.parse(raw);
