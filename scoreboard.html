@@ -115,29 +115,9 @@
             white-space: nowrap;
         }
 
+        /* Ký hiệu bấm chuông trên scoreboard đã tắt theo yêu cầu */
         .buzzer-arrow {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #ffffff;
-            font-size: clamp(24px, 4vw, 48px);
-            font-weight: 900;
-            text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-        }
-
-        .buzzer-arrow.left { left: 10px; }
-        .buzzer-arrow.right { right: 10px; }
-        .buzzer-arrow.active {
-            opacity: 1;
-            animation: slowBlink 1.2s ease-in-out infinite;
-        }
-
-        @keyframes slowBlink {
-            0%, 100% { opacity: 0.2; transform: translateY(-50%) scale(0.95); }
-            50% { opacity: 1; transform: translateY(-50%) scale(1.1); filter: drop-shadow(0 0 15px rgba(255,255,255,0.9)); }
+            display: none !important;
         }
     </style>
 </head>
@@ -207,22 +187,8 @@
         }
 
         function triggerBuzzer(playerNum) {
-            const p = parseInt(playerNum);
-            if (!p || (currentScoreboardWinner !== null && currentScoreboardWinner !== p)) return;
-            currentScoreboardWinner = p;
-            for (let i = 1; i <= 3; i++) {
-                const lEl = document.getElementById(`buzzerL${i}`);
-                const rEl = document.getElementById(`buzzerR${i}`);
-                if (lEl) lEl.classList.toggle('active', i === p);
-                if (rEl) rEl.classList.toggle('active', i === p);
-            }
-            try {
-                const audio = new Audio("ding.wav");
-                audio.play().catch(() => {
-                    const fallback = new Audio("ding.mp3");
-                    fallback.play().catch(() => {});
-                });
-            } catch(e) {}
+            // Đã tắt ký hiệu bấm chuông trên scoreboard theo yêu cầu
+            return;
         }
 
         function handleCommand(msg) {

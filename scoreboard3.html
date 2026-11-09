@@ -103,56 +103,9 @@
             transform: scale(1.08);
         }
 
-        /* 2 mũi tên >< chớp từ từ ở 2 cạnh bên scoreboard khi bấm chuông */
+        /* 2 mũi tên >< chớp từ từ ở 2 cạnh bên scoreboard khi bấm chuông - Đã tắt theo yêu cầu */
         .buzzer-arrow {
-            position: fixed;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #ffffff;
-            font-size: min(18vw, 32vh);
-            font-weight: 900;
-            line-height: 1;
-            letter-spacing: -0.02em;
-            text-shadow: 
-                -3px -3px 0 #000,  
-                 3px -3px 0 #000,
-                -3px  3px 0 #000,
-                 3px  3px 0 #000,
-                 0px -3px 0 #000,
-                 0px  3px 0 #000,
-                -3px  0px 0 #000,
-                 3px  0px 0 #000;
-            opacity: 0;
-            pointer-events: none;
-            user-select: none;
-            z-index: 50;
-            transition: opacity 0.4s ease;
-        }
-
-        .buzzer-arrow.left {
-            left: clamp(1rem, 3.5vw, 4rem);
-        }
-
-        .buzzer-arrow.right {
-            right: clamp(1rem, 3.5vw, 4rem);
-        }
-
-        .buzzer-arrow.active {
-            opacity: 1;
-            animation: slowBlink 1.2s ease-in-out infinite;
-        }
-
-        @keyframes slowBlink {
-            0%, 100% {
-                opacity: 0.15;
-                transform: translateY(-50%) scale(0.92);
-                filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0));
-            }
-            50% {
-                opacity: 1;
-                transform: translateY(-50%) scale(1.12);
-                filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 45px rgba(255, 255, 255, 0.7));
-            }
+            display: none !important;
         }
 
         .team-title {
@@ -303,23 +256,9 @@
             }
         }
 
-        // Kích hoạt hiệu ứng 2 mũi tên >< chớp từ từ ở 2 cạnh bên khi bấm chuông
+        // Kích hoạt hiệu ứng 2 mũi tên >< chớp từ từ ở 2 cạnh bên khi bấm chuông - Đã tắt theo yêu cầu
         function triggerBuzzerAlert() {
-            if (buzzerArrowLeftEl) buzzerArrowLeftEl.classList.add('active');
-            if (buzzerArrowRightEl) buzzerArrowRightEl.classList.add('active');
-
-            try {
-                const audio = new Audio("ding.wav");
-                audio.play().catch(() => {
-                    const fallback = new Audio("ding.mp3");
-                    fallback.play().catch(() => {});
-                });
-            } catch(e) {}
-
-            if (buzzerResetTimer) clearTimeout(buzzerResetTimer);
-            buzzerResetTimer = setTimeout(() => {
-                clearBuzzerAlert();
-            }, 8000);
+            return;
         }
 
         function clearBuzzerAlert() {
