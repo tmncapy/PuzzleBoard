@@ -115,9 +115,51 @@
             white-space: nowrap;
         }
 
-        /* Ký hiệu bấm chuông trên scoreboard đã tắt theo yêu cầu */
+        /* Ký hiệu bấm chuông dạng hình ảnh mũi tên đôi trên scoreboard */
         .buzzer-arrow {
-            display: none !important;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            z-index: 25;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .buzzer-arrow.left { left: 8px; }
+        .buzzer-arrow.right { right: 8px; }
+
+        .buzzer-arrow.active {
+            opacity: 1;
+            visibility: visible;
+            animation: slowBlink 1.2s ease-in-out infinite;
+        }
+
+        .buzzer-symbol-img {
+            width: clamp(48px, 6vw, 78px);
+            height: auto;
+            object-fit: contain;
+            mix-blend-mode: screen;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.95)) drop-shadow(0 0 20px rgba(255,255,255,0.7));
+            pointer-events: none;
+            user-select: none;
+        }
+
+        @keyframes slowBlink {
+            0%, 100% {
+                opacity: 0.25;
+                transform: translateY(-50%) scale(0.92);
+                filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0));
+            }
+            50% {
+                opacity: 1;
+                transform: translateY(-50%) scale(1.12);
+                filter: drop-shadow(0 0 18px rgba(255, 255, 255, 1)) drop-shadow(0 0 32px rgba(255, 255, 255, 0.85));
+            }
         }
     </style>
 </head>
@@ -126,24 +168,36 @@
     <div class="scoreboards-wrapper" id="scoreboardsWrapper">
         <!-- ĐỘI ĐỎ -->
         <div class="scoreboard-card card-p1" id="cardP1">
-            <div id="buzzerL1" class="buzzer-arrow left">&gt;</div>
-            <div id="buzzerR1" class="buzzer-arrow right">&lt;</div>
+            <div id="buzzerL1" class="buzzer-arrow left">
+                <img src="/public/assets/aistudio/image_c4c7eda7.png" class="buzzer-symbol-img" alt="Buzzer" onerror="this.src='/public/assets/aistudio/image_c4c7eda7_transparent.png'">
+            </div>
+            <div id="buzzerR1" class="buzzer-arrow right">
+                <img src="/public/assets/aistudio/image_c4c7eda7.png" class="buzzer-symbol-img" alt="Buzzer" onerror="this.src='/public/assets/aistudio/image_c4c7eda7_transparent.png'">
+            </div>
             <div class="team-title" id="nameP1">ĐỘI ĐỎ</div>
             <div class="number-text" id="scoreP1">0</div>
         </div>
 
         <!-- ĐỘI VÀNG -->
         <div class="scoreboard-card card-p2" id="cardP2">
-            <div id="buzzerL2" class="buzzer-arrow left">&gt;</div>
-            <div id="buzzerR2" class="buzzer-arrow right">&lt;</div>
+            <div id="buzzerL2" class="buzzer-arrow left">
+                <img src="/public/assets/aistudio/image_c4c7eda7.png" class="buzzer-symbol-img" alt="Buzzer" onerror="this.src='/public/assets/aistudio/image_c4c7eda7_transparent.png'">
+            </div>
+            <div id="buzzerR2" class="buzzer-arrow right">
+                <img src="/public/assets/aistudio/image_c4c7eda7.png" class="buzzer-symbol-img" alt="Buzzer" onerror="this.src='/public/assets/aistudio/image_c4c7eda7_transparent.png'">
+            </div>
             <div class="team-title" id="nameP2">ĐỘI VÀNG</div>
             <div class="number-text" id="scoreP2">0</div>
         </div>
 
         <!-- ĐỘI LAM -->
         <div class="scoreboard-card card-p3" id="cardP3">
-            <div id="buzzerL3" class="buzzer-arrow left">&gt;</div>
-            <div id="buzzerR3" class="buzzer-arrow right">&lt;</div>
+            <div id="buzzerL3" class="buzzer-arrow left">
+                <img src="/public/assets/aistudio/image_c4c7eda7.png" class="buzzer-symbol-img" alt="Buzzer" onerror="this.src='/public/assets/aistudio/image_c4c7eda7_transparent.png'">
+            </div>
+            <div id="buzzerR3" class="buzzer-arrow right">
+                <img src="/public/assets/aistudio/image_c4c7eda7.png" class="buzzer-symbol-img" alt="Buzzer" onerror="this.src='/public/assets/aistudio/image_c4c7eda7_transparent.png'">
+            </div>
             <div class="team-title" id="nameP3">ĐỘI LAM</div>
             <div class="number-text" id="scoreP3">0</div>
         </div>
@@ -187,8 +241,24 @@
         }
 
         function triggerBuzzer(playerNum) {
-            // Đã tắt ký hiệu bấm chuông trên scoreboard theo yêu cầu
-            return;
+            const p = parseInt(playerNum);
+            // Khóa chuông: Chỉ hiện chuông của người bấm nhanh nhất
+            if (!p || (currentScoreboardWinner !== null && currentScoreboardWinner !== p)) return;
+            currentScoreboardWinner = p;
+            for (let i = 1; i <= 3; i++) {
+                const isWinner = (i === p);
+                const lEl = document.getElementById(`buzzerL${i}`);
+                const rEl = document.getElementById(`buzzerR${i}`);
+                if (lEl) lEl.classList.toggle('active', isWinner);
+                if (rEl) rEl.classList.toggle('active', isWinner);
+            }
+            try {
+                const audio = new Audio("ding.wav");
+                audio.play().catch(() => {
+                    const fallback = new Audio("ding.mp3");
+                    fallback.play().catch(() => {});
+                });
+            } catch(e) {}
         }
 
         function handleCommand(msg) {

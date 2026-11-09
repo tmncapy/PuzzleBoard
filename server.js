@@ -549,6 +549,9 @@ io.on('connection', (socket) => {
   });
 });
 
+// Serve static assets with public aliases
+app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
+
 // Serve all static assets from the current directory with aggressive media caching
 app.use(express.static(__dirname, {
   maxAge: '7d',

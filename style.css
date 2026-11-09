@@ -281,6 +281,44 @@ html, body {
 }
 
 /* === CHUÔNG BẤM NGƯỜI CHƠI (TOSSUP BUZZER ACTIVE) === */
+.player-buzzer-icon {
+    display: none;
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    pointer-events: none;
+}
+
+.player-box.buzzed-active .player-buzzer-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: buzzerSlowBlink 0.8s ease-in-out infinite;
+}
+
+.player-buzzer-icon .buzzer-symbol-img {
+    width: 68px;
+    height: auto;
+    object-fit: contain;
+    mix-blend-mode: screen;
+    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 25px rgba(255, 255, 255, 0.7));
+}
+
+@keyframes buzzerSlowBlink {
+    0%, 100% {
+        opacity: 0.35;
+        transform: scale(0.92);
+        filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.15);
+        filter: drop-shadow(0 0 20px rgba(255, 255, 255, 1)) drop-shadow(0 0 35px rgba(255, 255, 255, 0.85));
+    }
+}
+
 .player-box.buzzed-active {
     animation: buzz-pulse 0.4s infinite alternate;
     border-radius: 12px;

@@ -103,9 +103,57 @@
             transform: scale(1.08);
         }
 
-        /* 2 mũi tên >< chớp từ từ ở 2 cạnh bên scoreboard khi bấm chuông - Đã tắt theo yêu cầu */
+        /* Ký hiệu bấm chuông dạng hình ảnh mũi tên đôi trên scoreboard */
         .buzzer-arrow {
-            display: none !important;
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            user-select: none;
+            z-index: 50;
+            transition: opacity 0.35s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .buzzer-arrow.left {
+            left: clamp(1rem, 4vw, 5rem);
+        }
+
+        .buzzer-arrow.right {
+            right: clamp(1rem, 4vw, 5rem);
+        }
+
+        .buzzer-arrow.active {
+            opacity: 1;
+            visibility: visible;
+            animation: slowBlink 1.2s ease-in-out infinite;
+        }
+
+        .buzzer-symbol-img {
+            width: clamp(75px, 12vw, 160px);
+            height: auto;
+            object-fit: contain;
+            mix-blend-mode: screen;
+            filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 35px rgba(255, 255, 255, 0.7));
+            pointer-events: none;
+            user-select: none;
+        }
+
+        @keyframes slowBlink {
+            0%, 100% {
+                opacity: 0.2;
+                transform: translateY(-50%) scale(0.92);
+                filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0));
+            }
+            50% {
+                opacity: 1;
+                transform: translateY(-50%) scale(1.12);
+                filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 45px rgba(255, 255, 255, 0.7));
+            }
         }
 
         .team-title {
@@ -132,9 +180,13 @@
     <!-- LỚP NỀN CỐ ĐỊNH CHỐNG MẤT MÀU KHI ADD VÀO OBS STUDIO BROWSER SOURCE -->
     <div id="scoreboardBgLayer" class="scoreboard-bg-layer" style="background-color: #f02828 !important; background: #f02828 !important;"></div>
 
-    <!-- 2 MŨI TÊN >< CHỚP TỪ TỪ Ở 2 CẠNH BÊN SCOREBOARD -->
-    <div id="buzzerArrowLeft" class="buzzer-arrow left" aria-hidden="true">&gt;</div>
-    <div id="buzzerArrowRight" class="buzzer-arrow right" aria-hidden="true">&lt;</div>
+    <!-- 2 MŨI TÊN CHỚP TỪ TỪ Ở 2 CẠNH BÊN SCOREBOARD -->
+    <div id="buzzerArrowLeft" class="buzzer-arrow left" aria-hidden="true">
+        <img src="/public/assets/aistudio/image_c4c7eda7.png" class="buzzer-symbol-img" alt="Buzzer" onerror="this.src='/public/assets/aistudio/image_c4c7eda7_transparent.png'">
+    </div>
+    <div id="buzzerArrowRight" class="buzzer-arrow right" aria-hidden="true">
+        <img src="/public/assets/aistudio/image_c4c7eda7.png" class="buzzer-symbol-img" alt="Buzzer" onerror="this.src='/public/assets/aistudio/image_c4c7eda7_transparent.png'">
+    </div>
 
     <main class="flex flex-col items-center justify-center w-full h-full select-none relative" style="position: relative; z-index: 10;">
         <div id="teamName" class="team-title">ĐỘI ĐỎ</div>
@@ -256,9 +308,23 @@
             }
         }
 
-        // Kích hoạt hiệu ứng 2 mũi tên >< chớp từ từ ở 2 cạnh bên khi bấm chuông - Đã tắt theo yêu cầu
+        // Kích hoạt hiệu ứng 2 mũi tên chớp từ từ ở 2 cạnh bên khi bấm chuông nhanh nhất
         function triggerBuzzerAlert() {
-            return;
+            if (buzzerArrowLeftEl) buzzerArrowLeftEl.classList.add('active');
+            if (buzzerArrowRightEl) buzzerArrowRightEl.classList.add('active');
+
+            try {
+                const audio = new Audio("ding.wav");
+                audio.play().catch(() => {
+                    const fallback = new Audio("ding.mp3");
+                    fallback.play().catch(() => {});
+                });
+            } catch(e) {}
+
+            if (buzzerResetTimer) clearTimeout(buzzerResetTimer);
+            buzzerResetTimer = setTimeout(() => {
+                clearBuzzerAlert();
+            }, 8000);
         }
 
         function clearBuzzerAlert() {
