@@ -146,14 +146,7 @@
             white-space: nowrap;
         }
 
-        .score-container {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Ký hiệu bấm chuông dạng mũi tên đôi trên scoreboard (không nhấp nháy) */
+        /* Ký hiệu bấm chuông dạng mũi tên đôi trên scoreboard (không nhấp nháy, giữ nguyên khi bấm) */
         .buzzer-arrow {
             position: absolute;
             top: 50%;
@@ -168,8 +161,8 @@
             justify-content: center;
         }
 
-        .buzzer-arrow.left { right: calc(100% + 14px); }
-        .buzzer-arrow.right { left: calc(100% + 14px); }
+        .buzzer-arrow.left { left: 16px; }
+        .buzzer-arrow.right { right: 16px; }
 
         .buzzer-arrow.active {
             opacity: 1 !important;
@@ -195,56 +188,50 @@
     <div class="scoreboards-wrapper" id="scoreboardsWrapper">
         <!-- ĐỘI ĐỎ -->
         <div class="scoreboard-card card-p1" id="cardP1">
-            <div class="team-title" id="nameP1">ĐỘI ĐỎ</div>
-            <div class="score-container">
-                <div id="buzzerL1" class="buzzer-arrow left">
-                    <svg viewBox="0 0 44 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
-                        <polygon points="4,4 4,40 40,22" fill="#ffffff" />
-                    </svg>
-                </div>
-                <div class="number-text" id="scoreP1">0</div>
-                <div id="buzzerR1" class="buzzer-arrow right">
-                    <svg viewBox="0 0 44 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
-                        <polygon points="40,4 40,40 4,22" fill="#ffffff" />
-                    </svg>
-                </div>
+            <div id="buzzerL1" class="buzzer-arrow left">
+                <svg viewBox="0 0 44 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="4,4 4,40 40,22" fill="#ffffff" />
+                </svg>
             </div>
+            <div id="buzzerR1" class="buzzer-arrow right">
+                <svg viewBox="0 0 44 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="40,4 40,40 4,22" fill="#ffffff" />
+                </svg>
+            </div>
+            <div class="team-title" id="nameP1">ĐỘI ĐỎ</div>
+            <div class="number-text" id="scoreP1">0</div>
         </div>
 
         <!-- ĐỘI VÀNG -->
         <div class="scoreboard-card card-p2" id="cardP2">
-            <div class="team-title" id="nameP2">ĐỘI VÀNG</div>
-            <div class="score-container">
-                <div id="buzzerL2" class="buzzer-arrow left">
-                    <svg viewBox="0 0 44 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
-                        <polygon points="4,4 4,40 40,22" fill="#ffffff" />
-                    </svg>
-                </div>
-                <div class="number-text" id="scoreP2">0</div>
-                <div id="buzzerR2" class="buzzer-arrow right">
-                    <svg viewBox="0 0 44 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
-                        <polygon points="40,4 40,40 4,22" fill="#ffffff" />
-                    </svg>
-                </div>
+            <div id="buzzerL2" class="buzzer-arrow left">
+                <svg viewBox="0 0 44 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="4,4 4,40 40,22" fill="#ffffff" />
+                </svg>
             </div>
+            <div id="buzzerR2" class="buzzer-arrow right">
+                <svg viewBox="0 0 44 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="40,4 40,40 4,22" fill="#ffffff" />
+                </svg>
+            </div>
+            <div class="team-title" id="nameP2">ĐỘI VÀNG</div>
+            <div class="number-text" id="scoreP2">0</div>
         </div>
 
         <!-- ĐỘI LAM -->
         <div class="scoreboard-card card-p3" id="cardP3">
-            <div class="team-title" id="nameP3">ĐỘI LAM</div>
-            <div class="score-container">
-                <div id="buzzerL3" class="buzzer-arrow left">
-                    <svg viewBox="0 0 44 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
-                        <polygon points="4,4 4,40 40,22" fill="#ffffff" />
-                    </svg>
-                </div>
-                <div class="number-text" id="scoreP3">0</div>
-                <div id="buzzerR3" class="buzzer-arrow right">
-                    <svg viewBox="0 0 44 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
-                        <polygon points="40,4 40,40 4,22" fill="#ffffff" />
-                    </svg>
-                </div>
+            <div id="buzzerL3" class="buzzer-arrow left">
+                <svg viewBox="0 0 44 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="4,4 4,40 40,22" fill="#ffffff" />
+                </svg>
             </div>
+            <div id="buzzerR3" class="buzzer-arrow right">
+                <svg viewBox="0 0 44 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="40,4 40,40 4,22" fill="#ffffff" />
+                </svg>
+            </div>
+            <div class="team-title" id="nameP3">ĐỘI LAM</div>
+            <div class="number-text" id="scoreP3">0</div>
         </div>
     </div>
 

@@ -103,13 +103,6 @@
             transform: scale(1.08);
         }
 
-        .score-container {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
         .buzzer-arrow {
             position: absolute;
             top: 50%;
@@ -126,11 +119,11 @@
         }
 
         .buzzer-arrow.left {
-            right: calc(100% + 20px);
+            left: 28px;
         }
 
         .buzzer-arrow.right {
-            left: calc(100% + 20px);
+            right: 28px;
         }
 
         .buzzer-arrow.active {
@@ -171,21 +164,21 @@
     <!-- LỚP NỀN CỐ ĐỊNH CHỐNG MẤT MÀU KHI ADD VÀO OBS STUDIO BROWSER SOURCE -->
     <div id="scoreboardBgLayer" class="scoreboard-bg-layer" style="background-color: #f2a900 !important; background: #f2a900 !important;"></div>
 
+    <!-- 2 MŨI TÊN Ở 2 CẠNH BÊN SCOREBOARD -->
+    <div id="buzzerArrowLeft" class="buzzer-arrow left" aria-hidden="true">
+        <svg viewBox="0 0 44 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="4,4 4,40 40,22" fill="#ffffff" />
+        </svg>
+    </div>
+    <div id="buzzerArrowRight" class="buzzer-arrow right" aria-hidden="true">
+        <svg viewBox="0 0 44 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="40,4 40,40 4,22" fill="#ffffff" />
+        </svg>
+    </div>
+
     <main class="flex flex-col items-center justify-center w-full h-full select-none relative" style="position: relative; z-index: 10;">
         <div id="teamName" class="team-title">ĐỘI VÀNG</div>
-        <div class="score-container">
-            <div id="buzzerArrowLeft" class="buzzer-arrow left" aria-hidden="true">
-                <svg viewBox="0 0 44 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
-                    <polygon points="4,4 4,40 40,22" fill="#ffffff" />
-                </svg>
-            </div>
-            <h1 id="scoreValue" class="number-text">0</h1>
-            <div id="buzzerArrowRight" class="buzzer-arrow right" aria-hidden="true">
-                <svg viewBox="0 0 44 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
-                    <polygon points="40,4 40,40 4,22" fill="#ffffff" />
-                </svg>
-            </div>
-        </div>
+        <h1 id="scoreValue" class="number-text">0</h1>
     </main>
 
     <script>
@@ -315,11 +308,6 @@
                     fallback.play().catch(() => {});
                 });
             } catch(e) {}
-
-            if (buzzerResetTimer) clearTimeout(buzzerResetTimer);
-            buzzerResetTimer = setTimeout(() => {
-                clearBuzzerAlert();
-            }, 8000);
         }
 
         function clearBuzzerAlert() {
