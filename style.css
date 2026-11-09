@@ -295,7 +295,7 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
-    animation: buzzerSlowBlink 0.8s ease-in-out infinite;
+    animation: none;
 }
 
 .player-buzzer-icon .buzzer-symbol-img {
@@ -303,24 +303,11 @@ html, body {
     height: auto;
     object-fit: contain;
     mix-blend-mode: screen;
-    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 25px rgba(255, 255, 255, 0.7));
-}
-
-@keyframes buzzerSlowBlink {
-    0%, 100% {
-        opacity: 0.35;
-        transform: scale(0.92);
-        filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.15);
-        filter: drop-shadow(0 0 20px rgba(255, 255, 255, 1)) drop-shadow(0 0 35px rgba(255, 255, 255, 0.85));
-    }
+    filter: drop-shadow(0 0 14px rgba(255, 255, 255, 1)) drop-shadow(0 0 28px rgba(255, 255, 255, 0.85));
 }
 
 .player-box.buzzed-active {
-    animation: buzz-pulse 0.4s infinite alternate;
+    animation: none;
     border-radius: 12px;
     box-sizing: border-box;
 }
