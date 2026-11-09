@@ -103,9 +103,15 @@
             transform: scale(1.08);
         }
 
-        /* Ký hiệu bấm chuông dạng hình ảnh mũi tên đôi trên scoreboard */
+        .score-container {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .buzzer-arrow {
-            position: fixed;
+            position: absolute;
             top: 50%;
             transform: translateY(-50%);
             opacity: 0;
@@ -113,32 +119,30 @@
             pointer-events: none;
             user-select: none;
             z-index: 50;
-            transition: opacity 0.35s ease;
+            transition: opacity 0.25s ease;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
         .buzzer-arrow.left {
-            left: clamp(1rem, 4vw, 5rem);
+            right: calc(100% + 20px);
         }
 
         .buzzer-arrow.right {
-            right: clamp(1rem, 4vw, 5rem);
+            left: calc(100% + 20px);
         }
 
         .buzzer-arrow.active {
-            opacity: 1;
-            visibility: visible;
-            animation: none;
+            opacity: 1 !important;
+            visibility: visible !important;
+            animation: none !important;
         }
 
-        .buzzer-symbol-img {
-            width: clamp(75px, 12vw, 160px);
-            height: auto;
-            object-fit: contain;
-            mix-blend-mode: screen;
-            filter: drop-shadow(0 0 18px rgba(255, 255, 255, 1)) drop-shadow(0 0 38px rgba(255, 255, 255, 0.85));
+        .buzzer-svg {
+            width: min(20vw, 38vh);
+            height: min(20vw, 38vh);
+            filter: drop-shadow(0 0 16px #ffffff) drop-shadow(0 0 32px rgba(255, 255, 255, 0.95));
             pointer-events: none;
             user-select: none;
         }
@@ -167,21 +171,21 @@
     <!-- LỚP NỀN CỐ ĐỊNH CHỐNG MẤT MÀU KHI ADD VÀO OBS STUDIO BROWSER SOURCE -->
     <div id="scoreboardBgLayer" class="scoreboard-bg-layer" style="background-color: #f02828 !important; background: #f02828 !important;"></div>
 
-    <!-- 2 MŨI TÊN Ở 2 CẠNH BÊN SCOREBOARD -->
-    <div id="buzzerArrowLeft" class="buzzer-arrow left" aria-hidden="true">
-        <svg viewBox="0 0 60 44" class="buzzer-svg" width="90" height="50" xmlns="http://www.w3.org/2000/svg">
-            <polygon points="12,4 12,40 52,22" fill="#ffffff" />
-        </svg>
-    </div>
-    <div id="buzzerArrowRight" class="buzzer-arrow right" aria-hidden="true">
-        <svg viewBox="0 0 60 44" class="buzzer-svg" width="90" height="50" xmlns="http://www.w3.org/2000/svg">
-            <polygon points="48,4 48,40 8,22" fill="#ffffff" />
-        </svg>
-    </div>
-
     <main class="flex flex-col items-center justify-center w-full h-full select-none relative" style="position: relative; z-index: 10;">
         <div id="teamName" class="team-title">ĐỘI ĐỎ</div>
-        <h1 id="scoreValue" class="number-text">0</h1>
+        <div class="score-container">
+            <div id="buzzerArrowLeft" class="buzzer-arrow left" aria-hidden="true">
+                <svg viewBox="0 0 44 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="4,4 4,40 40,22" fill="#ffffff" />
+                </svg>
+            </div>
+            <h1 id="scoreValue" class="number-text">0</h1>
+            <div id="buzzerArrowRight" class="buzzer-arrow right" aria-hidden="true">
+                <svg viewBox="0 0 44 44" class="buzzer-svg" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="40,4 40,40 4,22" fill="#ffffff" />
+                </svg>
+            </div>
+        </div>
     </main>
 
     <script>
